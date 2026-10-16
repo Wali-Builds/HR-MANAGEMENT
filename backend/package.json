@@ -1,0 +1,49 @@
+{
+  "name": "hr-management-backend",
+  "version": "1.0.0",
+  "description": "Commercial multi-company HR management backend",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "db:test": "tsx src/database/test-connection.ts"
+  },
+  "keywords": [
+    "hrms",
+    "express",
+    "typescript",
+    "mariadb"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.6.0",
+    "file-type": "^22.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mariadb": "^3.4.5",
+    "multer": "^2.2.0",
+    "pino": "^9.7.0",
+    "pino-http": "^10.5.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^24.13.3",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

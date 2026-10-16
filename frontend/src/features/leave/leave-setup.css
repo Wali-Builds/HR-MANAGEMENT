@@ -1,0 +1,397 @@
+/* edited by wali: Match Company Admin leave setup to the existing workspace cards and teal actions. */
+.leave-setup {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+  color: #102a43;
+}
+
+.leave-setup__header,
+.leave-setup__step-heading,
+.leave-setup__catalog-row,
+.leave-setup__rule-row,
+.leave-setup__period-row,
+.leave-setup__policy-card,
+.leave-setup__apply {
+  display: flex;
+  align-items: center;
+}
+
+.leave-setup__header {
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.leave-setup__header h1 { margin: 5px 0; font-size: 28px; }
+.leave-setup__header p,
+.leave-setup__step-heading p,
+.leave-setup__apply p { margin: 0; color: #647b91; }
+.leave-setup__step {
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid #d8e3eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(17 52 77 / 4%);
+}
+.leave-setup__step.is-locked { background: #fbfcfd; }
+.leave-setup__step-heading { gap: 14px; margin-bottom: 20px; }
+.leave-setup__step-heading > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e8f5f5;
+  color: #117b86;
+  font-weight: 700;
+}
+.leave-setup__step-heading h2 { margin: 0 0 4px; font-size: 19px; }
+/* edited by wali: Match Configuration sections to the employee profile's clean, compact section cards. */
+.leave-setup--configuration .leave-setup__step { padding: 20px; border-color: #dce6eb; border-radius: 14px; box-shadow: 0 2px 8px rgb(32 55 71 / 4%); }
+.leave-setup--configuration .leave-setup__step-heading { gap: 12px; margin-bottom: 16px; }
+.leave-setup--configuration .leave-setup__step-heading h2 { color: #102a43; font-size: 17px; font-weight: 900; letter-spacing: -0.01em; -webkit-text-stroke: .25px currentColor; }
+.leave-setup--configuration .leave-setup__step-heading p { color: #71828d; font-size: 12px; }
+/* edited by wali: Tighten Configuration form spacing and field height while keeping labels easy to read. */
+.leave-setup--configuration .leave-setup__form { gap: 10px; }
+.leave-setup--configuration .leave-setup__form label { gap: 5px; font-size: 11.5px; }
+.leave-setup--configuration .leave-setup__form input:not([type="checkbox"]),
+.leave-setup--configuration .leave-setup__form select { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; }
+.leave-setup--configuration .leave-setup__form .leave-setup__check { min-height: 36px; gap: 6px; }
+.leave-setup--configuration .leave-setup__rule-edit input { min-height: 34px; padding: 6px 9px; font-size: 12.5px; }
+.leave-setup__form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) auto auto auto;
+  align-items: end;
+  gap: 14px;
+}
+.leave-setup__form--rule { grid-template-columns: minmax(220px, 1fr) minmax(180px, .7fr) auto; }
+.leave-setup__form--policy { grid-template-columns: repeat(4, minmax(130px, 1fr)) auto auto; }
+/* edited by wali: Align annual and quarterly selectors, dates, and create action in the setup form. */
+.leave-setup__form--period { grid-template-columns: repeat(5, minmax(100px, 1fr)) auto; }
+.leave-setup__form label { display: grid; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
+.leave-setup__form input:not([type="checkbox"]),
+.leave-setup__form select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid #ccd9e3;
+  border-radius: 9px;
+  background: white;
+  color: #173b54;
+  font: inherit;
+}
+.leave-setup__form input:focus,
+.leave-setup__form select:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
+.leave-setup__form input:disabled,
+.leave-setup__form select:disabled { background: #f0f3f5; cursor: not-allowed; }
+.leave-setup__form .leave-setup__check {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.leave-setup__check input { accent-color: #117f8b; }
+.leave-setup__button,
+.leave-setup__icon-button,
+.leave-setup__text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d4e0e8;
+  border-radius: 9px;
+  background: #fff;
+  color: #20435b;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.leave-setup__button { min-height: 42px; padding: 0 15px; white-space: nowrap; }
+.leave-setup__button--primary { border-color: #117b86; background: #117b86; color: white; }
+.leave-setup__button:disabled,
+.leave-setup__text-button:disabled { opacity: .55; cursor: not-allowed; }
+.leave-setup__icon-button { width: 42px; height: 42px; }
+.leave-setup__catalog,
+.leave-setup__rules,
+.leave-setup__policies,
+.leave-setup__periods { display: grid; gap: 8px; margin-top: 18px; }
+.leave-setup__catalog-row,
+.leave-setup__rule-row,
+.leave-setup__period-row,
+.leave-setup__policy-card {
+  gap: 13px;
+  min-height: 58px;
+  padding: 10px 13px;
+  border: 1px solid #e1e9ef;
+  border-radius: 10px;
+}
+.leave-setup__catalog-row > div,
+.leave-setup__rule-row > div,
+.leave-setup__period-row > div,
+.leave-setup__policy-card > span:first-child { display: grid; gap: 3px; flex: 1; }
+.leave-setup__catalog-row small,
+.leave-setup__rule-row small,
+.leave-setup__period-row small,
+.leave-setup__policy-card small { color: #71869a; }
+.leave-setup__type-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; }
+.leave-setup__badge { padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.leave-setup__badge.is-active { background: #e5f5ec; color: #167446; }
+.leave-setup__badge.is-inactive { background: #eef1f4; color: #67798a; }
+.leave-setup__text-button { padding: 7px 10px; border: 0; color: #31576f; }
+/* edited by wali: Keep entitlement editing compact and aligned with the existing rule row. */
+.leave-setup__rule-edit { display: flex; align-items: flex-end; gap: 9px; margin-top: 9px; }
+.leave-setup__rule-edit label { display: grid; flex: 1; gap: 6px; color: #27465f; font-size: 12px; font-weight: 650; }
+.leave-setup__rule-edit input { box-sizing: border-box; width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #ccd9e3; border-radius: 8px; color: #173b54; font: inherit; }
+.leave-setup__rule-edit input:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
+.leave-setup__rule-edit-actions { display: flex; gap: 7px; }
+.leave-setup__rule-edit-actions .leave-setup__button { min-height: 38px; padding: 0 11px; }
+/* edited by wali: Keep the policy edit action beside its selectable policy card. */
+.leave-setup__policy-row { display: flex; align-items: center; gap: 8px; }
+.leave-setup__policy-card { width: 100%; flex: 1; text-align: left; cursor: pointer; }
+.leave-setup__policy-card.is-selected { border-color: #178894; box-shadow: 0 0 0 2px rgb(23 136 148 / 10%); }
+.leave-setup__hint,
+.leave-setup__notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff8e9;
+  color: #805b13;
+}
+.leave-setup__hint { margin: 12px 0; }
+.leave-setup__hint--success,
+.leave-setup__notice--success { background: #eaf7f0; color: #17683f; }
+.leave-setup__notice--error { background: #fff0ef; color: #9b312a; }
+.leave-setup__notice { margin-bottom: 10px; }
+.leave-setup__apply { gap: 14px; margin-top: 18px; }
+.leave-setup__apply p { font-size: 13px; }
+.leave-setup__empty,
+.leave-setup__loading { margin: 17px 0 0; color: #71869a; }
+.leave-setup__loading { display: flex; align-items: center; gap: 8px; }
+.leave-employee__form { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+.leave-employee__full-row { grid-column: 1 / -1; }
+/* edited by wali: Align the employee's form close action above the request fields. */
+.leave-employee__form-close { display: flex; justify-content: flex-end; margin: -10px 0 14px; }
+/* edited by wali: Keep the employee balance control compact and view-only. */
+.leave-employee__header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.leave-employee__balances { width: min(100%, 720px); margin: -10px 0 18px auto; padding: 13px 16px; border: 1px solid #d8e3eb; border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgb(17 52 77 / 5%); }
+.leave-employee__balances-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; color: #27465f; font-size: 13px; }
+.leave-employee__balances-heading small,
+.leave-employee__balance-type small,
+.leave-employee__balance-row > span small { color: #71869a; font-size: 11px; }
+.leave-employee__balance-list { display: grid; }
+.leave-employee__balance-row { display: grid; grid-template-columns: minmax(150px, 1.4fr) repeat(3, minmax(90px, .7fr)); align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #edf1f4; }
+.leave-employee__balance-type,
+.leave-employee__balance-row > span { display: grid; gap: 3px; }
+.leave-employee__balance-type strong,
+.leave-employee__balance-row > span strong { color: #27465f; font-size: 12px; }
+.leave-employee__balance-row > .is-available strong { color: #117b86; }
+.leave-employee__balance-empty { margin: 8px 0 0; color: #647b91; font-size: 12px; }
+.leave-employee__combined-balance { margin: 8px 0 2px; color: #647b91; font-size: 12px; }
+.leave-employee__combined-balance strong { color: #117b86; }
+.leave-balances__combined { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin: 0; padding: 11px 20px; border-top: 1px solid #e3efee; background: #f1f9f8; color: #27465f; font-size: 12px !important; }
+.leave-balances__combined strong { color: #117b86; font-size: 13px; }
+.leave-employee__form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccd9e3;
+  border-radius: 9px;
+  color: #173b54;
+  font: inherit;
+  resize: vertical;
+}
+.leave-employee__form textarea:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
+.leave-employee__actions { display: flex; justify-content: flex-end; gap: 10px; }
+/* edited by wali: Match My requests to the employee profile's compact section cards. */
+.leave-employee__request-section { padding: 18px 20px; border-color: #dce6eb; border-radius: 14px; box-shadow: 0 2px 8px rgb(32 55 71 / 4%); }
+.leave-employee__request-section > .leave-setup__step-heading { margin-bottom: 14px; }
+.leave-employee__request-section .leave-setup__step-heading h2 { color: #17364a; font-size: 16px; font-weight: 800; }
+.leave-employee__request-section .leave-setup__step-heading p { color: #71828d; font-size: 13px; }
+.leave-employee__requests { display: grid; gap: 12px; }
+.leave-employee__request-card { padding: 14px 16px; border: 1px solid #dce6eb; border-radius: 12px; background: #fff; }
+.leave-employee__request-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.leave-employee__request-main > div { display: grid; gap: 5px; }
+.leave-employee__request-main strong { color: #17364a; font-size: 14px; font-weight: 750; }
+.leave-employee__request-main small { color: #71828d; font-size: 12px; }
+/* edited by wali: Group draft editing and submission actions consistently below each request. */
+.leave-employee__request-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 13px; }
+.leave-employee__status { text-transform: capitalize; }
+.leave-employee__status.status-pending { background: #fff2d9; color: #8a5a00; }
+.leave-employee__status.status-approved { background: #e5f5ec; color: #167446; }
+.leave-employee__status.status-rejected { background: #fff0ef; color: #9b312a; }
+.leave-employee__status.status-draft { background: #eef1f4; color: #5b6d7d; }
+.leave-employee__status.status-cancelled,
+.leave-employee__status.status-withdrawn { background: #eef1f4; color: #67798a; }
+.leave-employee__remarks { margin: 12px 0 0; color: #647b91; font-size: 13px; }
+.leave-employee__request-card > .leave-setup__button { margin-top: 13px; }
+.leave-employee__spin { animation: leave-employee-spin 1s linear infinite; }
+@keyframes leave-employee-spin { to { transform: rotate(360deg); } }
+/* edited by wali: Tighten the employee Leave page spacing beneath the top bar and between sections. */
+.page-stack.leave-employee { gap: 12px; padding-top: 14px; }
+.leave-employee .leave-setup__header { margin-bottom: 0; }
+.leave-employee > .leave-setup__step { margin-top: 0; }
+/* edited by wali: Style the Company Admin balance initializer and keep it responsive. */
+.leave-setup__form--balance { grid-template-columns: repeat(3, minmax(150px, 1fr)) auto; }
+.leave-setup__balance-remarks { grid-column: span 2; }
+.leave-setup__balance-preview { margin: 13px 0 0; color: #647b91; }
+
+/* edited by wali: Match the Company Admin request inbox to the established Leave workspace cards. */
+.leave-admin__toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.leave-admin__toolbar h2 { margin: 0 0 4px; font-size: 19px; }
+.leave-admin__toolbar p { margin: 0; color: #647b91; }
+.leave-admin__filters, .leave-admin__actions { display: flex; align-items: center; gap: 9px; }
+.leave-admin__pagination { display: flex; justify-content: flex-end; align-items: center; gap: 9px; margin-top: 4px; color: #647b91; font-size: 13px; }
+.leave-admin__list { display: grid; gap: 14px; }
+.leave-admin__card { padding: 20px 22px; border: 1px solid #d8e3eb; border-radius: 15px; background: #fff; box-shadow: 0 8px 24px rgb(17 52 77 / 4%); }
+.leave-admin__card-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.leave-admin__card-head > div { display: grid; gap: 4px; }
+.leave-admin__employee { color: #102a43; font-size: 17px; font-weight: 700; }
+.leave-admin__card small { color: #71869a; }
+.leave-admin__status { padding: 5px 10px; border-radius: 999px; background: #eef1f4; color: #586b7b; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+.leave-admin__status--pending { background: #fff2d9; color: #8a5a00; }
+.leave-admin__status--approved { background: #e5f5ec; color: #167446; }
+.leave-admin__status--rejected { background: #fff0ef; color: #9b312a; }
+.leave-admin__summary { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 14px; margin-top: 18px; padding: 14px; border-radius: 10px; background: #f7fafb; }
+.leave-admin__summary > div { display: grid; gap: 4px; }
+.leave-admin__summary strong { color: #27465f; font-size: 14px; }
+.leave-admin__reason { margin: 15px 0 0; color: #38566d; white-space: pre-wrap; }
+.leave-admin__approval-note { margin: 12px 0 0; color: #647b91; font-size: 13px; }
+.leave-admin__actions { justify-content: flex-end; margin-top: 18px; }
+.leave-admin__reject { border-color: #e8c4c1; color: #9b312a; }
+.leave-admin__reject-form { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-end; gap: 9px; width: 100%; }
+.leave-admin__reject-form label { display: grid; flex: 1 1 100%; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
+.leave-admin__reject-form textarea { box-sizing: border-box; width: 100%; min-height: 76px; padding: 10px 12px; border: 1px solid #ccd9e3; border-radius: 9px; font: inherit; resize: vertical; }
+.leave-admin__empty { display: grid; justify-items: center; gap: 8px; color: #71869a; }
+.leave-admin__empty strong { color: #27465f; }
+.leave-admin__empty p { margin: 0; }
+.leave-admin__spin { animation: leave-employee-spin 1s linear infinite; color: #117b86; }
+
+/* edited by wali: Keep the Company Admin balance overview consistent with the existing Leave workspace cards. */
+/* edited by wali: Compact the balances heading and summary cards by tightening their vertical and internal spacing. */
+.page-stack.leave-balances { gap: 12px; padding-top: 14px; }
+.leave-balances .leave-setup__header { margin-bottom: 0; }
+.leave-balances__summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.leave-balances__summary-card { display: flex; align-items: center; gap: 8px; padding: 12px; border: 1px solid #d8e3eb; border-radius: 14px; background: #fff; }
+.leave-balances__summary-card > span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #e8f5f5; color: #117b86; }
+.leave-balances__summary-card div { display: grid; gap: 1px; }
+.leave-balances__summary-card small { color: #647b91; }
+.leave-balances__summary-card strong { color: #102a43; font-size: 21px; }
+
+/* edited by wali: Bring Requests and Configuration closer to the Leave top bar and tighten their section rhythm. */
+.page-stack.leave-setup--configuration,
+.page-stack.leave-setup--requests { gap: 12px; padding-top: 14px; }
+.leave-setup--configuration .leave-setup__header,
+.leave-setup--requests .leave-setup__header { margin-bottom: 0; }
+.leave-setup--configuration > .leave-setup__step,
+.leave-setup--requests > .leave-setup__step { margin-top: 0; }
+/* edited by wali: Slightly reduce text size across Company Admin Leave pages for a denser view. */
+.leave-setup--configuration .leave-setup__header h1,
+.leave-setup--requests .leave-setup__header h1,
+.leave-balances .leave-setup__header h1 { font-size: 25px; }
+.leave-setup--configuration .leave-setup__header p,
+.leave-setup--requests .leave-setup__header p,
+.leave-balances .leave-setup__header p { font-size: 14px; }
+.leave-setup--requests .leave-admin__toolbar h2 { font-size: 17px; }
+.leave-setup--requests .leave-admin__toolbar p { font-size: 12px; }
+.leave-setup--requests .leave-admin__card { font-size: 13px; }
+.leave-setup--requests .leave-admin__employee { font-size: 15px; }
+.leave-setup--requests .leave-admin__status { font-size: 11px; }
+.leave-setup--requests .leave-admin__summary { gap: 10px; padding: 12px; }
+.leave-setup--requests .leave-admin__summary strong { font-size: 13px; }
+.leave-setup--requests .leave-admin__approval-note { font-size: 12px; }
+.leave-setup--configuration .leave-setup__button,
+.leave-setup--requests .leave-setup__button,
+.leave-balances .leave-setup__button { font-size: 13px; }
+.leave-setup--configuration .leave-setup__text-button,
+.leave-balances .leave-setup__text-button { font-size: 12px; }
+.leave-balances__summary-card small { font-size: 12px; }
+.leave-balances__summary-card strong { font-size: 19px; }
+.leave-balances__toolbar label { font-size: 12px; }
+.leave-balances__toolbar input,
+.leave-balances__toolbar select { min-height: 38px; padding: 7px 10px; font-size: 12px; }
+.leave-balances__employee > header { padding: 14px 17px; }
+.leave-balances__employee > header strong { font-size: 15px; }
+.leave-balances__employee > header span { font-size: 12px; }
+.leave-balances__table th,
+.leave-balances__table td { padding: 11px 13px; font-size: 12px; }
+.leave-balances__table th { font-size: 10px; }
+.leave-balances__toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(190px, .7fr) minmax(190px, .7fr); align-items: end; gap: 14px; }
+.leave-balances__toolbar label { display: grid; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
+.leave-balances__toolbar input,
+.leave-balances__toolbar select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid #ccd9e3; border-radius: 9px; background: white; color: #173b54; font: inherit; }
+.leave-balances__search > div { position: relative; }
+.leave-balances__search svg { position: absolute; top: 13px; left: 12px; color: #71869a; }
+.leave-balances__search input { padding-left: 36px; }
+.leave-balances__employees { display: grid; gap: 14px; }
+.leave-balances__employee { min-width: 0; overflow: hidden; border: 1px solid #d8e3eb; border-radius: 15px; background: #fff; box-shadow: 0 8px 24px rgb(17 52 77 / 4%); }
+.leave-balances__employee > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 20px; border-bottom: 1px solid #e7eef3; }
+.leave-balances__employee > header > div { display: grid; gap: 4px; }
+.leave-balances__employee > header strong { color: #102a43; font-size: 16px; }
+.leave-balances__employee > header span { color: #647b91; font-size: 13px; }
+.leave-balances__status { flex: none; padding: 5px 10px; border-radius: 999px; font-size: 12px !important; font-weight: 700; }
+.leave-balances__status.is-ready { background: #e9f7ef; color: #147847; }
+.leave-balances__status.is-missing { background: #fff4df; color: #8b5b00; }
+.leave-balances__table-wrap { overflow-x: auto; }
+.leave-balances__table { width: 100%; min-width: 900px; border-collapse: collapse; text-align: left; }
+.leave-balances__table th,
+.leave-balances__table td { padding: 13px 16px; border-bottom: 1px solid #edf1f4; color: #27465f; font-size: 13px; white-space: nowrap; }
+.leave-balances__table th { color: #117b86;font-weight: bolder; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.leave-balances__table th:first-child,
+.leave-balances__table td:first-child { min-width: 190px; white-space: normal; }
+.leave-balances__table td:first-child strong,
+.leave-balances__table td:first-child small { display: block; }
+.leave-balances__table td:first-child small { margin-top: 4px; color: #71869a; }
+.leave-balances__table td:first-child .leave-balances__warning { color: #a45d00; font-weight: 650; }
+.leave-balances__table tr:last-child td { border-bottom: 0; }
+.leave-balances__table td:last-child { color: #1698a6; }
+.leave-balances__no-balance,
+.leave-balances__count { margin: 0; padding: 14px 20px; color: #647b91; font-size: 13px; }
+.leave-balances__empty { display: grid; justify-items: center; gap: 8px; color: #71869a; }
+.leave-balances__empty strong { color: #27465f; }
+.leave-balances__empty p { margin: 0; }
+
+@media (max-width: 1050px) {
+  .leave-setup__form { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  .leave-setup__form--rule { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  .leave-setup__form--policy,
+  .leave-setup__form--period,
+  .leave-setup__form--balance,
+  .leave-balances__toolbar { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+}
+@media (max-width: 640px) {
+  .leave-setup { padding: 20px 14px 36px; }
+  .leave-setup__step { padding: 18px 14px; }
+  .leave-setup--configuration .leave-setup__step { padding: 18px 14px; }
+  .leave-setup__form,
+  .leave-setup__form--rule,
+  .leave-setup__form--policy,
+  .leave-setup__form--period,
+  .leave-setup__form--balance,
+  .leave-balances__toolbar,
+  .leave-balances__summary { grid-template-columns: 1fr; }
+  .leave-setup__balance-remarks { grid-column: auto; }
+  .leave-employee__form { grid-template-columns: 1fr; }
+  .leave-employee__balances { margin: 0 0 16px; }
+  .leave-employee__balances-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .leave-employee__balance-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .leave-employee__balance-type { grid-column: 1 / -1; }
+  .leave-employee__header-actions { width: 100%; }
+  .leave-balances__combined { align-items: flex-start; justify-content: flex-start; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .leave-admin__toolbar { align-items: flex-start; flex-direction: column; }
+  .leave-admin__summary { grid-template-columns: 1fr; }
+  .leave-setup__catalog-row,
+  .leave-setup__rule-row,
+  .leave-setup__period-row { flex-wrap: wrap; }
+  .leave-setup__rule-edit { align-items: stretch; flex-direction: column; }
+  .leave-setup__catalog-row > div,
+  .leave-setup__rule-row > div,
+  .leave-setup__period-row > div { min-width: 60%; }
+  .leave-setup__apply { align-items: flex-start; flex-direction: column; }
+}

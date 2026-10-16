@@ -1,0 +1,116 @@
+import { Check, ChevronDown, Search } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import "./EmployeeMenuSelect.css";
+
+export interface EmployeeSelectOption {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  value: string;
+  options: EmployeeSelectOption[];
+  placeholder: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  searchable?: boolean;
+  ariaLabel?: string;
+  className?: string;
+  allowClear?: boolean;
+}
+
+export function EmployeeMenuSelect({ value, options, placeholder, onChange, disabled, searchable, ariaLabel, className, allowClear = true }: Props) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const selected = options.find((option) => option.value === value);
+  const visibleOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const menuOptions = allowClear ? [{ value: "", label: placeholder }, ...options] : options;
+    return normalizedQuery
+      ? menuOptions.filter((option) => option.value && option.label.toLocaleLowerCase().includes(normalizedQuery))
+      : menuOptions;
+  }, [allowClear, options, placeholder, query]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setIsOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    searchRef.current?.focus();
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null);
+      return;
+    }
+    const updatePosition = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (rect) setMenuPosition({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className={`emp-menu-select${className ? ` ${className}` : ""}${isOpen ? " is-open" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="emp-menu-select__trigger"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        disabled={disabled}
+        onClick={() => { setQuery(""); setIsOpen((current) => !current); }}
+      >
+        <span className={selected ? "" : "is-placeholder"}>{selected?.label ?? placeholder}</span>
+        <ChevronDown size={15} aria-hidden="true" />
+      </button>
+      {isOpen && menuPosition ? createPortal(
+        <div
+          className="emp-menu-select__menu"
+          ref={menuRef}
+          style={{ position: "fixed", inset: "auto", top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, zIndex: 2000 }}
+        >
+          {searchable ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search countries" /></div> : null}
+          <div className="emp-menu-select__options" role="listbox">
+            {visibleOptions.map((option) => (
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === option.value}
+                className="emp-menu-select__option"
+                key={option.value}
+                onClick={() => { onChange(option.value); setIsOpen(false); setQuery(""); }}
+              >
+                <span>{option.label}</span>{value === option.value ? <Check size={15} /> : null}
+              </button>
+            ))}
+            {visibleOptions.length === 0 ? <span className="emp-menu-select__empty">No matching countries</span> : null}
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+    </div>
+  );
+}

@@ -1,0 +1,19 @@
+.wf-org-status.is-planned {
+  color: #175cd3;
+  background: #eff8ff;
+}
+
+.wf-org-status.is-on_hold {
+  color: #b54708;
+  background: #fff6ed;
+}
+
+.wf-org-status.is-completed {
+  color: #067647;
+  background: #ecfdf3;
+}
+
+.wf-org-status.is-cancelled {
+  color: #b42318;
+  background: #fef3f2;
+}

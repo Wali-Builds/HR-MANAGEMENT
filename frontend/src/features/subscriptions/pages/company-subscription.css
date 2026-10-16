@@ -1,0 +1,48 @@
+/* edited by wali: Style the company subscription page with the HR workspace theme. */
+.my-subscription{width:min(1250px,100%);margin:0 auto;color:var(--ink)}
+.my-subscription__header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:22px;color:var(--primary)}
+.my-subscription__header h1{margin:4px 0 7px;color:var(--ink);font-size:clamp(24px,3vw,32px);letter-spacing:-.035em}
+.my-subscription__header p{margin:0;color:var(--muted);font-size:13px}
+.my-subscription__eyebrow{color:var(--primary);font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.my-subscription__current{padding:17px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-sm)}
+.my-subscription__current div,.my-subscription__current span{display:grid;gap:4px}
+.my-subscription__current div>span{color:var(--muted);font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.06em}
+.my-subscription__current strong{font-size:17px}
+.my-subscription__current small{color:var(--muted);font-size:11px}
+.my-subscription__active{padding:6px 10px;color:#176a4d;background:#edf8f2;border-radius:99px;font-size:10px;font-weight:800}
+.my-subscription__active i{width:7px;height:7px;display:inline-block;margin-right:6px;background:#319267;border-radius:50%}
+/* edited by wali: Distinguish cancelled status and style the company cancellation action. */
+.my-subscription__active--inactive{color:#8a4b25;background:#fff4e9}
+.my-subscription__active--inactive i{background:#cb7841}
+.my-subscription__current .my-subscription__current-actions{display:flex;align-items:center;gap:10px}
+.my-subscription__cancel{min-height:32px;padding:0 10px;display:flex;align-items:center;gap:6px;color:#9b3e3a;background:#fff;border:1px solid #e8c7c4;border-radius:7px;font-size:10px;font-weight:750;cursor:pointer}
+.my-subscription__cancel:disabled{cursor:wait;opacity:.6}
+.my-subscription__catalog{padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm)}
+.my-subscription__catalog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.my-subscription__catalog-head h2{margin:0;font-size:17px}.my-subscription__catalog-head p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.my-subscription__cycle{padding:3px;display:flex;background:#f1f5f6;border:1px solid var(--line);border-radius:9px}
+.my-subscription__cycle button{padding:7px 11px;color:#5f6e79;background:transparent;border:0;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
+.my-subscription__cycle button.is-selected{color:var(--primary-dark);background:#fff;box-shadow:0 1px 4px #142d3a1a}
+.my-subscription__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.my-subscription__plan{padding:17px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:12px}
+.my-subscription__plan.is-current{border-color:#58a7a8;box-shadow:0 0 0 2px #0f6d7a12}
+.my-subscription__plan-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.my-subscription__plan-top>span{color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.07em}
+.my-subscription__plan-top b{display:flex;align-items:center;gap:4px;color:#176a4d;font-size:9px}
+.my-subscription__plan h3{margin:12px 0 5px;font-size:17px}
+.my-subscription__plan>p{min-height:34px;margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.5}
+.my-subscription__price{color:var(--ink);font-size:23px;letter-spacing:-.03em}
+.my-subscription__price small{color:var(--muted);font-size:10px;font-weight:500;letter-spacing:0}
+.my-subscription__limits{margin:14px 0;display:grid;gap:7px;color:#526574;font-size:10px}
+.my-subscription__limits span:before{content:"";width:6px;height:6px;display:inline-block;margin:0 8px 1px 0;background:var(--primary);border-radius:50%}
+.my-subscription__trial{margin:0 0 10px;color:#946817;font-size:10px;line-height:1.4}
+.my-subscription__plan>button{min-height:37px;margin-top:auto;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:7px;color:#fff;background:var(--primary);border:0;border-radius:8px;font-size:11px;font-weight:750;cursor:pointer}
+.my-subscription__plan>button:disabled{cursor:not-allowed;opacity:.55}
+.my-subscription__state{min-height:115px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted);font-size:12px}
+.my-subscription__state--error{flex-direction:column;color:#a23f39}
+.my-subscription__state button{display:flex;align-items:center;gap:6px;padding:7px 10px;color:var(--primary-dark);background:#fff;border:1px solid var(--line);border-radius:7px;cursor:pointer}
+.my-subscription__permission,.my-subscription__payment-note{margin:13px 2px 0;color:var(--muted);font-size:10px;line-height:1.5}
+.my-subscription__spin{animation:my-subscription-spin 1s linear infinite}
+.my-subscription__notice{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--muted)}
+@keyframes my-subscription-spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.my-subscription__catalog{padding:14px}.my-subscription__catalog-head{align-items:flex-start;flex-direction:column}.my-subscription__header{align-items:flex-start}.my-subscription__current{align-items:flex-start;flex-direction:column}.my-subscription__current .my-subscription__current-actions{align-items:flex-start;flex-direction:column}}

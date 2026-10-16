@@ -1,0 +1,146 @@
+import { useDeferredValue, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { Building2, CalendarDays, CircleDot, Edit3, FolderKanban, Network, Plus, RefreshCw, Search, UsersRound } from "lucide-react";
+import { toast } from "sonner";
+import { normalizeApiError } from "../../../api/api-error";
+import { useAuthStore } from "../../../app/store/auth.store";
+import { listEmployeesRequest } from "../../employees/api/employee.api";
+import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
+import { useOrganisationReferences } from "../../organisation/hooks/useOrganisation";
+import { OrganisationDialog } from "../../organisation/components/OrganisationDialog";
+import { OrganisationEmptyState } from "../../organisation/components/OrganisationEmptyState";
+import { OrganisationField, TextAreaInput, TextInput } from "../../organisation/components/OrganisationField";
+import { useQuery } from "@tanstack/react-query";
+import "../projects.css";
+import { useCreateProject, useProjects, useUpdateProject } from "../hooks/useProjects";
+import { PROJECT_STATUSES, type Project, type ProjectInput, type ProjectStatus } from "../types/project.types";
+import { projectFormSchema, type ProjectFormValues } from "../schemas/project.schema";
+
+const today = () => new Date().toISOString().slice(0, 10);
+const emptyForm: ProjectFormValues = {
+  branchId: "", departmentId: "", projectCode: "", projectName: "", clientName: "", description: "",
+  projectManagerEmployeeId: "", startDate: today(), endDate: "", budgetAmount: "", currencyCode: "PKR", isBillable: false, projectStatus: "PLANNED",
+};
+const statusLabels: Record<ProjectStatus, string> = { PLANNED: "Planned", ACTIVE: "Active", ON_HOLD: "On hold", COMPLETED: "Completed", CANCELLED: "Cancelled" };
+
+function toForm(project: Project): ProjectFormValues {
+  return {
+    branchId: project.branchId ?? "", departmentId: project.departmentId ?? "", projectManagerEmployeeId: project.projectManagerEmployeeId ?? "",
+    projectCode: project.projectCode, projectName: project.projectName, clientName: project.clientName ?? "", description: project.description ?? "",
+    startDate: project.startDate, endDate: project.endDate ?? "", budgetAmount: project.budgetAmount == null ? "" : String(project.budgetAmount),
+    currencyCode: project.currencyCode, isBillable: project.isBillable, projectStatus: project.projectStatus,
+  };
+}
+
+function displayDate(value: string | null) {
+  if (!value) return "No end date";
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+export function ProjectsPage() {
+  const user = useAuthStore((state) => state.user);
+  const companyId = user?.companyId ?? undefined;
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ProjectStatus | "ALL">("ALL");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [form, setForm] = useState<ProjectFormValues>(emptyForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const deferredSearch = useDeferredValue(search.trim());
+  const params = useMemo(() => ({ ...(deferredSearch ? { search: deferredSearch } : {}), ...(status !== "ALL" ? { projectStatus: status } : {}) }), [deferredSearch, status]);
+  const query = useProjects(params, Boolean(companyId));
+  const references = useOrganisationReferences(companyId, Boolean(companyId));
+  const managersQuery = useQuery({
+    queryKey: ["projects", "managers", companyId],
+    queryFn: () => listEmployeesRequest({ page: 1, limit: 100, sortBy: "first_name", sortOrder: "ASC", isActive: true, ...(companyId ? { companyId } : {}) }),
+    enabled: Boolean(companyId), staleTime: 120_000,
+  });
+  const createMutation = useCreateProject();
+  const updateMutation = useUpdateProject();
+  const projects = query.data ?? [];
+  const managerialDesignationIds = new Set(references.designations.filter((item) => item.isManagerial).map((item) => item.designationId));
+  const managers = (managersQuery.data?.employees ?? []).filter((employee) =>
+    Boolean(
+      employee.assignment.designationId && managerialDesignationIds.has(employee.assignment.designationId) &&
+      (!form.branchId || employee.assignment.branchId === form.branchId) &&
+      (!form.departmentId || employee.assignment.departmentId === form.departmentId),
+    ),
+  );
+  const busy = createMutation.isPending || updateMutation.isPending;
+
+  function setField<K extends keyof ProjectFormValues>(key: K, value: ProjectFormValues[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function openCreate() { setEditing(null); setErrors({}); setForm({ ...emptyForm, startDate: today() }); setDialogOpen(true); }
+  function openEdit(project: Project) { setEditing(project); setErrors({}); setForm(toForm(project)); setDialogOpen(true); }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsed = projectFormSchema.safeParse(form);
+    if (!parsed.success) {
+      const nextErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && !nextErrors[field]) nextErrors[field] = issue.message;
+      }
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    if (!companyId) { toast.error("Your account is not linked to a company."); return; }
+    const values = parsed.data;
+    const input: ProjectInput = {
+      ...(!editing ? { companyId } : {}), branchId: values.branchId || null, departmentId: values.departmentId || null,
+      projectManagerEmployeeId: values.projectManagerEmployeeId || null, projectCode: values.projectCode.toUpperCase(), projectName: values.projectName,
+      clientName: values.clientName.trim() || null, description: values.description.trim() || null, startDate: values.startDate,
+      endDate: values.endDate || null, budgetAmount: values.budgetAmount.trim() ? Number(values.budgetAmount) : null,
+      currencyCode: values.currencyCode.toUpperCase(), isBillable: values.isBillable, projectStatus: values.projectStatus,
+    };
+    try {
+      if (editing) { const update = { ...input }; delete update.companyId; await updateMutation.mutateAsync({ projectId: editing.projectId, input: update }); toast.success("Project updated."); }
+      else { await createMutation.mutateAsync(input); toast.success("Project created."); }
+      setDialogOpen(false); setEditing(null);
+    } catch (error) { toast.error(normalizeApiError(error).message); }
+  }
+
+  const total = projects.length;
+  return (
+    <section className="wf-org-page">
+      <header className="wf-org-hero">
+        <div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow"><FolderKanban size={14} /> Project operations</span><h1>Projects</h1><p>Manage company projects and assign employees to active work in their departments.</p></div>
+        <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Building2 size={20} /></div><div><span>Working company</span><strong>{user?.companyId ? `Company ${user.companyId}` : "Your company"}</strong></div></div>
+      </header>
+      <div className="wf-org-health-strip"><div><span><FolderKanban size={16} /></span><strong>{total}</strong><small>Projects shown</small></div><div><span><CircleDot size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "ACTIVE").length}</strong><small>Active</small></div><div><span><CalendarDays size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "PLANNED").length}</strong><small>Planned</small></div><div><span><UsersRound size={16} /></span><strong>{projects.filter((item) => item.projectManagerEmployeeId).length}</strong><small>With manager</small></div></div>
+
+      <section className="wf-org-resource">
+        <header className="wf-org-resource-toolbar"><div className="wf-org-resource-toolbar__heading"><div><span>Project master data</span><h2>Company projects</h2><p>Projects are visible only within your company.</p></div><button type="button" className="wf-org-button wf-org-button--primary" onClick={openCreate}><Plus size={16} /> New project</button></div><div className="wf-org-resource-toolbar__tools"><label className="wf-org-search"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search projects" /></label><EmployeeMenuSelect className="wf-org-menu-select" value={status} placeholder="All statuses" options={[{ value: "ALL", label: "All statuses" }, ...PROJECT_STATUSES.map((value) => ({ value, label: statusLabels[value] }))]} onChange={(value) => setStatus(value as ProjectStatus | "ALL")} allowClear={false} /><div className="wf-org-resource-toolbar__pager"><span>{total} projects</span><button type="button" title="Refresh" aria-label="Refresh" onClick={() => void query.refetch()}><RefreshCw className={query.isFetching ? "spin" : ""} size={15} /></button></div></div></header>
+        {query.isLoading ? <div className="wf-org-table-skeleton">Loading projects…</div> : query.isError ? <OrganisationEmptyState title="Projects could not be loaded" description="Check your connection and try again." error={normalizeApiError(query.error).message} canCreate={false} onCreate={openCreate} onRetry={() => void query.refetch()} /> : projects.length === 0 ? <OrganisationEmptyState title={search || status !== "ALL" ? "No matching projects" : "No projects yet"} description={search || status !== "ALL" ? "Try another search or status." : "Create a project to make it available for project-based assignments."} canCreate onCreate={openCreate} onRetry={() => void query.refetch()} /> : (
+          <div className="wf-org-table-wrap"><table className="wf-org-table"><thead><tr><th>Project</th><th>Organisation</th><th>Dates</th><th>Budget</th><th>Status</th><th aria-label="Actions" /></tr></thead><tbody>{projects.map((project) => {
+            const branch = references.branches.find((item) => item.branchId === project.branchId)?.branchName;
+            const department = references.departments.find((item) => item.departmentId === project.departmentId)?.departmentName;
+            return <tr key={project.projectId}><td><div className="wf-org-record-title"><span className="wf-org-record-icon"><FolderKanban size={17} /></span><div><strong>{project.projectName}</strong><small>{project.projectCode}{project.clientName ? ` · ${project.clientName}` : ""}</small></div></div></td><td><div className="wf-org-contact-lines"><span><Building2 size={13} /> {branch ?? "Company-wide"}</span><span><Network size={13} /> {department ?? "No department"}</span></div></td><td><div className="wf-org-contact-lines"><span>{displayDate(project.startDate)}</span><span>{displayDate(project.endDate)}</span></div></td><td>{project.budgetAmount == null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency: project.currencyCode, maximumFractionDigits: 2 }).format(project.budgetAmount)}</td><td><span className={`wf-org-status is-${project.projectStatus.toLowerCase()}`}><CircleDot size={11} /> {statusLabels[project.projectStatus]}</span></td><td><div className="wf-org-row-actions"><button type="button" onClick={() => openEdit(project)} title="Edit project"><Edit3 size={15} /></button></div></td></tr>;
+          })}</tbody></table></div>
+        )}
+      </section>
+
+      <OrganisationDialog open={dialogOpen} title={editing ? "Edit project" : "Create project"} subtitle="Set project ownership, department and timeline." submitLabel={editing ? "Save changes" : "Create project"} busy={busy} onClose={() => setDialogOpen(false)} onSubmit={submit}>
+        <div className="wf-org-form-grid">
+          <OrganisationField label="Project code" required error={errors.projectCode}><TextInput value={form.projectCode} maxLength={60} onChange={(event) => setField("projectCode", event.target.value.toUpperCase())} placeholder="PRJ-001" /></OrganisationField>
+          <OrganisationField label="Project name" required error={errors.projectName}><TextInput value={form.projectName} maxLength={250} onChange={(event) => setField("projectName", event.target.value)} placeholder="Project name" /></OrganisationField>
+          <OrganisationField label="Branch"><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Company-wide" options={references.branches.map((item) => ({ value: item.branchId, label: item.branchName }))} onChange={(value) => setForm((current) => ({ ...current, branchId: value, departmentId: "", projectManagerEmployeeId: "" }))} /></OrganisationField>
+          <OrganisationField label="Department"><EmployeeMenuSelect className="wf-org-menu-select" value={form.departmentId} placeholder="No department" options={references.departments.filter((item) => !form.branchId || !item.branchId || item.branchId === form.branchId).map((item) => ({ value: item.departmentId, label: item.departmentName }))} onChange={(value) => setForm((current) => ({ ...current, departmentId: value, projectManagerEmployeeId: "" }))} /></OrganisationField>
+          <OrganisationField label="Client"><TextInput value={form.clientName} maxLength={250} onChange={(event) => setField("clientName", event.target.value)} /></OrganisationField>
+          <OrganisationField label="Project manager"><EmployeeMenuSelect className="wf-org-menu-select" value={form.projectManagerEmployeeId} placeholder="No manager" options={managers.map((item) => ({ value: item.employeeId, label: `${item.fullName} · ${item.employeeCode}` }))} onChange={(value) => setField("projectManagerEmployeeId", value)} searchable /></OrganisationField>
+          <OrganisationField label="Start date" required error={errors.startDate}><TextInput type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} /></OrganisationField>
+          <OrganisationField label="End date" error={errors.endDate}><TextInput type="date" value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} /></OrganisationField>
+          <OrganisationField label="Budget" error={errors.budgetAmount}><TextInput type="number" min="0" step="0.01" value={form.budgetAmount} onChange={(event) => setField("budgetAmount", event.target.value)} placeholder="Optional" /></OrganisationField>
+          <OrganisationField label="Currency" error={errors.currencyCode}><TextInput value={form.currencyCode} maxLength={3} onChange={(event) => setField("currencyCode", event.target.value.toUpperCase())} /></OrganisationField>
+          <OrganisationField label="Status"><EmployeeMenuSelect className="wf-org-menu-select" value={form.projectStatus} placeholder="Select status" options={PROJECT_STATUSES.map((value) => ({ value, label: statusLabels[value] }))} onChange={(value) => setField("projectStatus", value as ProjectStatus)} allowClear={false} /></OrganisationField>
+          <OrganisationField label="Billable"><EmployeeMenuSelect className="wf-org-menu-select" value={form.isBillable ? "true" : "false"} placeholder="Select" options={[{ value: "false", label: "No" }, { value: "true", label: "Yes" }]} onChange={(value) => setField("isBillable", value === "true")} allowClear={false} /></OrganisationField>
+          <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(event) => setField("description", event.target.value)} /></OrganisationField>
+        </div>
+      </OrganisationDialog>
+    </section>
+  );
+}
