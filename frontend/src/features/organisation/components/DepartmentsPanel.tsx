@@ -141,6 +141,20 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function setBranchId(branchId: string) {
+    setForm((current) => {
+      const parent = references.departments.find(
+        (department) => department.departmentId === current.parentDepartmentId,
+      );
+      const parentFitsBranch = !parent?.branchId || parent.branchId === branchId;
+      return {
+        ...current,
+        branchId,
+        parentDepartmentId: parentFitsBranch ? current.parentDepartmentId : "",
+      };
+    });
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
@@ -267,8 +281,8 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
         <div className="wf-org-form-grid">
           <OrganisationField label="Department code" required error={errors.departmentCode}><TextInput value={form.departmentCode} onChange={(e) => setField("departmentCode", e.target.value)} placeholder="HR" /></OrganisationField>
           <OrganisationField label="Department name" required error={errors.departmentName}><TextInput value={form.departmentName} onChange={(e) => setField("departmentName", e.target.value)} placeholder="Human Resources" /></OrganisationField>
-          <OrganisationField label="Branch" hint="Leave empty for a company-wide department."><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Company-wide" options={references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={(value) => setField("branchId", value)} /></OrganisationField>
-          <OrganisationField label="Parent department" error={errors.parentDepartmentId}><EmployeeMenuSelect className="wf-org-menu-select" value={form.parentDepartmentId} placeholder="Root department" options={references.departments.filter((department) => department.departmentId !== editing?.departmentId).map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={(value) => setField("parentDepartmentId", value)} /></OrganisationField>
+          <OrganisationField label="Branch" hint="Leave empty for a company-wide department."><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Company-wide" options={references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={setBranchId} /></OrganisationField>
+          <OrganisationField label="Parent department" hint="Only company-wide departments and departments in the selected branch are available as parents." error={errors.parentDepartmentId}><EmployeeMenuSelect className="wf-org-menu-select" value={form.parentDepartmentId} placeholder="Root department" options={references.departments.filter((department) => department.departmentId !== editing?.departmentId && (!department.branchId || department.branchId === form.branchId)).map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={(value) => setField("parentDepartmentId", value)} /></OrganisationField>
           <OrganisationField label="Cost centre code"><TextInput value={form.costCenterCode} onChange={(e) => setField("costCenterCode", e.target.value)} placeholder="CC-HR-01" /></OrganisationField>
           <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(e) => setField("description", e.target.value)} /></OrganisationField>
           <label className="wf-org-check wf-org-check--wide"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active department</strong><small>Available for employee assignments and reporting.</small></span></label>

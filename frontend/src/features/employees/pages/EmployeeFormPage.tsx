@@ -172,7 +172,7 @@ export function EmployeeFormPage({ mode }: Props) {
   }
 
   return (
-    <form className="emp-form-page" onSubmit={handleSubmit(submit)} noValidate>
+    <form className="emp-form-page emp-form-page--access-ui" onSubmit={handleSubmit(submit)} noValidate>
       <header className="emp-record-toolbar">
         <div className="emp-record-toolbar__left">
           <button type="button" className="emp-back-button" onClick={discard}><ArrowLeft size={17} /></button>

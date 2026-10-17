@@ -581,3 +581,135 @@
   .emp-workspace--access-ui .emp-filter-grid { grid-template-columns: 1fr; }
   .emp-workspace--access-ui .emp-record-area { padding: 12px; }
 }
+
+/* Bring the employee create/edit form into the same workspace frame. */
+.emp-form-page--access-ui {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 96px);
+  margin: 0;
+  padding: 0 12px 12px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  color: #102a43;
+}
+
+.emp-form-page--access-ui .emp-record-toolbar {
+  min-height: 0;
+  padding: 18px 20px;
+  border: 1px solid #dce6ec;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(15, 109, 122, 0.12), transparent 30%),
+    linear-gradient(145deg, #ffffff, #f8fbfc);
+  box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
+}
+
+.emp-form-page--access-ui .emp-record-toolbar__left > div > span {
+  color: #0f6d7a;
+  font-size: 12px;
+  font-weight: 800;
+}
+.emp-form-page--access-ui .emp-record-toolbar h1 {
+  margin-top: 5px;
+  color: #102a3c;
+  font-size: 27px;
+  font-weight: 750;
+}
+.emp-form-page--access-ui .emp-back-button {
+  width: 40px;
+  height: 40px;
+  color: #117b86;
+  background: #e7f4f4;
+  border-color: #d1e8e8;
+  border-radius: 11px;
+}
+.emp-form-page--access-ui .emp-primary-action,
+.emp-form-page--access-ui .emp-secondary-action { min-height: 40px; font-size: 13px; font-weight: 800; }
+.emp-form-page--access-ui .emp-primary-action { background: #117b86; border-color: #117b86; box-shadow: none; }
+.emp-form-page--access-ui .emp-primary-action:hover:not(:disabled) { background: #0f6d7a; }
+
+.emp-form-page--access-ui .emp-form-page__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.emp-form-page--access-ui .emp-form-guide {
+  position: static;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  padding: 15px 18px;
+  color: #304859;
+  background: #fff;
+  border: 1px solid #dce6ec;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(15, 31, 51, 0.04);
+}
+.emp-form-page--access-ui .emp-form-guide__icon {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  color: #117b86;
+  background: #e7f4f4;
+  border: 0;
+  border-radius: 12px;
+}
+.emp-form-page--access-ui .emp-form-guide > span { grid-column: 2; color: #0f6d7a; font-size: 10px; opacity: 1; }
+.emp-form-page--access-ui .emp-form-guide h2 { grid-column: 2; margin: 3px 0; color: #203a4d; font-size: 17px; }
+.emp-form-page--access-ui .emp-form-guide p { grid-column: 2; max-width: 900px; color: #647887; font-size: 12px; line-height: 1.55; }
+.emp-form-page--access-ui .emp-form-guide__checklist {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-color: #e7edf1;
+}
+.emp-form-page--access-ui .emp-form-guide__checklist span { color: #4e6879; font-size: 12px; font-weight: 600; }
+.emp-form-page--access-ui .emp-form-guide__checklist svg { color: #16818b; }
+
+.emp-form-page--access-ui .emp-form-structure-wrap { min-width: 0; display: grid; gap: 10px; }
+.emp-form-page--access-ui .emp-structure-notice {
+  padding: 15px 18px;
+  background: #fff8e8;
+  border: 1px solid #f0dfb4;
+  border-radius: 14px;
+}
+.emp-form-page--access-ui .emp-form-sections { gap: 10px; }
+.emp-form-page--access-ui .emp-form-section { padding: 18px; border-color: #dce6ec; border-radius: 14px; box-shadow: 0 4px 18px rgba(15, 31, 51, 0.035); }
+.emp-form-page--access-ui .emp-form-section > header { margin-bottom: 15px; padding-bottom: 12px; }
+.emp-form-page--access-ui .emp-form-section > header > span { color: #117b86; background: #e7f4f4; }
+.emp-form-page--access-ui .emp-form-section h2 { color: #203a4d; font-size: 16px; font-weight: 700; }
+.emp-form-page--access-ui .emp-form-section p { color: #718391; font-size: 11px; }
+.emp-form-page--access-ui .emp-form-grid { gap: 15px; }
+.emp-form-page--access-ui .emp-field > span { color: #425b6b; font-size: 12px; font-weight: 750; }
+.emp-form-page--access-ui .emp-field input,
+.emp-form-page--access-ui .emp-field select,
+.emp-form-page--access-ui .emp-field textarea,
+.emp-form-page--access-ui .emp-field .emp-menu-select__trigger { min-height: 40px; font-size: 13px; }
+.emp-form-page--access-ui .emp-field textarea { padding: 10px; }
+.emp-form-page--access-ui .emp-field .emp-menu-select__trigger { font-weight: 500; }
+.emp-form-page--access-ui .emp-toggle-field { padding: 13px; background: #f7fafb; border-color: #dce6ec; border-radius: 10px; }
+.emp-form-page--access-ui .emp-toggle-field strong { color: #304859; font-size: 13px; }
+.emp-form-page--access-ui .emp-toggle-field small,
+.emp-form-page--access-ui .emp-field-error { font-size: 11px; }
+
+@media (max-width: 760px) {
+  .emp-form-page--access-ui { padding: 0 10px 10px; }
+  .emp-form-page--access-ui .emp-record-toolbar { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .emp-form-page--access-ui .emp-record-toolbar__actions { width: 100%; justify-content: flex-end; }
+  .emp-form-page--access-ui .emp-form-guide { grid-template-columns: 38px minmax(0, 1fr); padding: 14px; }
+  .emp-form-page--access-ui .emp-form-guide__icon { width: 36px; height: 36px; }
+  .emp-form-page--access-ui .emp-form-guide__checklist { gap: 8px 12px; }
+  .emp-form-page--access-ui .emp-form-section { padding: 14px; }
+}
