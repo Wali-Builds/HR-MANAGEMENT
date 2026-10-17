@@ -245,7 +245,7 @@ export function BranchesPanel({ companyId, canManage }: Props) {
   return (
     <section className="wf-org-resource">
       <OrganisationResourceToolbar
-        title="Branches"
+        title="Company Footprints"
         description="Manage head offices, regional offices and operational locations."
         search={search}
         total={pagination?.total ?? 0}

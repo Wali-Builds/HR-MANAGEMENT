@@ -1035,3 +1035,86 @@
         align-self: flex-start
     }
 }
+
+/* Align Access Control with the shared Projects and Organisation page header. */
+.roles-page.wf-org-page {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 12px 12px;
+}
+
+.roles-hero.wf-org-hero {
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 0;
+    padding: 18px 20px;
+    border: 1px solid #dce6ec;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 90% 10%, rgba(15, 109, 122, 0.12), transparent 30%),
+        linear-gradient(145deg, #ffffff, #f8fbfc);
+    box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
+}
+
+.roles-hero.wf-org-hero h1 {
+    margin: 5px 0;
+    color: #102a3c;
+    font-size: clamp(25px, 3vw, 32px);
+}
+
+.roles-hero.wf-org-hero p {
+    max-width: 680px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.roles-eyebrow.wf-org-hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #0f6d7a;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+}
+
+.roles-hero__create-button {
+    width: 150px;
+    min-height: 40px;
+    align-self: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #12838a, #0b6c78);
+    box-shadow: 0 6px 14px rgba(15, 109, 122, .2);
+}
+
+.roles-hero__create-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0f737b, #095b67);
+    box-shadow: 0 8px 18px rgba(15, 109, 122, .25);
+    transform: translateY(-1px);
+}
+
+.roles-summary {
+    gap: 12px;
+    margin: 14px 0;
+}
+
+.roles-summary article {
+    min-height: 64px;
+    padding: 9px 11px;
+    gap: 9px;
+    border-radius: 14px;
+}
+
+.roles-summary__icon {
+    width: 32px;
+    height: 32px;
+}
+
+.roles-summary strong { font-size: 18px; }
+.roles-summary small { font-size: 12px; }
+
+@media(max-width:700px) {
+    .roles-hero.wf-org-hero { align-items: stretch; }
+    .roles-hero__create-button { align-self: flex-start; }
+}

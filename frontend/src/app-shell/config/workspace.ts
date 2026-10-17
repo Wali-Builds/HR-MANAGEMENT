@@ -303,11 +303,11 @@ const moduleNavigation: Partial<
   ],
   // edited by wali: Route tenant administrators to their department workspace.
   departments: [
-    { label: "Departments", to: "/organisation/departments" },
+    { label: "Departments", to: "/employees/organisation/departments" },
   ],
   // edited by wali: Route tenant administrators to their branch workspace.
   branches: [
-    { label: "Branches", to: "/employees/organisation/branches" },
+    { label: "Company Footprints", to: "/employees/organisation/branches" },
   ],
   designations: [
     { label: "Designations", to: "/employees/organisation/designations" },

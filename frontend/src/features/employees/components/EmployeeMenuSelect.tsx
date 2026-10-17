@@ -15,12 +15,13 @@ interface Props {
   onChange: (value: string) => void;
   disabled?: boolean;
   searchable?: boolean;
+  searchPlaceholder?: string;
   ariaLabel?: string;
   className?: string;
   allowClear?: boolean;
 }
 
-export function EmployeeMenuSelect({ value, options, placeholder, onChange, disabled, searchable, ariaLabel, className, allowClear = true }: Props) {
+export function EmployeeMenuSelect({ value, options, placeholder, onChange, disabled, searchable, searchPlaceholder = "Search options", ariaLabel, className, allowClear = true }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,7 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
           ref={menuRef}
           style={{ position: "fixed", inset: "auto", top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, zIndex: 2000 }}
         >
-          {searchable ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search countries" /></div> : null}
+          {searchable ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} /></div> : null}
           <div className="emp-menu-select__options" role="listbox">
             {visibleOptions.map((option) => (
               <button

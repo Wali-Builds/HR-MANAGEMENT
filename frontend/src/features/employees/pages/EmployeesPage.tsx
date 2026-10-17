@@ -167,7 +167,7 @@ export function EmployeesPage() {
     : null;
 
   return (
-    <section className="emp-workspace">
+    <section className="emp-workspace emp-workspace--access-ui">
       <EmployeeWorkspaceToolbar
         search={search}
         sortBy={sortBy}

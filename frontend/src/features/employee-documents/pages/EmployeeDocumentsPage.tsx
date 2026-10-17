@@ -203,18 +203,25 @@ export function EmployeeDocumentsPage() {
     setSearchParams(next);
   }
 
-  async function upload(input: UploadEmployeeDocumentInput) {
-    if (!selectedEmployeeId) return;
+  async function upload(inputs: UploadEmployeeDocumentInput[]): Promise<number> {
+    if (!selectedEmployeeId) return 0;
+    let uploadedCount = 0;
     try {
-      await uploadMutation.mutateAsync({
-        employeeId: selectedEmployeeId,
-        input,
-      });
-      toast.success("Employee document uploaded");
-      setUploadOpen(false);
+      for (const input of inputs) {
+        await uploadMutation.mutateAsync({
+          employeeId: selectedEmployeeId,
+          input,
+        });
+        uploadedCount += 1;
+      }
+      toast.success(`${uploadedCount} employee document${uploadedCount === 1 ? "" : "s"} uploaded`);
     } catch (error) {
-      toast.error(normalizeApiError(error).message);
+      const message = normalizeApiError(error).message;
+      toast.error(uploadedCount > 0
+        ? `${uploadedCount} document${uploadedCount === 1 ? "" : "s"} uploaded; remaining upload failed: ${message}`
+        : message);
     }
+    return uploadedCount;
   }
 
   async function update(input: EmployeeDocumentMetadataInput) {
@@ -307,7 +314,7 @@ export function EmployeeDocumentsPage() {
     isPlatformAdmin && !selectedCompanyId;
 
   return (
-    <section className="doc-workspace">
+    <section className="doc-workspace doc-workspace--leave-ui">
       <header className="doc-control-panel">
         <div className="doc-control-panel__primary">
           <div className="doc-control-panel__identity">

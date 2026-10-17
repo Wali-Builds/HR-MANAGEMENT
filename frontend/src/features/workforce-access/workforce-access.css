@@ -25,7 +25,7 @@
   max-width: 760px;
   margin: 0;
   color: #6d8091;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.55;
 }
 
@@ -524,3 +524,145 @@
   .wf-reference-grid, .wf-config-form { grid-template-columns: 1fr; }
   .wf-modal-backdrop { padding: 10px; }
 }
+
+/* Match the Leave workspace frame and compact hero header on Access Control. */
+.wf-page.wf-access-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 24px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+@media (max-width: 680px) {
+  .wf-page.wf-access-page {
+    padding: 12px;
+  }
+}
+
+.wf-access-hero {
+  align-items: flex-start;
+  gap: 18px;
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px solid #dce6ec;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(15, 109, 122, 0.12), transparent 30%),
+    linear-gradient(145deg, #ffffff, #f8fbfc);
+  box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
+}
+
+.wf-page.wf-access-page > .wf-access-hero {
+  margin-bottom: 0;
+}
+
+.wf-access-hero .wf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #0f6d7a;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+
+.wf-access-hero__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wf-access-hero__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.wf-access-hero__title-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #117b86;
+  border-radius: 12px;
+  background: #e7f4f4;
+}
+
+.wf-page.wf-access-page .wf-access-hero__copy h1 {
+  margin: 2px 0 3px;
+  color: #102a3c;
+  font-size: 25px;
+  line-height: 1.3;
+  letter-spacing: -.035em;
+}
+
+.wf-access-hero p {
+  max-width: 680px;
+  margin: 0;
+  color: #647487;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wf-access-hero__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.wf-access-hero__create-button {
+  min-height: 40px;
+  padding-inline: 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #12838a, #0b6c78);
+  box-shadow: 0 6px 14px rgba(15, 109, 122, .2);
+}
+
+.wf-access-hero__create-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0f737b, #095b67);
+  box-shadow: 0 8px 18px rgba(15, 109, 122, .25);
+  transform: translateY(-1px);
+}
+
+.wf-access-page .wf-stat-grid { margin-bottom: 0; gap: 8px; }
+
+@media (max-width: 860px) {
+  .wf-access-hero { flex-direction: column; }
+  .wf-access-hero__actions { width: 100%; align-self: stretch; justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (max-width: 560px) {
+  .wf-access-page { padding: 0 12px 0; }
+  .wf-access-hero { padding: 16px; }
+  .wf-access-hero__actions { align-items: center; }
+}
+
+/* Keep page details comfortable to read at normal screen zoom. */
+.wf-page.wf-access-page .wf-access-hero p { font-size: 15px; font-weight: 500; }
+.wf-page.wf-access-page .wf-access-hero .wf-eyebrow { font-size: 11px; font-weight: 800; }
+.wf-page.wf-access-page .wf-select,
+.wf-page.wf-access-page .wf-search input,
+.wf-page.wf-access-page .wf-field input,
+.wf-page.wf-access-page .wf-field select,
+.wf-page.wf-access-page .wf-select.emp-menu-select .emp-menu-select__trigger,
+.wf-page.wf-access-page .wf-field .emp-menu-select__trigger { font-size: 14px; }
+.wf-page.wf-access-page .wf-primary-button,
+.wf-page.wf-access-page .wf-secondary-button { font-size: 14px; font-weight: 800; }
+.wf-page.wf-access-page .wf-stat-card span { font-size: 13px; font-weight: 600; }
+.wf-page.wf-access-page .wf-table th { font-size: 12px; }
+.wf-page.wf-access-page .wf-table td { font-size: 14px; font-weight: 500; }
+.wf-page.wf-access-page .wf-person-cell span:not(.wf-avatar),
+.wf-page.wf-access-page .wf-subtext { font-size: 12px; font-weight: 500; }
+.wf-page.wf-access-page .wf-chip,
+.wf-page.wf-access-page .wf-badge { font-size: 11px; font-weight: 800; }
+.wf-page.wf-access-page .wf-pager { font-size: 13px; font-weight: 600; }
+.wf-page.wf-access-page .wf-empty-state p { font-size: 14px; font-weight: 500; }
+.wf-page.wf-access-page .wf-modal__header p { font-size: 13px; }
+.wf-page.wf-access-page .wf-field { font-size: 13px; font-weight: 750; }
+.wf-page.wf-access-page .wf-field small { font-size: 11px; font-weight: 500; }

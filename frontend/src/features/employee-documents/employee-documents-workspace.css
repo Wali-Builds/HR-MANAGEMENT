@@ -505,9 +505,27 @@
   cursor: pointer;
   text-align: center;
 }
+.doc-file-drop.is-disabled { cursor: not-allowed; opacity: .65; }
+.doc-file-drop.is-dragging {
+  color: #0f6d7a;
+  border-color: #16818b;
+  background: #eaf7f7;
+  box-shadow: inset 0 0 0 1px rgba(22, 129, 139, 0.16);
+}
+.doc-file-drop.is-dragging strong { color: #0f5961; }
 .doc-file-drop strong { color: #31516c; font-size: 11px; }
 .doc-file-drop small { color: #7e8f9c; font-size: 8px; }
 .doc-file-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.doc-file-picker { margin-bottom: 15px; }
+.doc-file-picker .doc-file-drop { margin-bottom: 0; }
+.doc-selected-files { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.doc-selected-files li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 8px 10px; color: #304859; background: #f8fafc; border: 1px solid #e0e8ee; border-radius: 8px; }
+.doc-selected-files li > span { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 2px; }
+.doc-selected-files li strong { overflow: hidden; color: #304859; font-size: 10px; font-weight: 600; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.doc-selected-files li small { color: #7e8f9c; font-size: 8px; text-align: left; }
+.doc-selected-files li button { display: grid; flex: 0 0 auto; width: 28px; height: 28px; place-items: center; color: #8d4d47; background: #fff; border: 1px solid #ead6d3; border-radius: 7px; cursor: pointer; }
+.doc-selected-files li button:hover:not(:disabled) { color: #a33129; background: #fff2f0; }
+.doc-selected-files li button:disabled { cursor: not-allowed; opacity: .5; }
 .doc-form-error { margin: 12px 0 0; padding: 9px 10px; color: #9f423c; background: #fff0ee; border-radius: 8px; font-size: 9px; }
 .doc-dialog__footer {
   justify-content: flex-end;
@@ -542,3 +560,126 @@
   .doc-field:first-child,
   .doc-confidential-toggle { grid-column: auto; }
 }
+
+/* Match the Leave workspace frame, hero card, and compact filter section. */
+.doc-workspace.doc-workspace--leave-ui {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 96px);
+  margin: 0;
+  padding: 0 12px 12px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  color: #102a43;
+}
+
+.doc-workspace--leave-ui .doc-control-panel {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.doc-workspace--leave-ui .doc-control-panel__primary {
+  min-height: 0;
+  padding: 18px 20px;
+  border: 1px solid #dce6ec;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(15, 109, 122, 0.12), transparent 30%),
+    linear-gradient(145deg, #ffffff, #f8fbfc);
+  box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
+}
+
+.doc-workspace--leave-ui .doc-control-panel__identity { gap: 12px; }
+.doc-workspace--leave-ui .doc-control-panel__identity small {
+  color: #0f6d7a;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+.doc-workspace--leave-ui .doc-control-panel__identity h1 {
+  margin: 5px 0;
+  color: #102a3c;
+  font-size: 25px;
+  letter-spacing: -.035em;
+}
+.doc-workspace--leave-ui .doc-module-icon {
+  width: 40px;
+  height: 40px;
+  color: #117b86;
+  background: #e7f4f4;
+  border-radius: 12px;
+}
+.doc-workspace--leave-ui .doc-primary-button {
+  color: #fff;
+  background: #117b86;
+  border-color: #117b86;
+  box-shadow: none;
+}
+.doc-workspace--leave-ui .doc-primary-button:hover:not(:disabled) { background: #0f6d7a; }
+
+.doc-workspace--leave-ui .doc-control-panel__secondary {
+  min-height: 0;
+  padding: 12px 16px;
+  border: 1px solid #dce6ec;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.doc-workspace--leave-ui .doc-workspace__body {
+  border-top: 1px solid #dce4ea;
+  border-radius: 14px;
+}
+
+@media (max-width: 760px) {
+  .doc-workspace--leave-ui .doc-control-panel__primary { padding: 16px; }
+  .doc-workspace--leave-ui .doc-control-panel__secondary { padding: 12px; }
+}
+
+/* Improve readability across the Documents workspace and its dialogs. */
+.doc-workspace--leave-ui .doc-control-panel__identity small { font-size: 12px; font-weight: 800; }
+.doc-workspace--leave-ui .doc-control-panel__identity h1 { font-size: 27px; font-weight: 750; }
+.doc-workspace--leave-ui .doc-primary-button,
+.doc-workspace--leave-ui .doc-secondary-button,
+.doc-workspace--leave-ui .doc-danger-button { font-size: 14px; font-weight: 800; }
+.doc-workspace--leave-ui .doc-search-field input,
+.doc-workspace--leave-ui .doc-compact-field select,
+.doc-workspace--leave-ui .doc-compact-field .doc-compact-select .emp-menu-select__trigger,
+.doc-workspace--leave-ui .doc-filter-select,
+.doc-workspace--leave-ui .doc-filter-select.emp-menu-select .emp-menu-select__trigger,
+.doc-workspace--leave-ui .doc-confidential-filter { font-size: 13px; font-weight: 600; }
+.doc-workspace--leave-ui .doc-employee-rail__header strong { font-size: 14px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-employee-rail__header span { font-size: 11px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-employee-search input { font-size: 13px; }
+.doc-workspace--leave-ui .doc-employee-list > button strong { font-size: 13px; font-weight: 650; }
+.doc-workspace--leave-ui .doc-employee-list > button small { font-size: 11px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-rail-state strong { font-size: 14px; }
+.doc-workspace--leave-ui .doc-rail-state span { font-size: 12px; }
+.doc-workspace--leave-ui .doc-selected-employee strong { font-size: 14px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-selected-employee span { font-size: 12px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-selected-employee__metrics span { font-size: 11px; font-weight: 600; }
+.doc-workspace--leave-ui .doc-selected-employee__metrics b { font-size: 13px; font-weight: 750; }
+.doc-workspace--leave-ui .doc-table th { font-size: 12px; }
+.doc-workspace--leave-ui .doc-table td { font-size: 13px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-file-cell strong { font-size: 13px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-file-cell small,
+.doc-workspace--leave-ui .doc-uploader-cell small { font-size: 11px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-category-badge { font-size: 11px; font-weight: 750; }
+.doc-workspace--leave-ui .doc-date-cell strong { font-size: 11px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-uploader-cell strong { font-size: 12px; font-weight: 650; }
+.doc-workspace--leave-ui .doc-state-panel p { font-size: 13px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-dialog__title small { font-size: 11px; }
+.doc-workspace--leave-ui .doc-dialog__title h2 { font-size: 18px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-field > span { font-size: 12px; font-weight: 800; }
+.doc-workspace--leave-ui .doc-field input,
+.doc-workspace--leave-ui .doc-field .emp-menu-select__trigger { font-size: 13px; }
+.doc-workspace--leave-ui .doc-confidential-toggle strong { font-size: 13px; font-weight: 700; }
+.doc-workspace--leave-ui .doc-confidential-toggle small,
+.doc-workspace--leave-ui .doc-file-drop small { font-size: 11px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-file-drop strong { font-size: 13px; font-weight: 650; }
+.doc-workspace--leave-ui .doc-form-error,
+.doc-workspace--leave-ui .doc-delete-warning p { font-size: 12px; font-weight: 500; }
+.doc-workspace--leave-ui .doc-delete-warning strong { font-size: 13px; font-weight: 700; }

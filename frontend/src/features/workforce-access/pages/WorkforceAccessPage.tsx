@@ -517,45 +517,28 @@ export function WorkforceAccessPage() {
   }
 
   return (
-    <main className="wf-page">
-      <section className="wf-page-header">
-        <div>
-          <span className="wf-eyebrow">
-            Workforce administration
-          </span>
-
-          <h1>
-            Employee access
-          </h1>
-
-          <p>
-            Create individual login accounts, assign scoped roles and manage account security.
-          </p>
+    <main className="wf-page wf-access-page">
+      <section className="wf-page-header wf-access-hero">
+        <div className="wf-access-hero__identity">
+          <span className="wf-access-hero__title-icon"><ShieldCheck size={19} /></span>
+          <div className="wf-access-hero__copy">
+            <span className="wf-eyebrow">Workforce administration</span>
+            <h1>Employee access</h1>
+            <p>Create individual login accounts, assign scoped roles and manage account security.</p>
+          </div>
         </div>
 
-        <div className="wf-page-header__actions">
+        <div className="wf-access-hero__actions">
           {isPlatformAdmin ? (
             <EmployeeMenuSelect className="wf-select" value={companyId} placeholder="Select company" options={(companiesQuery.data?.companies ?? []).map((company) => ({ value: company.companyId, label: company.displayName }))} onChange={(value) => { setPlatformCompanyId(value); setPage(1); }} />
           ) : null}
-
           <button
             type="button"
-            className="wf-primary-button"
-            disabled={
-              !companyId
-            }
-            onClick={
-              () =>
-                setDialog({
-                  type:
-                    "create"
-                })
-            }
+            className="wf-primary-button wf-access-hero__create-button"
+            disabled={!companyId}
+            onClick={() => setDialog({ type: "create" })}
           >
-            <UserPlus
-              size={17}
-            />
-
+            <UserPlus size={17} />
             Create access
           </button>
         </div>

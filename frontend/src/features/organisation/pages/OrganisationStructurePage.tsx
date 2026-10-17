@@ -108,13 +108,16 @@ export function OrganisationStructurePage({ section }: Props) {
   return (
     <section className="wf-org-page">
       <header className="wf-org-hero">
-        <div className="wf-org-hero__copy">
-          <span className="wf-org-hero__eyebrow"><Settings2 size={14} /> Workforce configuration</span>
-          <h1>Organisation structure</h1>
-          <p>
-            Build the operational hierarchy used by employee assignments,
-            approvals, attendance, leave, payroll and reporting.
-          </p>
+        <div className="wf-org-hero__identity">
+          <span className="wf-org-hero__identity-icon"><Settings2 size={19} /></span>
+          <div className="wf-org-hero__copy">
+            <span className="wf-org-hero__eyebrow">Workforce configuration</span>
+            <h1>Organisation structure</h1>
+            <p>
+              Build the operational hierarchy used by employee assignments,
+              approvals, attendance, leave, payroll and reporting.
+            </p>
+          </div>
         </div>
 
         <div className="wf-org-hero__scope">
@@ -141,7 +144,7 @@ export function OrganisationStructurePage({ section }: Props) {
       </header>
 
       <div className="wf-org-health-strip">
-        <div><span><Building2 size={16} /></span><strong>{counts.branches}</strong><small>Branches</small></div>
+        <div><span><Building2 size={16} /></span><strong>{counts.branches}</strong><small>Company Footprints</small></div>
         <div><span><Network size={16} /></span><strong>{counts.departments}</strong><small>Departments</small></div>
         <div><span><CheckCircle2 size={16} /></span><strong>{counts.designations}</strong><small>Designations</small></div>
         <div><span><UsersRound size={16} /></span><strong>{counts.positions}</strong><small>Positions</small></div>

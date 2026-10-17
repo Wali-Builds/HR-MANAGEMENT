@@ -25,7 +25,7 @@ const items: Array<{
 }> = [
   {
     section: "branches",
-    label: "Branches",
+    label: "Company Footprints",
     description: "Physical and operational locations",
     permission: "branch.view",
     icon: Building2,

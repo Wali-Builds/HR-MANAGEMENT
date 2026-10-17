@@ -6,7 +6,7 @@
 
 :root {
   --ws-topbar-height: 58px;
-  --ws-modulebar-height: 48px;
+  --ws-modulebar-height: 52px;
   --ws-shell-navy: #102537;
   --ws-shell-navy-2: #173a4b;
   --ws-shell-teal: #127783;
@@ -559,16 +559,16 @@
 
 /* edited by wali: Style the shared module-bar back button. */
 .ws-modulebar__back {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #526779;
   border: 1px solid var(--ws-shell-line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   cursor: pointer;
 }
@@ -578,17 +578,18 @@
   background: #f4fafb;
 }
 .ws-modulebar__identity {
-  min-width: 160px;
+  min-width: 175px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding-right: 18px;
   border-right: 1px solid var(--ws-shell-soft-line);
 }
 
 .ws-modulebar__identity strong {
   font-family: Manrope, sans-serif;
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .ws-modulebar__links {
@@ -611,7 +612,7 @@
   color: #55687a;
   background: transparent;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -650,7 +651,7 @@
   color: #7b8791;
   border-radius: 4px;
   background: #eef2f4;
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -666,7 +667,7 @@
   border-left: 1px solid var(--ws-shell-soft-line);
   background: transparent;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -678,6 +679,16 @@
 .ws-main--module {
   min-height: calc(100vh - var(--ws-topbar-height) - var(--ws-modulebar-height));
   padding: 22px clamp(18px, 2.5vw, 34px) 36px;
+}
+
+.ws-main--module.ws-main--module--flush-top {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ws-main--module.ws-main--module--wide {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .ws-main--launcher {
@@ -1993,3 +2004,33 @@
   font-size: 9px;
   line-height: 1.55;
 }
+
+/* Give the dashboard launcher more breathing room on wide desktop screens. */
+@media (min-width: 1440px) {
+  .ws-launcher__hero .ws-kicker,
+  .ws-launcher__apps .ws-kicker,
+  .ws-quick-panel .ws-kicker,
+  .ws-roadmap-panel .ws-kicker { font-size: 11px; }
+  .ws-launcher__hero h1 { font-size: clamp(38px, 3.2vw, 56px); }
+  .ws-launcher__hero-copy > p { font-size: 15px; }
+  .ws-primary-action,
+  .ws-secondary-action { font-size: 13px; font-weight: 750; }
+  .ws-launcher__status-head { font-size: 12px; }
+  .ws-launcher__status-grid span { font-size: 10px; }
+  .ws-launcher__status-grid strong { font-size: 13px; font-weight: 700; }
+  .ws-section-heading h2,
+  .ws-quick-panel h2,
+  .ws-roadmap-panel h2 { font-size: 20px; }
+  .ws-section-heading p,
+  .ws-section-count { font-size: 12px; font-weight: 500; }
+  .ws-launch-card__copy strong { font-size: 15px; font-weight: 700; }
+  .ws-launch-card__copy small { font-size: 12px; font-weight: 500; }
+  .ws-launch-card__open { font-size: 11px; }
+  .ws-quick-panel__actions strong,
+  .ws-roadmap-panel__list strong { font-size: 13px; font-weight: 700; }
+  .ws-quick-panel__actions small,
+  .ws-roadmap-panel__list small { font-size: 11px; font-weight: 500; }
+  .ws-planned-badge { font-size: 9px; }
+  .ws-quick-panel__empty { font-size: 12px; }
+}
+

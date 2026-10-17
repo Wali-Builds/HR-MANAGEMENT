@@ -92,9 +92,14 @@ export function EmployeeFiltersPanel(props: Props) {
       <div className="emp-filter-section emp-filter-section--dates">
         <label><CalendarDays size={14} /> Joining date</label>
         <div>
-          <input type="date" value={props.joiningDateFrom} onChange={(event) => props.onJoiningDateFromChange(event.target.value)} />
-          <span>to</span>
-          <input type="date" value={props.joiningDateTo} onChange={(event) => props.onJoiningDateToChange(event.target.value)} />
+          <label>
+            <span>From</span>
+            <input type="date" value={props.joiningDateFrom} onChange={(event) => props.onJoiningDateFromChange(event.target.value)} />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" value={props.joiningDateTo} onChange={(event) => props.onJoiningDateToChange(event.target.value)} />
+          </label>
         </div>
       </div>
     </aside>
