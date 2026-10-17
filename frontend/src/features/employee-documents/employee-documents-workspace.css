@@ -651,6 +651,8 @@
 .doc-workspace--leave-ui .doc-filter-select,
 .doc-workspace--leave-ui .doc-filter-select.emp-menu-select .emp-menu-select__trigger,
 .doc-workspace--leave-ui .doc-confidential-filter { font-size: 13px; font-weight: 600; }
+.doc-workspace--leave-ui .doc-compact-field .doc-compact-select .emp-menu-select__trigger,
+.doc-workspace--leave-ui .doc-filter-select.emp-menu-select .emp-menu-select__trigger { font-size: 12px; }
 .doc-workspace--leave-ui .doc-employee-rail__header strong { font-size: 14px; font-weight: 700; }
 .doc-workspace--leave-ui .doc-employee-rail__header span { font-size: 11px; font-weight: 500; }
 .doc-workspace--leave-ui .doc-employee-search input { font-size: 13px; }
@@ -674,8 +676,8 @@
 .doc-workspace--leave-ui .doc-dialog__title small { font-size: 11px; }
 .doc-workspace--leave-ui .doc-dialog__title h2 { font-size: 18px; font-weight: 700; }
 .doc-workspace--leave-ui .doc-field > span { font-size: 12px; font-weight: 800; }
-.doc-workspace--leave-ui .doc-field input,
-.doc-workspace--leave-ui .doc-field .emp-menu-select__trigger { font-size: 13px; }
+.doc-workspace--leave-ui .doc-field input { font-size: 13px; }
+.doc-workspace--leave-ui .doc-field .emp-menu-select__trigger { font-size: 12px; }
 .doc-workspace--leave-ui .doc-confidential-toggle strong { font-size: 13px; font-weight: 700; }
 .doc-workspace--leave-ui .doc-confidential-toggle small,
 .doc-workspace--leave-ui .doc-file-drop small { font-size: 11px; font-weight: 500; }

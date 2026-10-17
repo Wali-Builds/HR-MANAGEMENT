@@ -112,7 +112,7 @@
 .wf-projects-page .wf-org-resource-toolbar h2 { font-size: 24px; font-weight: 750; }
 .wf-projects-page .wf-org-resource-toolbar p { font-size: 14px; font-weight: 500; }
 .wf-projects-page .wf-org-search input { font-size: 14px; font-weight: 600; }
-.wf-projects-page .wf-org-menu-select .emp-menu-select__trigger { font-size: 13px; font-weight: 600; }
+.wf-projects-page .wf-org-menu-select .emp-menu-select__trigger { font-size: 12px; font-weight: 600; }
 .wf-projects-page .wf-org-resource-toolbar__pager > span { font-size: 13px; font-weight: 600; }
 .wf-projects-page .wf-org-button { font-size: 14px; font-weight: 800; }
 .wf-projects-page .wf-org-table th { font-size: 12px; }
@@ -131,4 +131,5 @@
 .wf-projects-page .wf-org-field select,
 .wf-projects-page .wf-org-field textarea,
 .wf-projects-page .wf-org-field .emp-menu-select__trigger { font-size: 14px; }
+.wf-projects-page .wf-org-field .emp-menu-select__trigger { font-size: 12px; }
 .wf-projects-page .wf-org-field small { font-size: 12px; font-weight: 500; }
