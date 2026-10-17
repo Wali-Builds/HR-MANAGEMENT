@@ -84,7 +84,7 @@ export function MyEmployeeProfilePage() {
 
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <main className="employee-self-profile">
+        <main className="employee-self-profile employee-self-profile--workspace">
         <section className="emp-full-page-state">
           <UserRound size={30} />
           <h1>Profile unavailable</h1>
@@ -98,7 +98,7 @@ export function MyEmployeeProfilePage() {
   const sections = buildProfileSections(profile);
 
   return (
-    <main className="employee-self-profile">
+    <main className="employee-self-profile employee-self-profile--workspace">
       <header className="employee-self-profile__header">
         <div>
           <span className="employee-self-profile__eyebrow">Employee workspace</span>
@@ -106,8 +106,9 @@ export function MyEmployeeProfilePage() {
         </div>
       </header>
 
-      {/* edited by wali: Keep the identity row small and place the employment status beside the employee name. */}
+      {/* Keep the employee identity and status together at the top of the profile. */}
       <section className="employee-self-profile__identity">
+        <span className="employee-self-profile__avatar"><UserRound size={23} /></span>
         <div><h2>{profile.fullName}</h2><p>{profile.employeeCode} · {profile.companyName}</p></div>
         <span className={profile.isActiveEmployment ? "employee-self-profile__status is-active" : "employee-self-profile__status"}>
           {profile.employeeStatusName}
