@@ -19,16 +19,24 @@ interface Props {
   ariaLabel?: string;
   className?: string;
   allowClear?: boolean;
+  allowCustomValue?: boolean;
+  customValueMaxLength?: number;
 }
 
-export function EmployeeMenuSelect({ value, options, placeholder, onChange, disabled, searchable, searchPlaceholder = "Search options", ariaLabel, className, allowClear = true }: Props) {
+export function EmployeeMenuSelect({ value, options, placeholder, onChange, disabled, searchable, searchPlaceholder = "Search options", ariaLabel, className, allowClear = true, allowCustomValue = false, customValueMaxLength }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
-  const selected = options.find((option) => option.value === value);
+  const selected = options.find((option) => option.value === value) ?? (value ? { value, label: value } : undefined);
+  const customValue = query.trim();
+  const matchesExistingOption = options.some((option) =>
+    option.value.toLocaleLowerCase() === customValue.toLocaleLowerCase()
+    || option.label.toLocaleLowerCase() === customValue.toLocaleLowerCase(),
+  );
+  const canAddCustomValue = allowCustomValue && Boolean(customValue) && !matchesExistingOption;
   const visibleOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     const menuOptions = allowClear ? [{ value: "", label: placeholder }, ...options] : options;
@@ -93,7 +101,7 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
           ref={menuRef}
           style={{ position: "fixed", inset: "auto", top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, zIndex: 2000 }}
         >
-          {searchable ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} /></div> : null}
+          {searchable || allowCustomValue ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} maxLength={customValueMaxLength} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} /></div> : null}
           <div className="emp-menu-select__options" role="listbox">
             {visibleOptions.map((option) => (
               <button
@@ -107,7 +115,18 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
                 <span>{option.label}</span>{value === option.value ? <Check size={15} /> : null}
               </button>
             ))}
-            {visibleOptions.length === 0 ? <span className="emp-menu-select__empty">No matching countries</span> : null}
+            {canAddCustomValue ? (
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === customValue}
+                className="emp-menu-select__option"
+                onClick={() => { onChange(customValue); setIsOpen(false); setQuery(""); }}
+              >
+                <span>Use “{customValue}”</span>{value === customValue ? <Check size={15} /> : null}
+              </button>
+            ) : null}
+            {visibleOptions.length === 0 && !canAddCustomValue ? <span className="emp-menu-select__empty">No matching options</span> : null}
           </div>
         </div>,
         document.body,

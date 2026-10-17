@@ -324,7 +324,19 @@ export function BranchesPanel({ companyId, canManage }: Props) {
         <div className="wf-org-form-grid">
           <OrganisationField label="Branch code" required error={errors.branchCode}><TextInput value={form.branchCode} onChange={(e) => setField("branchCode", e.target.value)} placeholder="LHR-HO" /></OrganisationField>
           <OrganisationField label="Branch name" required error={errors.branchName}><TextInput value={form.branchName} onChange={(e) => setField("branchName", e.target.value)} placeholder="Lahore Head Office" /></OrganisationField>
-          <OrganisationField label="Branch type"><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchType} placeholder="Select type" options={[{ value: "HEAD_OFFICE", label: "Head office" }, { value: "REGIONAL_OFFICE", label: "Regional office" }, { value: "SITE_OFFICE", label: "Site office" }, { value: "WAREHOUSE", label: "Warehouse" }, { value: "OTHER", label: "Other" }]} onChange={(value) => setField("branchType", value)} /></OrganisationField>
+          <OrganisationField label="Branch type" hint="Choose a type or search to enter a custom one.">
+            <EmployeeMenuSelect
+              className="wf-org-menu-select"
+              value={form.branchType}
+              placeholder="Select or enter a branch type"
+              searchPlaceholder="Search or type a custom branch type"
+              searchable
+              allowCustomValue
+              customValueMaxLength={50}
+              options={[{ value: "HEAD_OFFICE", label: "Head office" }, { value: "REGIONAL_OFFICE", label: "Regional office" }, { value: "SITE_OFFICE", label: "Site office" }, { value: "WAREHOUSE", label: "Warehouse" }, { value: "OTHER", label: "Other" }]}
+              onChange={(value) => setField("branchType", value)}
+            />
+          </OrganisationField>
           <OrganisationField label="Official email"><TextInput type="email" value={form.officialEmail} onChange={(e) => setField("officialEmail", e.target.value)} /></OrganisationField>
           <OrganisationField label="Official phone"><TextInput value={form.officialPhone} onChange={(e) => setField("officialPhone", e.target.value)} /></OrganisationField>
           <OrganisationField label="City"><TextInput value={form.city} onChange={(e) => setField("city", e.target.value)} /></OrganisationField>
