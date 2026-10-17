@@ -7,7 +7,9 @@ import {
   X,
 } from "lucide-react";
 import {
+  type DragEvent,
   type FormEvent,
+  type ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -211,11 +213,99 @@ function MetadataFields({ values, onChange }: MetadataFieldsProps) {
   );
 }
 
+interface DocumentFileDropProps {
+  files: File[];
+  title: string;
+  description: string;
+  icon: ReactNode;
+  maxFiles?: number;
+  disabled?: boolean;
+  onFilesChange: (files: File[]) => void;
+  onLimitExceeded?: () => void;
+}
+
+function DocumentFileDrop({
+  files,
+  title,
+  description,
+  icon,
+  maxFiles = 1,
+  disabled = false,
+  onFilesChange,
+  onLimitExceeded,
+}: DocumentFileDropProps) {
+  const [isDragging, setIsDragging] = useState(false);
+
+  function addFiles(incomingFiles: File[]) {
+    const remainingSlots = Math.max(0, maxFiles - files.length);
+    const additions = incomingFiles.slice(0, remainingSlots);
+    if (additions.length > 0) {
+      onFilesChange([...files, ...additions]);
+    }
+    if (incomingFiles.length > remainingSlots) {
+      onLimitExceeded?.();
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    if (!disabled) {
+      addFiles(Array.from(event.dataTransfer.files));
+    }
+  }
+
+  return (
+    <div className="doc-file-picker">
+      <label
+        className={`doc-file-drop${isDragging ? " is-dragging" : ""}${disabled || files.length >= maxFiles ? " is-disabled" : ""}`}
+        onDragEnter={(event) => { event.preventDefault(); if (!disabled) setIsDragging(true); }}
+        onDragOver={(event) => { event.preventDefault(); if (!disabled) setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+      >
+        {icon}
+        <strong>{isDragging ? "Drop your file here" : title}</strong>
+        <small>{description}</small>
+        <small>{files.length >= maxFiles ? `Maximum of ${maxFiles} file${maxFiles === 1 ? "" : "s"} selected.` : "Drag and drop a file here, or click to browse."}</small>
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx"
+          multiple={maxFiles > 1}
+          disabled={disabled || files.length >= maxFiles}
+          onChange={(event) => {
+            addFiles(Array.from(event.target.files ?? []));
+            event.target.value = "";
+          }}
+        />
+      </label>
+      {files.length > 0 ? (
+        <ul className="doc-selected-files" aria-label="Selected files">
+          {files.map((selectedFile, index) => (
+            <li key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
+              <span><strong>{selectedFile.name}</strong><small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small></span>
+              <button
+                type="button"
+                aria-label={`Remove ${selectedFile.name}`}
+                title={`Remove ${selectedFile.name}`}
+                disabled={disabled}
+                onClick={() => onFilesChange(files.filter((_, fileIndex) => fileIndex !== index))}
+              >
+                <X size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 interface UploadDialogProps {
   employeeName: string;
   isPending: boolean;
   onClose: () => void;
-  onSubmit: (input: UploadEmployeeDocumentInput) => Promise<void>;
+  onSubmit: (inputs: UploadEmployeeDocumentInput[]) => Promise<number>;
 }
 
 export function EmployeeDocumentUploadDialog({
@@ -225,7 +315,7 @@ export function EmployeeDocumentUploadDialog({
   onSubmit,
 }: UploadDialogProps) {
   const [values, setValues] = useState<MetadataValues>(emptyMetadata);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -237,16 +327,23 @@ export function EmployeeDocumentUploadDialog({
       return;
     }
 
-    if (!file) {
-      setError("Select a file to upload.");
+    if (files.length === 0) {
+      setError("Add at least one file to upload.");
       return;
     }
 
     setError(null);
-    await onSubmit({
+    const uploadedCount = await onSubmit(files.map((file) => ({
       ...toMetadataInput(values),
       file,
-    });
+    })));
+    if (uploadedCount > 0 && uploadedCount < files.length) {
+      setFiles((currentFiles) => currentFiles.slice(uploadedCount));
+      setError("Some files were not uploaded. Retry the remaining files or remove them.");
+    } else if (uploadedCount === files.length) {
+      setFiles([]);
+      setError(null);
+    }
   }
 
   return (
@@ -258,20 +355,16 @@ export function EmployeeDocumentUploadDialog({
     >
       <form onSubmit={(event) => void submit(event)}>
         <div className="doc-dialog__body">
-          <label className="doc-file-drop">
-            <FileUp size={24} />
-            <strong>{file?.name ?? "Choose a document file"}</strong>
-            <small>
-              PDF, image or Microsoft Office file. Maximum size follows the server policy.
-            </small>
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx"
-              onChange={(event) =>
-                setFile(event.target.files?.[0] ?? null)
-              }
-            />
-          </label>
+          <DocumentFileDrop
+            files={files}
+            maxFiles={3}
+            disabled={isPending}
+            title="Add up to 3 documents"
+            description="PDF, image or Microsoft Office files. Maximum size follows the server policy."
+            icon={<FileUp size={24} />}
+            onFilesChange={(nextFiles) => { setFiles(nextFiles); setError(null); }}
+            onLimitExceeded={() => setError("You can add up to 3 documents at a time.")}
+          />
           <MetadataFields values={values} onChange={setValues} />
           {error ? <p className="doc-form-error">{error}</p> : null}
         </div>
@@ -281,7 +374,7 @@ export function EmployeeDocumentUploadDialog({
           </button>
           <button type="submit" className="doc-primary-button" disabled={isPending}>
             {isPending ? <LoaderCircle className="spin" size={16} /> : <FileUp size={16} />}
-            Upload document
+            Upload documents
           </button>
         </footer>
       </form>
@@ -374,18 +467,18 @@ export function EmployeeDocumentReplaceDialog({
   onClose,
   onSubmit,
 }: ReplaceDialogProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file) {
+    if (!files[0]) {
       setError("Select a replacement file.");
       return;
     }
 
     setError(null);
-    await onSubmit(file);
+    await onSubmit(files[0]);
   }
 
   return (
@@ -397,18 +490,14 @@ export function EmployeeDocumentReplaceDialog({
     >
       <form onSubmit={(event) => void submit(event)}>
         <div className="doc-dialog__body">
-          <label className="doc-file-drop">
-            <RefreshCw size={24} />
-            <strong>{file?.name ?? "Choose the replacement file"}</strong>
-            <small>The existing metadata remains unchanged.</small>
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx"
-              onChange={(event) =>
-                setFile(event.target.files?.[0] ?? null)
-              }
-            />
-          </label>
+          <DocumentFileDrop
+            files={files}
+            disabled={isPending}
+            title="Choose the replacement file"
+            description="The existing metadata remains unchanged."
+            icon={<RefreshCw size={24} />}
+            onFilesChange={setFiles}
+          />
           {error ? <p className="doc-form-error">{error}</p> : null}
         </div>
         <footer className="doc-dialog__footer">

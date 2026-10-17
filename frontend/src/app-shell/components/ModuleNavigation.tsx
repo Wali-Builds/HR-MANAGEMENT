@@ -71,13 +71,13 @@ export function ModuleNavigation({
           title="Return to Workspace home"
           onClick={() => navigate("/dashboard")}
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={20} />
         </button>
         <div className="ws-modulebar__identity">
           <span
             className={`ws-app-icon ws-app-icon--small ws-app-icon--${activeModule.tone}`}
           >
-            <ActiveIcon size={16} />
+              <ActiveIcon size={18} />
           </span>
           <strong>{activeModule.label}</strong>
         </div>

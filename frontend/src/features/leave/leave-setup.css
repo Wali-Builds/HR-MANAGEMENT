@@ -395,3 +395,91 @@
   .leave-setup__period-row > div { min-width: 60%; }
   .leave-setup__apply { align-items: flex-start; flex-direction: column; }
 }
+
+/* Match the Projects page frame and hero across employee and admin Leave views. */
+.page-stack.leave-setup.wf-org-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 12px 12px;
+  align-content: start;
+}
+
+.leave-setup__header.wf-org-hero {
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 0;
+  padding: 18px 20px;
+  border: 1px solid #dce6ec;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(15, 109, 122, 0.12), transparent 30%),
+    linear-gradient(145deg, #ffffff, #f8fbfc);
+  box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
+}
+
+.leave-setup__header .wf-org-hero__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.leave-setup__header .wf-org-hero__identity-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #117b86;
+  border-radius: 12px;
+  background: #e7f4f4;
+}
+
+.leave-setup__header .wf-org-hero__copy { min-width: 0; }
+
+.leave-setup__header.wf-org-hero h1 {
+  margin: 5px 0;
+  color: #102a3c;
+  font-size: clamp(25px, 3vw, 32px);
+}
+
+.leave-setup__header.wf-org-hero p {
+  max-width: 680px;
+  color: #647487;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.leave-setup__header .wf-org-hero__scope {
+  flex: 0 0 auto;
+}
+
+.leave-setup__header .wf-org-hero__scope strong {
+  color: #152334;
+  font-size: 14px;
+}
+
+.leave-setup__header .wf-org-hero__scope .leave-setup__button {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.leave-employee__header-actions.wf-org-hero__scope {
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.leave-employee__header-action-copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .leave-setup__header.wf-org-hero { flex-direction: column; }
+  .leave-setup__header .wf-org-hero__scope { width: 100%; min-width: 0; }
+  .leave-employee__header-action-copy { flex: 1; }
+}

@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
+  UsersRound,
   X,
 } from "lucide-react";
 
@@ -49,18 +50,20 @@ export function EmployeeWorkspaceToolbar(props: Props) {
     <header className="emp-control-panel">
       <div className="emp-control-panel__primary">
         <div className="emp-control-panel__identity">
+          <span className="emp-control-panel__icon"><UsersRound size={20} /></span>
+          <div>
+            <span>Workforce administration</span>
+            <h1>Employee directory</h1>
+            <p>Find, review and manage employee records.</p>
+          </div>
+        </div>
+
+        <div className="emp-control-panel__meta">
           {props.canCreate ? (
             <button type="button" className="emp-primary-action" onClick={props.onCreate}>
               <Plus size={16} /> New employee
             </button>
           ) : null}
-          <div>
-            <span>People operations</span>
-            <h1>Employee directory</h1>
-          </div>
-        </div>
-
-        <div className="emp-control-panel__meta">
           <span className="emp-record-counter">
             {typeof props.total === "number" ? `${props.total} records` : "Employees"}
           </span>

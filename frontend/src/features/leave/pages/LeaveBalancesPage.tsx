@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, CheckCircle2, LoaderCircle, Plus, Search, UsersRound, WalletCards, X } from "lucide-react";
+import { AlertCircle, Check, CheckCircle2, LoaderCircle, Plus, Search, Umbrella, UsersRound, WalletCards, X } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
 import { listEmployeesRequest } from "../../employees/api/employee.api";
 import type { Employee } from "../../employees/types/employee.types";
@@ -131,10 +131,10 @@ export function LeaveBalancesPage() {
     });
   };
 
-  return <main className="page-stack leave-setup leave-balances">
-    <header className="leave-setup__header">
-      <div><span className="eyebrow">Company Admin / Leave</span><h1>Employee Leave Balances</h1><p>View leave balances by employee, leave type, and period.</p></div>
-      <button className="leave-setup__button leave-setup__button--primary" type="button" aria-expanded={isInitializeFormOpen} onClick={() => { setIsInitializeFormOpen((open) => !open); setNotice(""); }}>{isInitializeFormOpen ? <X size={17} /> : <Plus size={17} />}{isInitializeFormOpen ? "Close initializer" : "Initialize balances"}</button>
+  return <main className="page-stack leave-setup leave-balances wf-org-page">
+    <header className="leave-setup__header wf-org-hero">
+      <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><Umbrella size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">Leave management</span><h1>Employee Leave Balances</h1><p>View leave balances by employee, leave type, and period.</p></div></div>
+      <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><WalletCards size={19} /></div><div><span>Balance tools</span><button className="leave-setup__button leave-setup__button--primary" type="button" aria-expanded={isInitializeFormOpen} onClick={() => { setIsInitializeFormOpen((open) => !open); setNotice(""); }}>{isInitializeFormOpen ? <X size={17} /> : <Plus size={17} />}{isInitializeFormOpen ? "Close initializer" : "Initialize balances"}</button></div></div>
     </header>
 
     {notice && <div className="leave-setup__notice leave-setup__notice--success"><Check size={17} />{notice}</div>}

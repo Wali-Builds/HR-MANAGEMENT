@@ -288,10 +288,10 @@ export function RolesPage() {
     }
   }
 
-  return <main className="roles-page">
-    <header className="roles-hero"><div><span className="roles-eyebrow">{isPlatformAdmin ? "Platform administration" : "Company access control"}</span><h1>Roles &amp; permissions</h1>
+  return <main className="roles-page wf-org-page">
+    <header className="roles-hero wf-org-hero"><div className="wf-org-hero__copy"><span className="roles-eyebrow wf-org-hero__eyebrow"><ShieldCheck size={14} />{isPlatformAdmin ? "Platform administration" : "Company access control"}</span><h1>Roles &amp; permissions</h1>
       <p>{isPlatformAdmin ? "Create platform roles and manage access for your organisations." : "Create company roles for your employees and grant the access they need."}</p></div>
-      <button type="button" className="roles-button roles-button--primary" disabled={loading} onClick={() => create()}><Plus size={16} /> Create role</button>
+      <button type="button" className="roles-button roles-button--primary roles-hero__create-button" disabled={loading} onClick={() => create()}><Plus size={15} /> Create role</button>
     </header>
     <section className="roles-summary">
       <article><span className="roles-summary__icon roles-summary__icon--teal"><UserCog size={18} /></span><div><strong>{roles.length}</strong><small>Total roles</small></div></article>

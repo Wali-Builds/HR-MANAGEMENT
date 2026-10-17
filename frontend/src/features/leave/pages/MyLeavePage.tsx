@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, CircleAlert, LoaderCircle, Plus, Send, WalletCards, X } from "lucide-react";
+import { CalendarDays, CircleAlert, LoaderCircle, Plus, Send, Umbrella, WalletCards, X } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import {
@@ -156,14 +156,14 @@ export function MyLeavePage() {
   };
   const pageError = policyQuery.error ?? requestsQuery.error ?? saveDraftMutation.error ?? submitNewMutation.error ?? submitDraftMutation.error;
 
-  return <main className="page-stack leave-setup leave-employee">
-    <header className="leave-setup__header">
-      <div><span className="eyebrow">Employee workspace / Leave</span><h1>My leave</h1><p>Request leave and follow each request through its approval status.</p></div>
+  return <main className="page-stack leave-setup leave-employee wf-org-page">
+    <header className="leave-setup__header wf-org-hero">
+      <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><Umbrella size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">Leave management</span><h1>My leave</h1><p>Request leave and follow each request through its approval status.</p></div></div>
       {/* edited by wali: Keep employee balance and request actions together in the page header. */}
-      <div className="leave-employee__header-actions">
+      <div className="leave-employee__header-actions wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Umbrella size={19} /></div><div className="leave-employee__header-action-copy"><span>Quick actions</span>
         <button className="leave-setup__button" type="button" aria-expanded={isBalanceOpen} aria-controls="employee-leave-balances" onClick={() => setIsBalanceOpen((open) => !open)}><WalletCards size={16} />{isBalanceOpen ? "Hide balance" : "My balance"}</button>
         {!isRequestFormOpen && <button className="leave-setup__button leave-setup__button--primary" type="button" onClick={() => { resetForm(); setNotice(""); setIsRequestFormOpen(true); }}><Plus size={16} />New request</button>}
-      </div>
+      </div></div>
     </header>
     {notice && <div className="leave-setup__notice leave-setup__notice--success">{notice}</div>}
     {pageError && <div className="leave-setup__notice leave-setup__notice--error"><CircleAlert size={17} />{normalizeApiError(pageError).message}</div>}

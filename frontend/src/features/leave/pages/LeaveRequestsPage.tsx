@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, X } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, Umbrella, X } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
 import { approveCompanyLeaveRequest, getCompanyLeaveRequests, rejectCompanyLeaveRequest } from "../api/leave-requests.api";
 import type { CompanyLeaveRequestDetails } from "../types/leave-requests.types";
@@ -31,10 +31,11 @@ export function LeaveRequestsPage() {
   const requests = (requestsQuery.data?.requests ?? []).filter(({ request }) => request.requestStatus !== "DRAFT");
   const error = requestsQuery.error ?? decisionMutation.error;
 
-  return <main className="page-stack leave-setup leave-setup--requests">
-    <header className="leave-setup__header">
-      <div><span className="eyebrow">Company Admin / Leave</span><h1>Leave Requests</h1><p>Review submitted requests from employees in your company.</p></div>
+  return <main className="page-stack leave-setup leave-setup--requests wf-org-page">
+    <header className="leave-setup__header wf-org-hero">
+      <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><Umbrella size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">Leave management</span><h1>Leave Requests</h1><p>Review submitted requests from employees in your company.</p></div></div>
       {/* edited by wali: The requests query updates on filter changes and after approval decisions. */}
+      <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><CalendarDays size={19} /></div><div><span>Approval queue</span><strong>Employee requests</strong></div></div>
     </header>
     {error && <div className="leave-setup__notice leave-setup__notice--error"><CircleAlert size={17} />{normalizeApiError(error).message}</div>}
     <section className="leave-setup__step leave-admin__toolbar">

@@ -12,7 +12,7 @@ export const projectFormSchema = z.object({
   branchId: z.string(),
   departmentId: z.string(),
   projectManagerEmployeeId: z.string(),
-  projectCode: z.string().trim().min(1, "Enter a project code.").max(60, "Project code cannot exceed 60 characters."),
+  projectCode: z.string().trim().max(60, "Project code cannot exceed 60 characters."),
   projectName: z.string().trim().min(1, "Enter a project name.").max(250, "Project name cannot exceed 250 characters."),
   clientName: z.string().max(250, "Client name cannot exceed 250 characters."),
   description: z.string().max(65535, "Description is too long."),

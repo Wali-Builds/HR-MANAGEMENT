@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CircleAlert, LoaderCircle, Plus } from "lucide-react";
+import { Check, CircleAlert, LoaderCircle, Plus, Umbrella } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
 import {
   createLeavePolicy,
@@ -266,11 +266,12 @@ export function LeaveSetupPage() {
   const canApply = Boolean(policy && hasActiveRule && effectiveToday && !policy.isDefault);
   const errors = [typeMutation.error, typeStatusMutation.error, policyMutation.error, ruleMutation.error, ruleStatusMutation.error, ruleEditMutation.error, defaultMutation.error, periodMutation.error, typesQuery.error, policiesQuery.error, periodsQuery.error, rulesQuery.error].filter(Boolean);
 
-  return <main className="page-stack leave-setup leave-setup--configuration">
-    <header className="leave-setup__header">
+  return <main className="page-stack leave-setup leave-setup--configuration wf-org-page">
+    <header className="leave-setup__header wf-org-hero">
       {/* edited by wali: Balance initialization now lives on the dedicated Balances page. */}
-      <div><span className="eyebrow">Company Admin / Leave</span><h1>Leave Configuration</h1><p>Complete the setup steps before employees can request leave.</p></div>
+      <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><Umbrella size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">Leave management</span><h1>Leave Configuration</h1><p>Complete the setup steps before employees can request leave.</p></div></div>
       {/* edited by wali: Configuration data refreshes after changes, so this tab has no manual refresh control. */}
+      <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Umbrella size={19} /></div><div><span>Company-wide setup</span><strong>Policies and entitlements</strong></div></div>
     </header>
     {notice && <div className="leave-setup__notice leave-setup__notice--success"><Check size={17} />{notice}</div>}
     {errors.map((error, index) => <div className="leave-setup__notice leave-setup__notice--error" key={index}><CircleAlert size={17} />{normalizeApiError(error).message}</div>)}
