@@ -652,6 +652,8 @@
 .wf-page.wf-access-page .wf-field select,
 .wf-page.wf-access-page .wf-select.emp-menu-select .emp-menu-select__trigger,
 .wf-page.wf-access-page .wf-field .emp-menu-select__trigger { font-size: 14px; }
+.wf-page.wf-access-page .wf-select.emp-menu-select .emp-menu-select__trigger,
+.wf-page.wf-access-page .wf-field .emp-menu-select__trigger { font-size: 12px; }
 .wf-page.wf-access-page .wf-primary-button,
 .wf-page.wf-access-page .wf-secondary-button { font-size: 14px; font-weight: 800; }
 .wf-page.wf-access-page .wf-stat-card span { font-size: 13px; font-weight: 600; }
