@@ -1,0 +1,20 @@
+/* edited by wali: Share the 360 ms trigger-origin transition across organisation create forms. */
+.wf-org-dialog-backdrop--origin-motion {
+  opacity: 0;
+  transition: opacity 360ms ease;
+}
+.wf-org-dialog-backdrop--origin-motion.is-entered { opacity: 1; }
+.wf-org-dialog-backdrop--origin-motion.is-closing { opacity: 0; pointer-events: none; }
+.wf-org-dialog--origin-motion {
+  opacity: 0;
+  transform: scale(0.08);
+  transform-origin: var(--wf-dialog-origin-x, 0px) var(--wf-dialog-origin-y, 0px);
+  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1), opacity 360ms ease;
+  will-change: transform, opacity;
+}
+.wf-org-dialog--origin-motion.is-entered { opacity: 1; transform: scale(1); }
+.wf-org-dialog--origin-motion.is-closing {
+  opacity: 0;
+  transform: scale(0.08);
+  transition-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+}

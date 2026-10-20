@@ -11,6 +11,7 @@ import {
   findActiveCompanyById,
   findBranchById,
   findBranchCodeConflict,
+  findExistingHeadOfficeBranch,
   listBranchRecords,
   softDeleteBranchRecord,
   updateBranchRecord
@@ -424,6 +425,20 @@ export async function createBranch(
     });
   }
 
+  // edited by wali: A new head office cannot silently replace an existing branch's designation.
+  if (
+    input.isHeadOffice &&
+    await findExistingHeadOfficeBranch(companyId)
+  ) {
+    throw new AppError({
+      message:
+        "A head office already exists. Edit that branch, clear its Head Office checkbox, and change its Branch type before assigning Head Office to another branch.",
+      statusCode: 409,
+      code:
+        "HEAD_OFFICE_ALREADY_EXISTS"
+    });
+  }
+
   const conflict =
     await findBranchCodeConflict(
       companyId,
@@ -497,6 +512,20 @@ export async function updateBranch(
     auth,
     companyId
   );
+
+  // edited by wali: Require the old head office to be cleared and retitled before transferring it.
+  if (
+    input.isHeadOffice === true &&
+    await findExistingHeadOfficeBranch(companyId, branchId)
+  ) {
+    throw new AppError({
+      message:
+        "A head office already exists. Edit that branch, clear its Head Office checkbox, and change its Branch type before assigning Head Office to another branch.",
+      statusCode: 409,
+      code:
+        "HEAD_OFFICE_ALREADY_EXISTS"
+    });
+  }
 
   if (
     input.branchCode !== undefined

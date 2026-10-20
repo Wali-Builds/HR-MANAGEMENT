@@ -819,11 +819,12 @@ export async function findActiveDepartmentForCompany(
 export async function findActiveDesignationForCompany(
   designationId: string,
   companyId: string
-): Promise<boolean> {
+): Promise<{ departmentId: string | null } | null> {
   const rows =
     await databasePool.query(
       `
-        SELECT designation_id
+        -- edited by wali: Return the department so assignments can validate designation scope.
+        SELECT designation_id, department_id
         FROM designations
         WHERE designation_id = ?
           AND company_id = ?
@@ -837,7 +838,20 @@ export async function findActiveDesignationForCompany(
       ]
     );
 
-  return rows.length > 0;
+  const row = rows[0] as
+    | {
+        department_id: string | number | bigint | null;
+      }
+    | undefined;
+
+  return row
+    ? {
+        departmentId:
+          row.department_id === null
+            ? null
+            : String(row.department_id)
+      }
+    : null;
 }
 
 export async function findActiveManagerForCompany(

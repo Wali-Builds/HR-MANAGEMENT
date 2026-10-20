@@ -4,6 +4,7 @@ import {
   Edit3,
   MoreHorizontal,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
@@ -12,8 +13,11 @@ import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import {
   useArchiveDesignation,
+  useBranches,
   useCreateDesignation,
+  useDepartments,
   useDesignations,
+  usePositions,
   useUpdateDesignation,
 } from "../hooks/useOrganisation";
 import type { Designation, DesignationInput } from "../types/organisation.types";
@@ -26,6 +30,8 @@ import {
   TextInput,
 } from "./OrganisationField";
 import { OrganisationResourceToolbar } from "./OrganisationResourceToolbar";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
+import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 
 interface Props {
   companyId?: string | undefined;
@@ -35,6 +41,8 @@ interface Props {
 type StatusFilter = "all" | "active" | "inactive";
 
 interface DesignationFormState {
+  branchId: string;
+  departmentId: string;
   designationCode: string;
   designationName: string;
   grade: string;
@@ -47,6 +55,8 @@ interface DesignationFormState {
 }
 
 const emptyForm: DesignationFormState = {
+  branchId: "",
+  departmentId: "",
   designationCode: "",
   designationName: "",
   grade: "",
@@ -60,6 +70,8 @@ const emptyForm: DesignationFormState = {
 
 function fromDesignation(designation: Designation): DesignationFormState {
   return {
+    branchId: "",
+    departmentId: designation.departmentId ?? "",
     designationCode: designation.designationCode,
     designationName: designation.designationName,
     grade: designation.grade ?? "",
@@ -90,13 +102,15 @@ function money(value: number | null): string {
   }).format(value);
 }
 
-export function DesignationsPanel({ companyId, canManage }: Props) {
+function DesignationsPanelContent({ companyId, canManage }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
   const [status, setStatus] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<Designation | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  // edited by wali: Track the New designation button as the create-dialog animation origin.
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const [form, setForm] = useState<DesignationFormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [archiveTarget, setArchiveTarget] = useState<Designation | null>(null);
@@ -115,11 +129,48 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
   );
 
   const query = useDesignations(params);
+  // edited by wali: Load departments for required designation ownership and list labels.
+  const departmentsQuery = useDepartments({
+    page: 1,
+    limit: 100,
+    sortBy: "department_name",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    isActive: true,
+  });
+  // edited by wali: Load branches first so designation departments can be scoped to the selected branch.
+  const branchesQuery = useBranches({
+    page: 1,
+    limit: 100,
+    sortBy: "branch_name",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    isActive: true,
+  });
+  // edited by wali: Check for linked positions before allowing a designation's branch or department to change.
+  const positionUsageQuery = usePositions({
+    page: 1,
+    limit: 1,
+    sortBy: "position_title",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    ...(editing ? { designationId: editing.designationId } : {}),
+  }, Boolean(editing));
   const createMutation = useCreateDesignation();
   const updateMutation = useUpdateDesignation();
   const archiveMutation = useArchiveDesignation();
   const busy = createMutation.isPending || updateMutation.isPending;
   const designations = query.data?.designations ?? [];
+  const departments = departmentsQuery.data?.departments ?? [];
+  const branches = branchesQuery.data?.branches ?? [];
+  const branchDepartments = departments.filter((department) => department.branchId === form.branchId);
+  const hasLinkedPositions = (positionUsageQuery.data?.pagination.total ?? 0) > 0;
+  const positionUsageCheckUnavailable = Boolean(editing && positionUsageQuery.isError);
+  const positionUsageCheckPending = Boolean(editing && (positionUsageQuery.isLoading || positionUsageQuery.isPlaceholderData || positionUsageCheckUnavailable));
+  const designationScopeLocked = Boolean(editing && (hasLinkedPositions || positionUsageCheckPending));
+  const originalDesignationBranchId = editing
+    ? departments.find((department) => department.departmentId === editing.departmentId)?.branchId ?? ""
+    : "";
   const pagination = query.data?.pagination;
 
   useEffect(() => setPage(1), [companyId, deferredSearch, status]);
@@ -129,6 +180,10 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
       toast.error("Select a company before creating a designation.");
       return;
     }
+    if (!departmentsQuery.isLoading && departments.length === 0) {
+      toast.error("Create an active department before creating a designation.");
+      return;
+    }
     setEditing(null);
     setForm(emptyForm);
     setErrors({});
@@ -136,19 +191,40 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
   }
 
   function openEdit(designation: Designation) {
+    dialogMotion.reset();
     setEditing(designation);
-    setForm(fromDesignation(designation));
+    const department = departments.find((item) => item.departmentId === designation.departmentId);
+    setForm({ ...fromDesignation(designation), branchId: department?.branchId ?? "" });
     setErrors({});
     setFormOpen(true);
+  }
+
+  function closeForm() {
+    dialogMotion.close(() => { setFormOpen(false); setEditing(null); });
   }
 
   function setField<K extends keyof DesignationFormState>(key: K, value: DesignationFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function setBranchId(branchId: string) {
+    setForm((current) => ({ ...current, branchId, departmentId: "" }));
+    setErrors((current) => ({ ...current, branchId: "", departmentId: "" }));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
+    if (!form.branchId) nextErrors.branchId = "Select a branch.";
+    if (!form.departmentId) nextErrors.departmentId = "Select a department.";
+    if (editing && (form.branchId !== originalDesignationBranchId || form.departmentId !== editing.departmentId) && hasLinkedPositions) {
+      nextErrors.departmentId = "Branch and department cannot be changed because this designation has a position.";
+    } else if (editing && (form.branchId !== originalDesignationBranchId || form.departmentId !== editing.departmentId) && positionUsageCheckPending) {
+      nextErrors.departmentId = "Could not verify position usage. Try again before changing the branch or department.";
+    }
+    if (form.departmentId && !branchDepartments.some((department) => department.departmentId === form.departmentId)) {
+      nextErrors.departmentId = "Select a department in the selected branch.";
+    }
     if (form.designationCode.trim().length < 2) nextErrors.designationCode = "Enter a designation code.";
     if (form.designationName.trim().length < 2) nextErrors.designationName = "Enter a designation name.";
     if (form.minimumSalary && form.maximumSalary && Number(form.minimumSalary) > Number(form.maximumSalary)) {
@@ -159,6 +235,7 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
 
     const input: DesignationInput = {
       ...(!editing && companyId ? { companyId } : {}),
+      departmentId: form.departmentId,
       designationCode: form.designationCode.trim(),
       designationName: form.designationName.trim(),
       grade: nullable(form.grade),
@@ -180,8 +257,7 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
         await createMutation.mutateAsync(input);
         toast.success("Designation created successfully");
       }
-      setFormOpen(false);
-      setEditing(null);
+      closeForm();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -204,7 +280,7 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
     <section className="wf-org-resource">
       <OrganisationResourceToolbar
         title="Designations"
-        description="Maintain grades, job levels and managerial classifications."
+        description="Maintain department-specific grades, job levels and managerial classifications."
         search={search}
         total={pagination?.total ?? 0}
         page={page}
@@ -235,15 +311,20 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
       ) : (
         <div className="wf-org-table-wrap">
           <table className="wf-org-table">
-            <thead><tr><th>Designation</th><th>Grade / level</th><th>Salary range</th><th>Classification</th><th>Status</th><th aria-label="Actions" /></tr></thead>
+            <thead><tr><th>Designation</th><th>Branch / department</th><th>Grade / level</th><th>Salary range</th><th>Classification</th><th>Status</th><th aria-label="Actions" /></tr></thead>
             <tbody>
               {designations.map((designation) => (
                 <tr key={designation.designationId}>
+                  {/* edited by wali: Show the designation's branch together with its owning department. */}
                   <td>
                     <div className="wf-org-record-title">
                       <span className="wf-org-record-icon"><BadgeCheck size={17} /></span>
                       <div><strong>{designation.designationName}</strong><small>{designation.designationCode}</small></div>
                     </div>
+                  </td>
+                  <td>
+                    <strong>{departments.find((department) => department.departmentId === designation.departmentId)?.branchName ?? "No branch"}</strong>
+                    <small className="wf-org-cell-note">{departments.find((department) => department.departmentId === designation.departmentId)?.departmentName ?? "Department unavailable"}</small>
                   </td>
                   <td>{designation.grade ?? "—"}<small className="wf-org-cell-note">Level {designation.jobLevel ?? "—"}</small></td>
                   <td><span className="wf-org-muted-line"><Banknote size={14} /> {money(designation.minimumSalary)} – {money(designation.maximumSalary)}</span></td>
@@ -267,23 +348,51 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
       <OrganisationDialog
         open={formOpen}
         title={editing ? "Edit designation" : "Create designation"}
-        subtitle="Define grade, seniority and optional salary guidance."
+        subtitle="Choose a branch and department, then define grade, seniority and optional salary guidance."
         submitLabel={editing ? "Save changes" : "Create designation"}
         busy={busy}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         onSubmit={submit}
       >
         <div className="wf-org-form-grid">
+          {/* edited by wali: Require a branch first and mark the current Head Office in its picker. */}
+          <OrganisationField label="Branch" required error={errors.branchId} hint={positionUsageCheckUnavailable ? "Could not check position usage. Branch and department changes are disabled." : positionUsageCheckPending ? "Checking whether this designation has positions…" : hasLinkedPositions ? "Branch cannot be changed while this designation has a position." : branchesQuery.isLoading ? "Loading branches…" : branches.length === 0 ? "Create an active branch first." : undefined}>
+            <EmployeeMenuSelect
+              className="wf-org-menu-select"
+              value={form.branchId}
+              placeholder="Select branch"
+              options={branches.map((branch) => ({
+                value: branch.branchId,
+                label: branch.branchName,
+                ...(branch.isHeadOffice ? { icon: <span className="emp-menu-select__head-office-marker"><Star size={13} fill="currentColor" aria-hidden="true" />Head Office</span> } : {}),
+              }))}
+              onChange={setBranchId}
+              disabled={designationScopeLocked || branchesQuery.isLoading || branches.length === 0}
+            />
+          </OrganisationField>
+          <OrganisationField label="Department" required error={errors.departmentId} hint={designationScopeLocked ? hasLinkedPositions ? "Department cannot be changed while this designation has a position." : positionUsageCheckUnavailable ? "Could not check position usage. Branch and department changes are disabled." : "Checking whether this designation has positions…" : !form.branchId ? "Select a branch first." : departmentsQuery.isLoading ? "Loading departments…" : branchDepartments.length === 0 ? "Create an active department in this branch first." : undefined}>
+            <EmployeeMenuSelect
+              className="wf-org-menu-select"
+              value={form.departmentId}
+              placeholder={form.branchId ? "Select department" : "Select branch first"}
+              options={branchDepartments.map((department) => ({ value: department.departmentId, label: department.departmentName }))}
+              onChange={(value) => setField("departmentId", value)}
+              disabled={designationScopeLocked || !form.branchId || departmentsQuery.isLoading || branchDepartments.length === 0}
+            />
+          </OrganisationField>
           <OrganisationField label="Designation code" required error={errors.designationCode}><TextInput value={form.designationCode} onChange={(e) => setField("designationCode", e.target.value)} placeholder="HR-MGR" /></OrganisationField>
           <OrganisationField label="Designation name" required error={errors.designationName}><TextInput value={form.designationName} onChange={(e) => setField("designationName", e.target.value)} placeholder="HR Manager" /></OrganisationField>
           <OrganisationField label="Grade"><TextInput value={form.grade} onChange={(e) => setField("grade", e.target.value)} placeholder="M2" /></OrganisationField>
           <OrganisationField label="Job level"><TextInput type="number" min="0" value={form.jobLevel} onChange={(e) => setField("jobLevel", e.target.value)} /></OrganisationField>
           <OrganisationField label="Minimum salary"><TextInput type="number" min="0" step="0.01" value={form.minimumSalary} onChange={(e) => setField("minimumSalary", e.target.value)} /></OrganisationField>
           <OrganisationField label="Maximum salary" error={errors.maximumSalary}><TextInput type="number" min="0" step="0.01" value={form.maximumSalary} onChange={(e) => setField("maximumSalary", e.target.value)} /></OrganisationField>
-          <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(e) => setField("description", e.target.value)} /></OrganisationField>
-          <div className="wf-org-check-stack">
-            <label className="wf-org-check"><input type="checkbox" checked={form.isManagerial} onChange={(e) => setField("isManagerial", e.target.checked)} /><span><strong>Managerial designation</strong><small>Can be used for leadership and approval roles.</small></span></label>
-            <label className="wf-org-check"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active designation</strong><small>Available when creating positions and employee assignments.</small></span></label>
+          {/* edited by wali: Match the branch form's two-column layout for description and checkbox cards. */}
+          <div className="wf-org-form-bottom-grid">
+            <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(e) => setField("description", e.target.value)} /></OrganisationField>
+            <div className="wf-org-check-stack">
+              <label className="wf-org-check"><input type="checkbox" checked={form.isManagerial} onChange={(e) => setField("isManagerial", e.target.checked)} /><span><strong>Managerial designation</strong><small>Can be used for leadership and approval roles.</small></span></label>
+              <label className="wf-org-check"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active designation</strong><small>Available when creating positions and employee assignments.</small></span></label>
+            </div>
           </div>
         </div>
       </OrganisationDialog>
@@ -298,5 +407,14 @@ export function DesignationsPanel({ companyId, canManage }: Props) {
         onConfirm={() => void archive()}
       />
     </section>
+  );
+}
+
+export function DesignationsPanel(props: Props) {
+  // edited by wali: Enable shared trigger-origin motion for the designation toolbar and dialog.
+  return (
+    <OrganisationDialogMotionProvider>
+      <DesignationsPanelContent {...props} />
+    </OrganisationDialogMotionProvider>
   );
 }

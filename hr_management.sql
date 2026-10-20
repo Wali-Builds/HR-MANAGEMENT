@@ -1564,7 +1564,8 @@ CREATE TABLE IF NOT EXISTS `departments` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`department_id`),
-  UNIQUE KEY `uq_company_department_code` (`company_id`,`department_code`),
+  -- edited by wali: Department codes may repeat across branches in one company.
+  UNIQUE KEY `uq_company_branch_department_code` (`company_id`,`branch_id`,`department_code`),
   KEY `ix_department_company` (`company_id`),
   KEY `ix_department_branch` (`branch_id`),
   KEY `ix_department_parent` (`parent_department_id`),
@@ -1580,6 +1581,7 @@ CREATE TABLE IF NOT EXISTS `departments` (
 CREATE TABLE IF NOT EXISTS `designations` (
   `designation_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `company_id` bigint(20) unsigned NOT NULL,
+  `department_id` bigint(20) unsigned DEFAULT NULL,
   `designation_code` varchar(50) NOT NULL,
   `designation_name` varchar(150) NOT NULL,
   `grade` varchar(50) DEFAULT NULL,
@@ -1593,9 +1595,12 @@ CREATE TABLE IF NOT EXISTS `designations` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`designation_id`),
-  UNIQUE KEY `uq_company_designation_code` (`company_id`,`designation_code`),
+  -- edited by wali: Designation codes are scoped to their department.
+  UNIQUE KEY `uq_department_designation_code` (`company_id`,`department_id`,`designation_code`),
   KEY `ix_designation_company` (`company_id`),
+  KEY `ix_designation_department` (`department_id`),
   KEY `ix_designation_active` (`company_id`,`is_active`),
+  CONSTRAINT `fk_designation_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_designation_company` FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -5778,7 +5783,8 @@ CREATE TABLE IF NOT EXISTS `positions` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`position_id`),
-  UNIQUE KEY `uq_position_code` (`company_id`,`position_code`),
+  -- edited by wali: Position codes are scoped to their department.
+  UNIQUE KEY `uq_position_code` (`company_id`,`department_id`,`position_code`),
   KEY `fk_position_branch` (`branch_id`),
   KEY `fk_position_department` (`department_id`),
   KEY `fk_position_designation` (`designation_id`),

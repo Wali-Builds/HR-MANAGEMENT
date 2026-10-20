@@ -6,6 +6,8 @@ export type DatabaseId =
 export interface DesignationDatabaseRow {
   designation_id: DatabaseId;
   company_id: DatabaseId;
+  // edited by wali: The department owning this designation; legacy rows may be unassigned.
+  department_id: DatabaseId | null;
 
   designation_code: string;
   designation_name: string;
@@ -34,6 +36,7 @@ export interface DesignationDatabaseRow {
 export interface DesignationResponse {
   designationId: string;
   companyId: string;
+  departmentId: string | null;
 
   designationCode: string;
   designationName: string;
@@ -56,6 +59,7 @@ export interface DesignationListOptions {
   limit: number;
 
   companyId: string | null;
+  departmentId?: string;
 
   search?: string;
   grade?: string;

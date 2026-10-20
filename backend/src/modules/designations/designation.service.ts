@@ -9,8 +9,10 @@ import type {
 import {
   createDesignationRecord,
   findActiveCompanyById,
+  findActiveDepartmentForCompany,
   findDesignationById,
   findDesignationCodeConflict,
+  areDesignationAssignmentsInDepartment,
   listDesignationRecords,
   softDeleteDesignationRecord,
   updateDesignationRecord
@@ -82,6 +84,11 @@ function mapDesignation(
       String(
         designation.company_id
       ),
+
+    departmentId:
+      designation.department_id === null
+        ? null
+        : String(designation.department_id),
 
     designationCode:
       designation.designation_code,
@@ -307,6 +314,10 @@ export async function listDesignations(
 
     companyId,
 
+    ...(query.departmentId !== undefined
+      ? { departmentId: query.departmentId }
+      : {}),
+
     sortBy:
       query.sortBy,
 
@@ -435,6 +446,23 @@ export async function createDesignation(
     });
   }
 
+  // edited by wali: Every new designation must belong to an active department in this company.
+  const departmentExists =
+    await findActiveDepartmentForCompany(
+      input.departmentId,
+      companyId
+    );
+
+  if (!departmentExists) {
+    throw new AppError({
+      message:
+        "Select an active department belonging to this company",
+      statusCode: 422,
+      code:
+        "INVALID_DESIGNATION_DEPARTMENT"
+    });
+  }
+
   validateSalaryRange(
     input.minimumSalary ?? null,
     input.maximumSalary ?? null
@@ -443,13 +471,14 @@ export async function createDesignation(
   const conflict =
     await findDesignationCodeConflict(
       companyId,
+      input.departmentId,
       input.designationCode
     );
 
   if (conflict) {
     throw new AppError({
       message:
-        "This designation code is already in use within the company",
+        "This designation code is already in use within the department",
       statusCode: 409,
       code:
         "DESIGNATION_CODE_EXISTS"
@@ -474,7 +503,7 @@ export async function createDesignation(
     ) {
       throw new AppError({
         message:
-          "This designation code is already in use within the company",
+          "This designation code is already in use within the department",
         statusCode: 409,
         code:
           "DESIGNATION_CODE_EXISTS"
@@ -516,6 +545,42 @@ export async function updateDesignation(
     companyId
   );
 
+  if (input.departmentId !== undefined) {
+    // edited by wali: Prevent changing scope while linked records still use another department.
+    const departmentExists =
+      await findActiveDepartmentForCompany(
+        input.departmentId,
+        companyId
+      );
+
+    if (!departmentExists) {
+      throw new AppError({
+        message:
+          "Select an active department belonging to this company",
+        statusCode: 422,
+        code:
+          "INVALID_DESIGNATION_DEPARTMENT"
+      });
+    }
+
+    if (
+      input.departmentId !==
+        String(existingDesignation.department_id ?? "") &&
+      !(await areDesignationAssignmentsInDepartment(
+        designationId,
+        input.departmentId
+      ))
+    ) {
+      throw new AppError({
+        message:
+          "The designation has linked positions or employee assignments in another department. Move those records first.",
+        statusCode: 409,
+        code:
+          "DESIGNATION_DEPARTMENT_ASSIGNMENT_MISMATCH"
+      });
+    }
+  }
+
   const resultingMinimumSalary =
     input.minimumSalary !==
       undefined
@@ -543,9 +608,13 @@ export async function updateDesignation(
     input.designationCode !==
       undefined
   ) {
+    const resultingDepartmentId =
+      input.departmentId ??
+      String(existingDesignation.department_id ?? "");
     const conflict =
       await findDesignationCodeConflict(
         companyId,
+        resultingDepartmentId,
         input.designationCode,
         designationId
       );
@@ -553,7 +622,7 @@ export async function updateDesignation(
     if (conflict) {
       throw new AppError({
         message:
-          "This designation code is already in use within the company",
+          "This designation code is already in use within the department",
         statusCode: 409,
         code:
           "DESIGNATION_CODE_EXISTS"
@@ -589,7 +658,7 @@ export async function updateDesignation(
     ) {
       throw new AppError({
         message:
-          "This designation code is already in use within the company",
+          "This designation code is already in use within the department",
         statusCode: 409,
         code:
           "DESIGNATION_CODE_EXISTS"

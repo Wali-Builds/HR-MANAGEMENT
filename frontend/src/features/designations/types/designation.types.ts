@@ -2,6 +2,8 @@
 export interface Designation {
   designationId: string;
   companyId: string;
+  // edited by wali: Designations are associated with a department.
+  departmentId: string | null;
   designationCode: string;
   designationName: string;
   grade: string | null;
@@ -16,6 +18,7 @@ export interface Designation {
 }
 export interface DesignationInput {
   companyId?: string;
+  departmentId: string;
   designationCode: string;
   designationName: string;
   grade?: string | null;
@@ -30,6 +33,7 @@ export interface DesignationListParams {
   page: number;
   limit: number;
   companyId?: string;
+  departmentId?: string;
   search?: string;
   sortOrder: "ASC" | "DESC";
   grade?: string;

@@ -4,6 +4,7 @@ import {
   GitBranch,
   MoreHorizontal,
   Network,
+  Star,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
@@ -14,6 +15,7 @@ import {
   useArchiveDepartment,
   useCreateDepartment,
   useDepartments,
+  useDesignations,
   useOrganisationReferences,
   useUpdateDepartment,
 } from "../hooks/useOrganisation";
@@ -28,6 +30,7 @@ import {
 } from "./OrganisationField";
 import { OrganisationResourceToolbar } from "./OrganisationResourceToolbar";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 
 interface Props {
   companyId?: string | undefined;
@@ -73,13 +76,15 @@ function nullable(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-export function DepartmentsPanel({ companyId, canManage }: Props) {
+function DepartmentsPanelContent({ companyId, canManage }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
   const [status, setStatus] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<Department | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  // edited by wali: Track the New department button as the create-dialog animation origin.
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const [form, setForm] = useState<DepartmentFormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [archiveTarget, setArchiveTarget] = useState<Department | null>(null);
@@ -99,12 +104,25 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
 
   const query = useDepartments(params);
   const references = useOrganisationReferences(companyId, Boolean(companyId));
+  // edited by wali: Check whether this department already owns a designation before allowing branch changes.
+  const designationUsageQuery = useDesignations({
+    page: 1,
+    limit: 1,
+    sortBy: "designation_name",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    ...(editing ? { departmentId: editing.departmentId } : {}),
+  }, Boolean(editing));
   const createMutation = useCreateDepartment();
   const updateMutation = useUpdateDepartment();
   const archiveMutation = useArchiveDepartment();
   const busy = createMutation.isPending || updateMutation.isPending;
   const departments = query.data?.departments ?? [];
   const pagination = query.data?.pagination;
+  const hasLinkedDesignations = (designationUsageQuery.data?.pagination.total ?? 0) > 0;
+  const branchUsageCheckUnavailable = Boolean(editing && designationUsageQuery.isError);
+  const branchChangeCheckPending = Boolean(editing && (designationUsageQuery.isLoading || designationUsageQuery.isPlaceholderData || branchUsageCheckUnavailable));
+  const branchChangeLocked = Boolean(editing && (hasLinkedDesignations || branchChangeCheckPending));
 
   useEffect(() => setPage(1), [companyId, deferredSearch, status]);
 
@@ -119,7 +137,12 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
     setFormOpen(true);
   }
 
+  function closeForm() {
+    dialogMotion.close(() => { setFormOpen(false); setEditing(null); });
+  }
+
   function openEdit(department: Department) {
+    dialogMotion.reset();
     setEditing(department);
     setForm(fromDepartment(department));
     setErrors({});
@@ -150,6 +173,11 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
     if (form.departmentCode.trim().length < 2) nextErrors.departmentCode = "Enter a department code.";
     if (form.departmentName.trim().length < 2) nextErrors.departmentName = "Enter a department name.";
     if (editing && form.parentDepartmentId === editing.departmentId) nextErrors.parentDepartmentId = "A department cannot be its own parent.";
+    if (editing && form.branchId !== (editing.branchId ?? "") && hasLinkedDesignations) {
+      nextErrors.branchId = "This department's branch cannot be changed because it has designations.";
+    } else if (editing && form.branchId !== (editing.branchId ?? "") && branchChangeCheckPending) {
+      nextErrors.branchId = "Could not verify designation usage. Try again before changing the branch.";
+    }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -174,8 +202,7 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
         await createMutation.mutateAsync(input);
         toast.success("Department created successfully");
       }
-      setFormOpen(false);
-      setEditing(null);
+      closeForm();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -264,17 +291,35 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
         subtitle="Set the functional hierarchy and optional branch scope."
         submitLabel={editing ? "Save changes" : "Create department"}
         busy={busy}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         onSubmit={submit}
       >
         <div className="wf-org-form-grid">
           <OrganisationField label="Department code" required error={errors.departmentCode}><TextInput value={form.departmentCode} onChange={(e) => setField("departmentCode", e.target.value)} placeholder="HR" /></OrganisationField>
           <OrganisationField label="Department name" required error={errors.departmentName}><TextInput value={form.departmentName} onChange={(e) => setField("departmentName", e.target.value)} placeholder="Human Resources" /></OrganisationField>
-          <OrganisationField label="Branch" hint="Leave empty for a company-wide department."><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Company-wide" options={references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={setBranchId} /></OrganisationField>
+          {/* edited by wali: Mark the company's current Head Office in the branch picker. */}
+          {/* edited by wali: Lock department branch changes once a designation is attached. */}
+          <OrganisationField label="Branch" error={errors.branchId} hint={branchUsageCheckUnavailable ? "Could not check designation usage. Branch changes are disabled." : branchChangeCheckPending ? "Checking whether this department has designations…" : hasLinkedDesignations ? "Branch cannot be changed while this department has designations." : "Leave empty for a company-wide department."}>
+            <EmployeeMenuSelect
+              className="wf-org-menu-select"
+              value={form.branchId}
+              placeholder="Company-wide"
+              options={references.branches.map((branch) => ({
+                value: branch.branchId,
+                label: branch.branchName,
+                ...(branch.isHeadOffice ? { icon: <span className="emp-menu-select__head-office-marker"><Star size={13} fill="currentColor" aria-hidden="true" />Head Office</span> } : {}),
+              }))}
+              onChange={setBranchId}
+              disabled={branchChangeLocked}
+            />
+          </OrganisationField>
           <OrganisationField label="Parent department" hint="Only company-wide departments and departments in the selected branch are available as parents." error={errors.parentDepartmentId}><EmployeeMenuSelect className="wf-org-menu-select" value={form.parentDepartmentId} placeholder="Root department" options={references.departments.filter((department) => department.departmentId !== editing?.departmentId && (!department.branchId || department.branchId === form.branchId)).map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={(value) => setField("parentDepartmentId", value)} /></OrganisationField>
           <OrganisationField label="Cost centre code"><TextInput value={form.costCenterCode} onChange={(e) => setField("costCenterCode", e.target.value)} placeholder="CC-HR-01" /></OrganisationField>
-          <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(e) => setField("description", e.target.value)} /></OrganisationField>
-          <label className="wf-org-check wf-org-check--wide"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active department</strong><small>Available for employee assignments and reporting.</small></span></label>
+          {/* edited by wali: Match the branch form's two-column layout for description and checkbox cards. */}
+          <div className="wf-org-form-bottom-grid">
+            <OrganisationField label="Description"><TextAreaInput rows={4} value={form.description} onChange={(e) => setField("description", e.target.value)} /></OrganisationField>
+            <label className="wf-org-check"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active department</strong><small>Available for employee assignments and reporting.</small></span></label>
+          </div>
         </div>
       </OrganisationDialog>
 
@@ -288,5 +333,14 @@ export function DepartmentsPanel({ companyId, canManage }: Props) {
         onConfirm={() => void archive()}
       />
     </section>
+  );
+}
+
+export function DepartmentsPanel(props: Props) {
+  // edited by wali: Enable shared trigger-origin motion for the department toolbar and dialog.
+  return (
+    <OrganisationDialogMotionProvider>
+      <DepartmentsPanelContent {...props} />
+    </OrganisationDialogMotionProvider>
   );
 }

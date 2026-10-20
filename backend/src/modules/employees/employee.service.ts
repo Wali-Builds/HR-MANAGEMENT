@@ -983,6 +983,20 @@ async function resolveAssignment(
           "INVALID_EMPLOYEE_DESIGNATION"
       });
     }
+
+    // edited by wali: Employee assignments must use a designation owned by that same department.
+    if (
+      !departmentId ||
+      validDesignation.departmentId !== departmentId
+    ) {
+      throw new AppError({
+        message:
+          "The selected designation must belong to the employee's department",
+        statusCode: 422,
+        code:
+          "EMPLOYEE_DESIGNATION_DEPARTMENT_MISMATCH"
+      });
+    }
   }
 
   if (reportingManagerId) {

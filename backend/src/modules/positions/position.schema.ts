@@ -326,13 +326,12 @@ export const createPositionBodySchema =
         nullableDatabaseIdSchema
           .optional(),
 
+      // edited by wali: New positions require a department and its designation.
       departmentId:
-        nullableDatabaseIdSchema
-          .optional(),
+        databaseIdSchema,
 
       designationId:
-        nullableDatabaseIdSchema
-          .optional(),
+        databaseIdSchema,
 
       reportsToPositionId:
         nullableDatabaseIdSchema
@@ -420,11 +419,11 @@ export const updatePositionBodySchema =
           .optional(),
 
       departmentId:
-        nullableDatabaseIdSchema
+        databaseIdSchema
           .optional(),
 
       designationId:
-        nullableDatabaseIdSchema
+        databaseIdSchema
           .optional(),
 
       reportsToPositionId:

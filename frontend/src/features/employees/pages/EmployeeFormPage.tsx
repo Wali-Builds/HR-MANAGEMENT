@@ -29,6 +29,7 @@ import {
 import {
   employeeFormSchema,
   employeeHiringFormSchema,
+  type EmployeeFormInputValues,
   type EmployeeFormValues,
 } from "../schemas/employee.schema";
 import {
@@ -71,7 +72,7 @@ export function EmployeeFormPage({ mode }: Props) {
     watch,
     setValue,
     formState: { errors, isDirty },
-  } = useForm<EmployeeFormValues>({
+  } = useForm<EmployeeFormInputValues, unknown, EmployeeFormValues>({
     resolver: zodResolver(isEditing ? employeeFormSchema : employeeHiringFormSchema),
     defaultValues: {
       ...employeeDefaultValues,

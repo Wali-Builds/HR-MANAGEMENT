@@ -88,6 +88,8 @@ export interface DepartmentInput {
 export interface Designation {
   designationId: string;
   companyId: string;
+  // edited by wali: API responses include the designation's owning department.
+  departmentId: string | null;
   designationCode: string;
   designationName: string;
   grade: string | null;
@@ -103,6 +105,7 @@ export interface Designation {
 
 export interface DesignationInput {
   companyId?: string;
+  departmentId: string;
   designationCode: string;
   designationName: string;
   grade?: string | null;
@@ -146,8 +149,9 @@ export interface Position {
 export interface PositionInput {
   companyId?: string;
   branchId?: string | null;
-  departmentId?: string | null;
-  designationId?: string | null;
+  // edited by wali: Position creation requires a department-specific designation.
+  departmentId: string;
+  designationId: string;
   reportsToPositionId?: string | null;
   positionCode: string;
   positionTitle: string;
@@ -197,6 +201,7 @@ export interface DepartmentListParams extends BaseListParams {
 }
 
 export interface DesignationListParams extends BaseListParams {
+  departmentId?: string;
   grade?: string;
   jobLevel?: number;
   isManagerial?: boolean;

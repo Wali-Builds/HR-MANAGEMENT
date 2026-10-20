@@ -106,7 +106,8 @@ export const workspaceModules: WorkspaceModule[] = [
     id: "designations",
     label: "Designations",
     shortLabel: "Designations",
-    description: "Create and manage company designations.",
+    // edited by wali: Descriptions reflect that designations are department-scoped.
+    description: "Create and manage department designations.",
     to: "/employees/organisation/designations",
     icon: ShieldCheck,
     tone: "indigo",

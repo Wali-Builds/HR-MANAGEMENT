@@ -114,6 +114,10 @@ export const createDesignationBodySchema =
       companyId:
         databaseIdSchema.optional(),
 
+      // edited by wali: Each designation is created inside one department.
+      departmentId:
+        databaseIdSchema,
+
       designationCode:
         designationCodeSchema,
 
@@ -185,6 +189,11 @@ export const createDesignationBodySchema =
 export const updateDesignationBodySchema =
   z
     .object({
+      // edited by wali: Department changes are validated against linked positions and employees.
+      departmentId:
+        databaseIdSchema
+          .optional(),
+
       designationCode:
         designationCodeSchema
           .optional(),
@@ -289,6 +298,10 @@ export const designationListQuerySchema =
       .default(20),
 
     companyId:
+      databaseIdSchema
+        .optional(),
+
+    departmentId:
       databaseIdSchema
         .optional(),
 
