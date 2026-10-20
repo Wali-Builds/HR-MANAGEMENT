@@ -31,7 +31,7 @@ export const employeeFormSchema = z
     dateOfBirth: optionalDate.min(1, "Date of birth is required"),
     maritalStatus: z.string().trim().min(1, "Marital status is required").max(30),
     bloodGroup: z.string().trim().min(1, "Blood group is required").max(10),
-    nationality: z.string().trim().min(2).max(80),
+    nationality: z.string().trim().min(2, "Nationality is required").max(80),
     cnicNumber: z.string().trim().min(1, "CNIC number is required").max(20),
     passportNumber: z.string().trim().max(50),
     personalEmail: optionalEmail,
@@ -56,8 +56,9 @@ export const employeeFormSchema = z
     projectId: z.string().trim(),
     designationId: z.string().trim(),
     reportingManagerId: z.string().trim(),
-    positionId: z.string().trim(),
-    assignmentType: z.string().trim().min(2).max(30),
+    // edited by wali: Every employee must be assigned to a position, including on edit.
+    positionId: z.string().trim().min(1, "Position is required"),
+    assignmentType: z.string().trim().min(2, "Assignment type is required").max(30),
     assignmentEffectiveFrom: z
       .string()
       .trim()
@@ -134,7 +135,6 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
     ["branchId", data.branchId, "Branch"],
     ["departmentId", data.departmentId, "Department"],
     ["designationId", data.designationId, "Designation"],
-    ["positionId", data.positionId, "Position"],
   ] as const;
 
   for (const [field, value, label] of requiredAssignments) {

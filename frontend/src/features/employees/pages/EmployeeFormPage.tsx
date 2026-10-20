@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -154,6 +155,14 @@ export function EmployeeFormPage({ mode }: Props) {
     }
   }
 
+  // edited by wali: Tell the user when required values are missing before the form can save.
+  function showValidationMessage(validationErrors: FieldErrors<EmployeeFormInputValues>) {
+    const message = Object.values(validationErrors)
+      .map((fieldError) => fieldError?.message)
+      .find((fieldMessage): fieldMessage is string => typeof fieldMessage === "string" && fieldMessage.length > 0);
+    toast.error(message ?? "Please complete the required fields before saving.");
+  }
+
   if (!canUseForm) return null;
 
   if (isEditing && employeeQuery.isLoading) {
@@ -173,7 +182,7 @@ export function EmployeeFormPage({ mode }: Props) {
   }
 
   return (
-    <form className="emp-form-page emp-form-page--access-ui" onSubmit={handleSubmit(submit)} noValidate>
+    <form className="emp-form-page emp-form-page--access-ui" onSubmit={handleSubmit(submit, showValidationMessage)} noValidate>
       <header className="emp-record-toolbar">
         <div className="emp-record-toolbar__left">
           <button type="button" className="emp-back-button" onClick={discard}><ArrowLeft size={17} /></button>

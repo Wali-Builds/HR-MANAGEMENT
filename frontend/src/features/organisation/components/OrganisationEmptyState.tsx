@@ -1,4 +1,5 @@
 import { Layers3, Plus, RefreshCw } from "lucide-react";
+import { useOrganisationDialogMotion } from "./OrganisationDialogMotion";
 
 interface Props {
   title: string;
@@ -17,6 +18,7 @@ export function OrganisationEmptyState({
   onCreate,
   onRetry,
 }: Props) {
+  const dialogMotion = useOrganisationDialogMotion();
   return (
     <div className="wf-org-empty">
       <span><Layers3 size={26} /></span>
@@ -27,7 +29,7 @@ export function OrganisationEmptyState({
           <RefreshCw size={15} /> Try again
         </button>
       ) : canCreate ? (
-        <button type="button" className="wf-org-button wf-org-button--primary" onClick={onCreate}>
+        <button type="button" className="wf-org-button wf-org-button--primary" onClick={(event) => { dialogMotion?.capture(event); onCreate(); }}>
           <Plus size={15} /> Create first record
         </button>
       ) : null}

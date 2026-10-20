@@ -72,11 +72,11 @@ export function useRequiredOrganisationDialogMotion(): MotionState {
 }
 
 // edited by wali: Keep dialog measurement and animation classes in one reusable hook.
-export function useOrganisationDialogAnimation(open: boolean) {
+export function useOrganisationDialogAnimation<T extends HTMLElement = HTMLElement>(open: boolean) {
   const sharedMotion = useOrganisationDialogMotion();
   const activeOrigin = sharedMotion?.origin ?? null;
   const activeClosing = sharedMotion?.closing ?? false;
-  const dialogRef = useRef<HTMLFormElement>(null);
+  const dialogRef = useRef<T>(null);
   const [entered, setEntered] = useState(false);
 
   useLayoutEffect(() => {
@@ -104,6 +104,8 @@ export function useOrganisationDialogAnimation(open: boolean) {
   const closingClass = activeClosing ? " is-closing" : "";
   return {
     dialogRef,
+    backdropMotionClassName: `${activeOrigin ? "wf-org-dialog-backdrop--origin-motion" : ""}${enteredClass}${closingClass}`,
+    dialogMotionClassName: `${activeOrigin ? "wf-org-dialog--origin-motion" : ""}${enteredClass}${closingClass}`,
     backdropClassName: `wf-org-dialog-backdrop${activeOrigin ? " wf-org-dialog-backdrop--origin-motion" : ""}${enteredClass}${closingClass}`,
     dialogClassName: `wf-org-dialog${activeOrigin ? " wf-org-dialog--origin-motion" : ""}${enteredClass}${closingClass}`,
     closing: activeClosing,

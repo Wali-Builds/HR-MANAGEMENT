@@ -23,7 +23,8 @@ export function OrganisationDialog({
   onClose,
   onSubmit,
 }: Props) {
-  const animation = useOrganisationDialogAnimation(open);
+  // edited by wali: Keep the shared animation ref correctly typed for form dialogs.
+  const animation = useOrganisationDialogAnimation<HTMLFormElement>(open);
 
   if (!open) return null;
 

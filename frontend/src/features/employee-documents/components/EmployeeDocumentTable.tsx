@@ -13,15 +13,17 @@ import {
 } from "lucide-react";
 
 import type { EmployeeDocument } from "../types/employee-document.types";
+import type { MouseEvent } from "react";
 
 interface EmployeeDocumentTableProps {
   documents: EmployeeDocument[];
   canManage: boolean;
   onPreview: (document: EmployeeDocument) => void;
   onDownload: (document: EmployeeDocument) => void;
-  onEdit: (document: EmployeeDocument) => void;
-  onReplace: (document: EmployeeDocument) => void;
-  onDelete: (document: EmployeeDocument) => void;
+  // edited by wali: Pass action clicks upward so forms can animate from the trigger.
+  onEdit: (document: EmployeeDocument, event: MouseEvent<HTMLButtonElement>) => void;
+  onReplace: (document: EmployeeDocument, event: MouseEvent<HTMLButtonElement>) => void;
+  onDelete: (document: EmployeeDocument, event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 function formatCategory(value: string): string {
@@ -125,13 +127,13 @@ export function EmployeeDocumentTable({
                   </button>
                   {canManage ? (
                     <>
-                      <button type="button" title="Edit details" onClick={() => onEdit(document)}>
+                      <button type="button" title="Edit details" onClick={(event) => onEdit(document, event)}>
                         <Pencil size={15} />
                       </button>
-                      <button type="button" title="Replace file" onClick={() => onReplace(document)}>
+                      <button type="button" title="Replace file" onClick={(event) => onReplace(document, event)}>
                         <RefreshCw size={15} />
                       </button>
-                      <button type="button" className="is-danger" title="Delete" onClick={() => onDelete(document)}>
+                      <button type="button" className="is-danger" title="Delete" onClick={(event) => onDelete(document, event)}>
                         <Trash2 size={15} />
                       </button>
                     </>

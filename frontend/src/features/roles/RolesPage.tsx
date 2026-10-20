@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { normalizeApiError } from "../../api/api-error";
 import { usePermissions } from "../../hooks/usePermissions";
+import { OrganisationDialogMotionProvider, useOrganisationDialogAnimation, useRequiredOrganisationDialogMotion } from "../organisation/components/OrganisationDialogMotion";
 import {
   createRoleRequest, deleteRoleRequest, listPermissionsRequest, listRolesRequest,
   replaceRolePermissionsRequest, roleKeys, updateRoleRequest,
@@ -44,6 +45,7 @@ function RoleDialog(props: {
   onSave: (input: RoleInput) => Promise<void>;
 }) {
   const { open, isPlatformAdmin, role, permissions, presetCode, saving, onClose, onSave } = props;
+  const animation = useOrganisationDialogAnimation<HTMLFormElement>(open);
   const [form, setForm] = useState(() => initialForm(role, presetCode));
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -127,9 +129,9 @@ function RoleDialog(props: {
 
   const platformAdminRole = role?.roleCode === "PLATFORM_ADMIN";
   return (
-    <div className="role-modal" role="dialog" aria-modal="true">
-      <button type="button" className="role-modal__backdrop" onClick={onClose} aria-label="Close role form" />
-      <form className="role-dialog" onSubmit={submit}>
+    <div className="role-modal" role="presentation">
+      <button type="button" className={`role-modal__backdrop ${animation.backdropMotionClassName}`} onClick={animation.closing ? undefined : onClose} aria-label="Close role form" />
+      <form ref={animation.dialogRef} className={`role-dialog ${animation.dialogMotionClassName}`} role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()} onSubmit={submit}>
         <header className="role-dialog__header">
           <span className="role-dialog__mark"><ShieldCheck size={20} /></span>
           <div className="role-dialog__heading">
@@ -206,7 +208,8 @@ function RoleDialog(props: {
   );
 }
 
-export function RolesPage() {
+function RolesPageContent() {
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const { isPlatformAdmin } = usePermissions();
   const queryClient = useQueryClient();
   const rolesQuery = useQuery({ queryKey: roleKeys.roles(), queryFn: listRolesRequest, staleTime: 60_000 });
@@ -235,6 +238,8 @@ export function RolesPage() {
 
   function create(code: string | null = null) { setEditing(null); setPresetCode(code); setDialogOpen(true); }
   function edit(role: RoleRecord) { setEditing(role); setPresetCode(null); setDialogOpen(true); }
+  // edited by wali: Use the shared 360 ms close animation for role forms.
+  function closeDialog() { dialogMotion.close(() => { setDialogOpen(false); setEditing(null); setPresetCode(null); }); }
 
   async function save(input: RoleInput) {
     setSaving(true);
@@ -256,7 +261,7 @@ export function RolesPage() {
         toast.success("Role and permissions updated");
       }
       await queryClient.invalidateQueries({ queryKey: roleKeys.roles() });
-      setDialogOpen(false); setEditing(null); setPresetCode(null);
+      closeDialog();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     } finally { setSaving(false); }
@@ -291,7 +296,7 @@ export function RolesPage() {
   return <main className="roles-page wf-org-page">
     <header className="roles-hero wf-org-hero"><div className="wf-org-hero__copy"><span className="roles-eyebrow wf-org-hero__eyebrow"><ShieldCheck size={14} />{isPlatformAdmin ? "Platform administration" : "Company access control"}</span><h1>Roles &amp; permissions</h1>
       <p>{isPlatformAdmin ? "Create platform roles and manage access for your organisations." : "Create company roles for your employees and grant the access they need."}</p></div>
-      <button type="button" className="roles-button roles-button--primary roles-hero__create-button" disabled={loading} onClick={() => create()}><Plus size={15} /> Create role</button>
+      <button type="button" className="roles-button roles-button--primary roles-hero__create-button" disabled={loading} onClick={(event) => { dialogMotion.capture(event); create(); }}><Plus size={15} /> Create role</button>
     </header>
     <section className="roles-summary">
       <article><span className="roles-summary__icon roles-summary__icon--teal"><UserCog size={18} /></span><div><strong>{roles.length}</strong><small>Total roles</small></div></article>
@@ -302,7 +307,7 @@ export function RolesPage() {
     {isPlatformAdmin && !loading && !loadError && !hasCompanyAdmin ? <section className="roles-callout">
       <span><CircleHelp size={19} /></span><div><strong>Company Administrator role is missing</strong>
         <p>Provisioning requires an active role with the exact code <code>COMPANY_ADMIN</code>. Create it once and grant the required company permissions.</p></div>
-      <button type="button" className="roles-button roles-button--secondary" onClick={() => create("COMPANY_ADMIN")}><Plus size={14} /> Set up role</button>
+      <button type="button" className="roles-button roles-button--secondary" onClick={(event) => { dialogMotion.capture(event); create("COMPANY_ADMIN"); }}><Plus size={14} /> Set up role</button>
     </section> : null}
     <section className="roles-panel">
       <div className="roles-toolbar">
@@ -327,7 +332,7 @@ export function RolesPage() {
           <td><span className="roles-permission-count"><KeyRound size={13} /> {role.permissionCount}</span></td>
           <td><span className={role.isActive ? "roles-status roles-status--active" : "roles-status roles-status--inactive"}><i />{role.isActive ? "Active" : "Inactive"}</span></td>
           <td><div className="roles-actions">
-            <button type="button" className="roles-action" disabled={role.roleCode === "PLATFORM_ADMIN"} onClick={() => edit(role)} title={role.roleCode === "PLATFORM_ADMIN" ? "Protected system role" : "Edit role"}>
+            <button type="button" className="roles-action" disabled={role.roleCode === "PLATFORM_ADMIN"} onClick={(event) => { dialogMotion.capture(event); edit(role); }} title={role.roleCode === "PLATFORM_ADMIN" ? "Protected system role" : "Edit role"}>
               <ShieldCheck size={14} />{role.roleCode === "PLATFORM_ADMIN" ? "Protected" : "Edit"}</button>
             {!role.isSystemRole && role.roleCode !== "PLATFORM_ADMIN" ? <button type="button" className={role.isActive ? "roles-action roles-action--danger" : "roles-action"} disabled={workingId === role.roleId} onClick={() => void toggle(role)}>
               {workingId === role.roleId ? <LoaderCircle className="role-spin" size={13} /> : <UserCog size={13} />}{role.isActive ? "Deactivate" : "Activate"}</button> : null}
@@ -336,6 +341,11 @@ export function RolesPage() {
         </tr>)}</tbody></table></div>}
     </section>
     <RoleDialog open={dialogOpen} isPlatformAdmin={isPlatformAdmin} role={editing} permissions={permissions} presetCode={presetCode} saving={saving}
-      onClose={() => { if (!saving) { setDialogOpen(false); setEditing(null); setPresetCode(null); } }} onSave={save} />
+      onClose={() => { if (!saving) closeDialog(); }} onSave={save} />
   </main>;
+}
+
+// edited by wali: Add the shared trigger-origin motion to Roles & permissions forms.
+export function RolesPage() {
+  return <OrganisationDialogMotionProvider><RolesPageContent /></OrganisationDialogMotionProvider>;
 }
