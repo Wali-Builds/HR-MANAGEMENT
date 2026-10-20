@@ -7,6 +7,20 @@ export async function listPositionsRequest(params: PositionListParams): Promise<
   const response = await apiClient.get<ApiSuccessResponse<PositionListResult>>("/positions", { params });
   return response.data.data;
 }
+
+// edited by wali: Fetch every page when checking whether a designation already has a position.
+export async function listAllPositionsRequest(params: Omit<PositionListParams, "page" | "limit">): Promise<Position[]> {
+  const firstPage = await listPositionsRequest({ ...params, page: 1, limit: 100 });
+  if (firstPage.pagination.totalPages <= 1) return firstPage.positions;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.pagination.totalPages - 1 }, (_, index) =>
+      listPositionsRequest({ ...params, page: index + 2, limit: 100 }),
+    ),
+  );
+  return [...firstPage.positions, ...remainingPages.flatMap((result) => result.positions)];
+}
+
 export async function createPositionRequest(input: PositionInput): Promise<Position> {
   const response = await apiClient.post<ApiSuccessResponse<{ position: Position }>>("/positions", input);
   return response.data.data.position;

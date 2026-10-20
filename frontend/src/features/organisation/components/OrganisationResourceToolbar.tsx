@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
+import { useOrganisationDialogMotion } from "./OrganisationDialogMotion";
 
 interface Props {
   title: string;
@@ -44,6 +45,7 @@ export function OrganisationResourceToolbar({
   onPreviousPage,
   onNextPage,
 }: Props) {
+  const dialogMotion = useOrganisationDialogMotion();
   return (
     <header className="wf-org-resource-toolbar">
       <div className="wf-org-resource-toolbar__heading">
@@ -53,7 +55,7 @@ export function OrganisationResourceToolbar({
           <p>{description}</p>
         </div>
         {canCreate ? (
-          <button type="button" className="wf-org-button wf-org-button--primary" onClick={onCreate}>
+          <button type="button" className="wf-org-button wf-org-button--primary" onClick={(event) => { dialogMotion?.capture(event); onCreate(); }}>
             <Plus size={16} /> {createLabel}
           </button>
         ) : null}

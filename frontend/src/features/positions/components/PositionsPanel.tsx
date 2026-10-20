@@ -6,6 +6,7 @@ import {
   Edit3,
   MoreHorizontal,
   Network,
+  Star,
   UsersRound,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import { normalizeApiError } from "../../../api/api-error";
 import {
   useClosePosition,
   useCreatePosition,
+  useAllPositions,
   usePositions,
   useUpdatePosition,
 } from "../hooks/usePositions";
@@ -34,6 +36,7 @@ import {
 } from "../../organisation/components/OrganisationField";
 import { OrganisationResourceToolbar } from "../../organisation/components/OrganisationResourceToolbar";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 
 interface Props {
   companyId?: string | undefined;
@@ -114,13 +117,15 @@ function money(value: number | null, currency: string): string {
   }).format(value);
 }
 
-export function PositionsPanel({ companyId, canManage }: Props) {
+function PositionsPanelContent({ companyId, canManage }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
   const [status, setStatus] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<Position | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  // edited by wali: Track the New position button as the create-dialog animation origin.
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const [form, setForm] = useState<PositionFormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [closeTarget, setCloseTarget] = useState<Position | null>(null);
@@ -140,6 +145,7 @@ export function PositionsPanel({ companyId, canManage }: Props) {
   );
 
   const query = usePositions(params);
+  const allCompanyPositionsQuery = useAllPositions(companyId, Boolean(companyId));
   const references = useOrganisationReferences(companyId, Boolean(companyId));
   const createMutation = useCreatePosition();
   const updateMutation = useUpdatePosition();
@@ -147,6 +153,33 @@ export function PositionsPanel({ companyId, canManage }: Props) {
   const busy = createMutation.isPending || updateMutation.isPending;
   const positions = query.data?.positions ?? [];
   const pagination = query.data?.pagination;
+  // edited by wali: Keep a filled position's organisational scope fixed after an employee is assigned.
+  const positionScopeLocked = Boolean(editing && editing.filledHeadcount > 0);
+  // edited by wali: A designation can back one position, so check beyond the visible page.
+  const usedDesignationIds = new Set(
+    (allCompanyPositionsQuery.data ?? references.positions)
+      .filter((position) => position.positionId !== editing?.positionId && position.designationId)
+      .map((position) => position.designationId!),
+  );
+  const availableDesignations = references.designations.filter(
+    (designation) =>
+      designation.departmentId === form.departmentId &&
+      (!usedDesignationIds.has(designation.designationId) || designation.designationId === editing?.designationId),
+  );
+  const managerialDesignationIds = new Set(
+    references.designations
+      .filter((designation) => designation.isManagerial)
+      .map((designation) => designation.designationId),
+  );
+  const parentPositionOptions = references.positions.filter((position) =>
+    Boolean(
+      form.departmentId &&
+      position.departmentId === form.departmentId &&
+      position.designationId &&
+      managerialDesignationIds.has(position.designationId) &&
+      position.positionId !== editing?.positionId
+    ),
+  );
 
   useEffect(() => setPage(1), [companyId, deferredSearch, status]);
 
@@ -162,10 +195,15 @@ export function PositionsPanel({ companyId, canManage }: Props) {
   }
 
   function openEdit(position: Position) {
+    dialogMotion.reset();
     setEditing(position);
     setForm(fromPosition(position));
     setErrors({});
     setFormOpen(true);
+  }
+
+  function closeForm() {
+    dialogMotion.close(() => { setFormOpen(false); setEditing(null); });
   }
 
   function setField<K extends keyof PositionFormState>(key: K, value: PositionFormState[K]) {
@@ -177,6 +215,15 @@ export function PositionsPanel({ companyId, canManage }: Props) {
     const nextErrors: Record<string, string> = {};
     if (form.positionCode.trim().length < 2) nextErrors.positionCode = "Enter a position code.";
     if (form.positionTitle.trim().length < 2) nextErrors.positionTitle = "Enter a position title.";
+    if (!form.departmentId) nextErrors.departmentId = "Select a department.";
+    if (!form.designationId) nextErrors.designationId = "Select a designation.";
+    if (positionScopeLocked && (
+      form.branchId !== (editing?.branchId ?? "") ||
+      form.departmentId !== (editing?.departmentId ?? "") ||
+      form.designationId !== (editing?.designationId ?? "")
+    )) {
+      nextErrors.departmentId = "Branch, department, and designation cannot be changed while employees are assigned to this position.";
+    }
     if (!Number.isInteger(Number(form.approvedHeadcount)) || Number(form.approvedHeadcount) < 1) {
       nextErrors.approvedHeadcount = "Approved headcount must be at least 1.";
     }
@@ -195,8 +242,8 @@ export function PositionsPanel({ companyId, canManage }: Props) {
     const input: PositionInput = {
       ...(!editing && companyId ? { companyId } : {}),
       branchId: nullable(form.branchId),
-      departmentId: nullable(form.departmentId),
-      designationId: nullable(form.designationId),
+      departmentId: form.departmentId,
+      designationId: form.designationId,
       reportsToPositionId: nullable(form.reportsToPositionId),
       positionCode: form.positionCode.trim(),
       positionTitle: form.positionTitle.trim(),
@@ -220,8 +267,7 @@ export function PositionsPanel({ companyId, canManage }: Props) {
         await createMutation.mutateAsync(input);
         toast.success("Position created successfully");
       }
-      setFormOpen(false);
-      setEditing(null);
+      closeForm();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -320,18 +366,19 @@ export function PositionsPanel({ companyId, canManage }: Props) {
         subtitle="Define an approved workforce seat and its reporting placement."
         submitLabel={editing ? "Save changes" : "Create position"}
         busy={busy}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         onSubmit={submit}
       >
         <div className="wf-org-form-grid">
-          <OrganisationField label="Position code" required error={errors.positionCode}><TextInput value={form.positionCode} onChange={(e) => setField("positionCode", e.target.value)} placeholder="HR-MGR-01" /></OrganisationField>
+          <OrganisationField label="Position code" required error={errors.positionCode} hint={form.designationId ? "Filled from the selected designation code. You can edit it if needed." : undefined}><TextInput value={form.positionCode} onChange={(e) => setField("positionCode", e.target.value)} placeholder="Select a designation to fill its code" /></OrganisationField>
           <OrganisationField label="Position title" required error={errors.positionTitle}><TextInput value={form.positionTitle} onChange={(e) => setField("positionTitle", e.target.value)} placeholder="HR Manager" /></OrganisationField>
           <OrganisationField label="Position type"><EmployeeMenuSelect className="wf-org-menu-select" value={form.positionType} placeholder="Select position type" options={[{ value: "PERMANENT", label: "Permanent" }, { value: "CONTRACT", label: "Contract" }, { value: "TEMPORARY", label: "Temporary" }, { value: "INTERNSHIP", label: "Internship" }]} onChange={(value) => setField("positionType", value)} allowClear={false} /></OrganisationField>
           <OrganisationField label="Approved headcount" required error={errors.approvedHeadcount}><TextInput type="number" min="1" max="65535" value={form.approvedHeadcount} onChange={(e) => setField("approvedHeadcount", e.target.value)} /></OrganisationField>
-          <OrganisationField label="Branch"><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Company-wide" options={references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={(value) => setField("branchId", value)} /></OrganisationField>
-          <OrganisationField label="Department"><EmployeeMenuSelect className="wf-org-menu-select" value={form.departmentId} placeholder="No department" options={references.departments.filter((department) => !form.branchId || !department.branchId || department.branchId === form.branchId).map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={(value) => setField("departmentId", value)} /></OrganisationField>
-          <OrganisationField label="Designation"><EmployeeMenuSelect className="wf-org-menu-select" value={form.designationId} placeholder="No designation" options={references.designations.map((designation) => ({ value: designation.designationId, label: designation.designationName }))} onChange={(value) => setField("designationId", value)} /></OrganisationField>
-          <OrganisationField label="Reports to position" error={errors.reportsToPositionId}><EmployeeMenuSelect className="wf-org-menu-select" value={form.reportsToPositionId} placeholder="No parent position" options={references.positions.filter((position) => position.positionId !== editing?.positionId).map((position) => ({ value: position.positionId, label: position.positionTitle }))} onChange={(value) => setField("reportsToPositionId", value)} /></OrganisationField>
+          {/* edited by wali: Identify the current Head Office when selecting a position branch. */}
+          <OrganisationField label="Branch" hint={positionScopeLocked ? "Branch cannot be changed while employees are assigned to this position." : undefined}><EmployeeMenuSelect className="wf-org-menu-select" value={form.branchId} placeholder="Select branch" options={references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName, ...(branch.isHeadOffice ? { icon: <span className="emp-menu-select__head-office-marker"><Star size={13} fill="currentColor" aria-hidden="true" />Head Office</span> } : {}) }))} onChange={(value) => setForm((current) => ({ ...current, branchId: value, departmentId: "", designationId: "", reportsToPositionId: "" }))} disabled={positionScopeLocked} /></OrganisationField>
+          <OrganisationField label="Department" required error={errors.departmentId} hint={positionScopeLocked ? "Department cannot be changed while employees are assigned to this position." : !form.branchId ? "Select a branch first." : undefined}><EmployeeMenuSelect className="wf-org-menu-select" value={form.departmentId} placeholder={form.branchId ? "Select department" : "Select branch first"} options={references.departments.filter((department) => !department.branchId || department.branchId === form.branchId).map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={(value) => setForm((current) => ({ ...current, departmentId: value, designationId: "", reportsToPositionId: "" }))} disabled={positionScopeLocked || !form.branchId} /></OrganisationField>
+          <OrganisationField label="Designation" required error={errors.designationId} hint={positionScopeLocked ? "Designation cannot be changed while employees are assigned to this position." : !form.departmentId ? "Select a department first." : allCompanyPositionsQuery.isLoading ? "Checking which designations are already assigned." : allCompanyPositionsQuery.isError ? "Could not check existing positions. Refresh and try again." : undefined}><EmployeeMenuSelect className="wf-org-menu-select" value={form.designationId} placeholder={!form.departmentId ? "Select department first" : allCompanyPositionsQuery.isLoading ? "Checking assigned designations" : allCompanyPositionsQuery.isError ? "Could not check assigned designations" : availableDesignations.length ? "Select designation" : "All designations already have positions"} options={availableDesignations.map((designation) => ({ value: designation.designationId, label: designation.designationName }))} onChange={(value) => { const designation = availableDesignations.find((item) => item.designationId === value); setForm((current) => ({ ...current, designationId: value, ...(designation ? { positionCode: designation.designationCode } : {}) })); }} disabled={positionScopeLocked || !form.departmentId || allCompanyPositionsQuery.isLoading || allCompanyPositionsQuery.isError} allowClear={false} /></OrganisationField>
+          <OrganisationField label="Reports to position" hint={!form.departmentId ? "Select a department to see managerial positions." : undefined} error={errors.reportsToPositionId}><EmployeeMenuSelect className="wf-org-menu-select" value={form.reportsToPositionId} placeholder={!form.departmentId ? "Select department first" : parentPositionOptions.length ? "Select parent position" : "No managerial positions in this department"} options={parentPositionOptions.map((position) => ({ value: position.positionId, label: position.positionTitle }))} onChange={(value) => setField("reportsToPositionId", value)} disabled={!form.departmentId || parentPositionOptions.length === 0} /></OrganisationField>
           <OrganisationField label="Minimum salary"><TextInput type="number" min="0" step="0.01" value={form.minimumSalary} onChange={(e) => setField("minimumSalary", e.target.value)} /></OrganisationField>
           <OrganisationField label="Maximum salary" error={errors.maximumSalary}><TextInput type="number" min="0" step="0.01" value={form.maximumSalary} onChange={(e) => setField("maximumSalary", e.target.value)} /></OrganisationField>
           <OrganisationField label="Currency code"><TextInput value={form.currencyCode} maxLength={3} onChange={(e) => setField("currencyCode", e.target.value.toUpperCase())} /></OrganisationField>
@@ -351,6 +398,15 @@ export function PositionsPanel({ companyId, canManage }: Props) {
         onConfirm={() => void closePosition()}
       />
     </section>
+  );
+}
+
+export function PositionsPanel(props: Props) {
+  // edited by wali: Enable shared trigger-origin motion for the position toolbar and dialog.
+  return (
+    <OrganisationDialogMotionProvider>
+      <PositionsPanelContent {...props} />
+    </OrganisationDialogMotionProvider>
   );
 }
 

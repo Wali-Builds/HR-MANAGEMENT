@@ -158,11 +158,12 @@ export async function findActiveDepartmentForCompany(
 export async function findActiveDesignationForCompany(
   designationId: string,
   companyId: string
-): Promise<boolean> {
+): Promise<{ departmentId: string | null } | null> {
   const rows =
     await databasePool.query(
       `
-        SELECT designation_id
+        -- edited by wali: Return designation scope for position validation.
+        SELECT designation_id, department_id
         FROM designations
         WHERE designation_id = ?
           AND company_id = ?
@@ -176,7 +177,20 @@ export async function findActiveDesignationForCompany(
       ]
     );
 
-  return rows.length > 0;
+  const row = rows[0] as
+    | {
+        department_id: string | number | bigint | null;
+      }
+    | undefined;
+
+  return row
+    ? {
+        departmentId:
+          row.department_id === null
+            ? null
+            : String(row.department_id)
+      }
+    : null;
 }
 
 export async function findPositionReferenceById(
@@ -213,6 +227,7 @@ export async function findPositionReferenceById(
 
 export async function findPositionCodeConflict(
   companyId: string,
+  departmentId: string | null,
   positionCode: string,
   excludePositionId?: string
 ): Promise<string | null> {
@@ -220,11 +235,14 @@ export async function findPositionCodeConflict(
     SELECT position_id
     FROM positions
     WHERE company_id = ?
+      -- edited by wali: NULL-safe matching handles company-wide positions without a department.
+      AND department_id <=> ?
       AND position_code = ?
   `;
 
   const values: unknown[] = [
     companyId,
+    departmentId,
     positionCode
   ];
 

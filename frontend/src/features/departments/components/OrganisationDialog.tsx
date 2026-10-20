@@ -1,5 +1,6 @@
 import { LoaderCircle, X } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
+import { useOrganisationDialogAnimation } from "../../organisation/components/OrganisationDialogMotion";
 
 interface Props {
   open: boolean;
@@ -22,12 +23,17 @@ export function OrganisationDialog({
   onClose,
   onSubmit,
 }: Props) {
+  const animation = useOrganisationDialogAnimation(open);
+
   if (!open) return null;
 
+  const handleClose = onClose;
+
   return (
-    <div className="wf-org-dialog-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={animation.backdropClassName} role="presentation" onMouseDown={animation.closing ? undefined : handleClose}>
       <form
-        className="wf-org-dialog"
+        ref={animation.dialogRef}
+        className={animation.dialogClassName}
         role="dialog"
         aria-modal="true"
         onMouseDown={(event) => event.stopPropagation()}
@@ -39,13 +45,13 @@ export function OrganisationDialog({
             <h2>{title}</h2>
             <p>{subtitle}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close"><X size={19} /></button>
+          <button type="button" onClick={handleClose} aria-label="Close"><X size={19} /></button>
         </header>
 
         <div className="wf-org-dialog__body">{children}</div>
 
         <footer className="wf-org-dialog__footer">
-          <button type="button" className="wf-org-button wf-org-button--secondary" onClick={onClose} disabled={busy}>
+          <button type="button" className="wf-org-button wf-org-button--secondary" onClick={handleClose} disabled={busy}>
             Cancel
           </button>
           <button type="submit" className="wf-org-button wf-org-button--primary" disabled={busy}>

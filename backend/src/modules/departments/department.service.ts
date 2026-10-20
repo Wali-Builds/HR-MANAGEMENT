@@ -544,13 +544,14 @@ export async function createDepartment(
   const conflict =
     await findDepartmentCodeConflict(
       companyId,
+      input.branchId ?? null,
       input.departmentCode
     );
 
   if (conflict) {
     throw new AppError({
       message:
-        "This department code is already in use within the company",
+        "This department code is already in use within the branch",
       statusCode: 409,
       code:
         "DEPARTMENT_CODE_EXISTS"
@@ -575,7 +576,7 @@ export async function createDepartment(
     ) {
       throw new AppError({
         message:
-          "This department code is already in use within the company",
+          "This department code is already in use within the branch",
         statusCode: 409,
         code:
           "DEPARTMENT_CODE_EXISTS"
@@ -644,26 +645,26 @@ export async function updateDepartment(
     departmentId
   );
 
-  if (
-    input.departmentCode !==
-    undefined
-  ) {
-    const conflict =
-      await findDepartmentCodeConflict(
-        companyId,
-        input.departmentCode,
-        departmentId
-      );
+  const resultingDepartmentCode =
+    input.departmentCode ??
+    existingDepartment.department_code;
+  // edited by wali: Check the final code and branch together, including branch-only moves.
+  const conflict =
+    await findDepartmentCodeConflict(
+      companyId,
+      resultingBranchId,
+      resultingDepartmentCode,
+      departmentId
+    );
 
-    if (conflict) {
-      throw new AppError({
-        message:
-          "This department code is already in use within the company",
-        statusCode: 409,
-        code:
-          "DEPARTMENT_CODE_EXISTS"
-      });
-    }
+  if (conflict) {
+    throw new AppError({
+      message:
+        "This department code is already in use within the branch",
+      statusCode: 409,
+      code:
+        "DEPARTMENT_CODE_EXISTS"
+    });
   }
 
   try {
@@ -694,7 +695,7 @@ export async function updateDepartment(
     ) {
       throw new AppError({
         message:
-          "This department code is already in use within the company",
+          "This department code is already in use within the branch",
         statusCode: 409,
         code:
           "DEPARTMENT_CODE_EXISTS"

@@ -63,15 +63,20 @@ export const employeeFormSchema = z
       .trim()
       .min(1, "Assignment effective date is required"),
     workLocation: z.string().trim().max(255),
-    employmentPercentage: z.preprocess(
-      (value) => (typeof value === "number" && Number.isNaN(value)) || value === "" ? undefined : value,
-      z.coerce
-        .number()
-        .finite()
-        .min(0.01, "Employment percentage must be greater than zero")
-        .max(100, "Employment percentage cannot exceed 100")
-        .optional(),
-    ),
+    employmentPercentage: z
+      .union([z.number(), z.string(), z.nan()])
+      .transform((value) =>
+        (typeof value === "number" && Number.isNaN(value)) || (typeof value === "string" && value.trim() === "")
+          ? undefined
+          : Number(value),
+      )
+      .pipe(
+        z.number()
+          .finite()
+          .min(0.01, "Employment percentage must be greater than zero")
+          .max(100, "Employment percentage cannot exceed 100")
+          .optional(),
+      ),
     transferReason: z.string().trim().max(500),
   })
   .superRefine((data, context) => {
@@ -143,3 +148,5 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
   }
 });
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
+// edited by wali: Keep raw form input types distinct from the schema's parsed submission values.
+export type EmployeeFormInputValues = z.input<typeof employeeFormSchema>;

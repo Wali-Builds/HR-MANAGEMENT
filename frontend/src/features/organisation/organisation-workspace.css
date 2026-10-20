@@ -664,6 +664,17 @@
 .wf-org-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* edited by wali: Keep short inputs at their normal height beside taller textareas. */
+  align-items: start;
+  gap: 15px;
+}
+
+/* edited by wali: Match branch form columns for descriptions and checkbox cards. */
+.wf-org-form-bottom-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 15px;
 }
 
@@ -708,23 +719,54 @@
   display: flex;
 }
 
+/* edited by wali: Give checkbox cards clear checked, hover, and keyboard-focus states. */
 .wf-org-check {
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 72px;
-  padding: 12px;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 11px 13px;
   border: 1px solid #d9e2e8;
-  border-radius: 11px;
+  border-radius: 12px;
   background: #fff;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
+.wf-org-check:hover { border-color: #9bc9ce; background: #fbfefe; }
+.wf-org-check:has(input:checked) { border-color: #58aab2; background: #f0fafa; box-shadow: inset 0 0 0 1px rgba(15, 109, 122, 0.08); }
 .wf-org-check--wide { grid-column: 1 / -1; }
 .wf-org-check-stack { flex-direction: column; gap: 9px; }
-.wf-org-check input { margin-top: 3px; accent-color: #0f6d7a; }
+.wf-org-check input {
+  appearance: none;
+  display: grid;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  place-content: center;
+  margin: 0;
+  border: 1.5px solid #9aabb8;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.wf-org-check input::after {
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg) scale(0);
+  transition: transform 120ms ease;
+}
+.wf-org-check input:checked { border-color: #0f6d7a; background: #0f6d7a; }
+.wf-org-check input:checked::after { transform: rotate(45deg) scale(1); }
+.wf-org-check input:focus-visible { outline: 3px solid rgba(15, 109, 122, 0.2); outline-offset: 2px; }
+.wf-org-check span { flex: 1; }
 .wf-org-check strong,
 .wf-org-check small { display: block; }
-.wf-org-check strong { color: #2d4354; font-size: 11px; }
-.wf-org-check small { margin-top: 4px; color: #7a8998; font-size: 10px; line-height: 1.45; }
+.wf-org-check strong { color: #2d4354; font-size: 12px; font-weight: 650; }
+.wf-org-check small { margin-top: 4px; color: #718292; font-size: 11px; line-height: 1.45; }
 
 .wf-org-confirm {
   width: min(430px, 100%);
@@ -774,6 +816,7 @@
   .wf-org-filter-group { overflow-x: auto; }
   .wf-org-resource-toolbar__pager { justify-content: flex-end; }
   .wf-org-form-grid { grid-template-columns: 1fr; }
+  .wf-org-form-bottom-grid { grid-template-columns: 1fr; }
   .wf-org-check--wide { grid-column: auto; }
   .wf-org-dialog-backdrop { padding: 0; align-items: end; }
   .wf-org-dialog { max-height: 94vh; border-radius: 18px 18px 0 0; }

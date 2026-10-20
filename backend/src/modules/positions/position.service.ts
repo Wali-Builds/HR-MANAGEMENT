@@ -390,6 +390,21 @@ async function validateReferences(
           "INVALID_POSITION_DESIGNATION"
       });
     }
+
+    // edited by wali: The designation must belong to the position's selected department.
+    if (
+      !references.departmentId ||
+      validDesignation.departmentId !==
+        references.departmentId
+    ) {
+      throw new AppError({
+        message:
+          "The selected designation belongs to a different department",
+        statusCode: 422,
+        code:
+          "POSITION_DESIGNATION_DEPARTMENT_MISMATCH"
+      });
+    }
   }
 
   if (references.reportsToPositionId) {
@@ -740,16 +755,18 @@ export async function createPosition(
     input.maximumSalary ?? null
   );
 
+  // edited by wali: Position codes may repeat across departments, but not within one department.
   const conflict =
     await findPositionCodeConflict(
       companyId,
+      input.departmentId,
       input.positionCode
     );
 
   if (conflict) {
     throw new AppError({
       message:
-        "This position code is already in use within the company",
+        "This position code is already in use within the department",
 
       statusCode: 409,
 
@@ -774,7 +791,7 @@ export async function createPosition(
     ) {
       throw new AppError({
         message:
-          "This position code is already in use within the company",
+          "This position code is already in use within the department",
 
         statusCode: 409,
 
@@ -942,6 +959,7 @@ export async function updatePosition(
     const conflict =
       await findPositionCodeConflict(
         companyId,
+        resultingDepartmentId,
         input.positionCode,
         positionId
       );
@@ -949,7 +967,7 @@ export async function updatePosition(
     if (conflict) {
       throw new AppError({
         message:
-          "This position code is already in use within the company",
+          "This position code is already in use within the department",
 
         statusCode: 409,
 
@@ -987,7 +1005,7 @@ export async function updatePosition(
     ) {
       throw new AppError({
         message:
-          "This position code is already in use within the company",
+          "This position code is already in use within the department",
 
         statusCode: 409,
 

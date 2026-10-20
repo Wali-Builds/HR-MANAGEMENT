@@ -25,14 +25,15 @@ export function CompanyDeactivationDialog({
   if (!company) {
     return null;
   }
+  const currentCompany = company;
 
   async function confirmDeactivation() {
     try {
       await updateMutation.mutateAsync({
-        companyId: company.companyId,
+        companyId: currentCompany.companyId,
         input: { isActive: false },
       });
-      toast.success(`${company.displayName} moved to inactive companies`);
+      toast.success(`${currentCompany.displayName} moved to inactive companies`);
       onDeactivated();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
@@ -65,7 +66,7 @@ export function CompanyDeactivationDialog({
 
         <span className="org-delete-dialog__icon"><CircleOff size={24} /></span>
         <span className="org-delete-dialog__eyebrow">Deactivate workspace</span>
-        <h2 id="deactivate-company-title">Deactivate {company.displayName}?</h2>
+        <h2 id="deactivate-company-title">Deactivate {currentCompany.displayName}?</h2>
         <p>
           The company record will remain available in the Inactive tab. Its users
           will be deactivated and their active sessions revoked. Reactivating the
@@ -75,8 +76,8 @@ export function CompanyDeactivationDialog({
         <div className="org-delete-dialog__record">
           <CircleOff size={17} />
           <span>
-            <strong>{company.displayName}</strong>
-            <small>{company.companyCode}</small>
+            <strong>{currentCompany.displayName}</strong>
+            <small>{currentCompany.companyCode}</small>
           </span>
         </div>
 

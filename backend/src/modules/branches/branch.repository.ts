@@ -125,6 +125,39 @@ export async function findBranchCodeConflict(
     : null;
 }
 
+// edited by wali: A branch must be cleared and retitled before another becomes Head Office.
+export async function findExistingHeadOfficeBranch(
+  companyId: string,
+  excludeBranchId?: string
+): Promise<string | null> {
+  let sql = `
+    SELECT branch_id
+    FROM branches
+    WHERE company_id = ?
+      AND deleted_at IS NULL
+      AND (
+        is_head_office = 1
+        OR UPPER(COALESCE(branch_type, '')) = 'HEAD_OFFICE'
+      )
+  `;
+  const values: unknown[] = [companyId];
+
+  if (excludeBranchId) {
+    sql += `
+      AND branch_id <> ?
+    `;
+    values.push(excludeBranchId);
+  }
+
+  sql += ` LIMIT 1`;
+  const rows = await databasePool.query(sql, values);
+  const row = rows[0] as
+    | { branch_id: string | number | bigint }
+    | undefined;
+
+  return row ? String(row.branch_id) : null;
+}
+
 export async function listBranchRecords(
   options: BranchListOptions
 ): Promise<BranchListResult> {
@@ -315,18 +348,6 @@ export async function createBranchRecord(
       null,
       input.isActive
     );
-
-    if (input.isHeadOffice) {
-      await connection.query(
-        `
-          UPDATE branches
-          SET is_head_office = 0
-          WHERE company_id = ?
-            AND deleted_at IS NULL
-        `,
-        [companyId]
-      );
-    }
 
     const insertResult =
       await connection.query(
@@ -519,22 +540,6 @@ export async function updateBranchRecord(
       return null;
     }
 
-
-    if (input.isHeadOffice === true) {
-      await connection.query(
-        `
-          UPDATE branches
-          SET is_head_office = 0
-          WHERE company_id = ?
-            AND branch_id <> ?
-            AND deleted_at IS NULL
-        `,
-        [
-          companyId,
-          branchId
-        ]
-      );
-    }
 
     const assignments: string[] = [];
     const values: unknown[] = [];

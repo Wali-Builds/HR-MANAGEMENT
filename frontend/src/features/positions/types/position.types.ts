@@ -29,8 +29,9 @@ export interface Position {
 export interface PositionInput {
   companyId?: string;
   branchId?: string | null;
-  departmentId?: string | null;
-  designationId?: string | null;
+  // edited by wali: Position creation requires a department and its designation.
+  departmentId: string;
+  designationId: string;
   reportsToPositionId?: string | null;
   positionCode: string;
   positionTitle: string;

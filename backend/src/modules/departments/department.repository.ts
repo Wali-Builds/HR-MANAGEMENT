@@ -119,6 +119,7 @@ export async function findDepartmentReferenceById(
 
 export async function findDepartmentCodeConflict(
   companyId: string,
+  branchId: string | null,
   departmentCode: string,
   excludeDepartmentId?: string
 ): Promise<string | null> {
@@ -126,11 +127,14 @@ export async function findDepartmentCodeConflict(
     SELECT department_id
     FROM departments
     WHERE company_id = ?
+      -- edited by wali: NULL branch_id represents the company-wide department scope.
+      AND branch_id <=> ?
       AND department_code = ?
   `;
 
   const values: unknown[] = [
     companyId,
+    branchId,
     departmentCode
   ];
 

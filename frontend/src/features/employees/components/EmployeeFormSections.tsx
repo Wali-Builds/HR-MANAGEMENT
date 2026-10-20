@@ -16,7 +16,7 @@ import type {
 import type { Company } from "../../companies/types/company.types";
 import type { ProjectReference } from "../api/employee.api";
 import { EmployeeMenuSelect, type EmployeeSelectOption } from "./EmployeeMenuSelect";
-import type { EmployeeFormValues } from "../schemas/employee.schema";
+import type { EmployeeFormInputValues } from "../schemas/employee.schema";
 import type {
   BranchReference,
   DepartmentReference,
@@ -37,11 +37,11 @@ interface ReferenceData {
 }
 
 interface Props {
-  register: UseFormRegister<EmployeeFormValues>;
-  watch: UseFormWatch<EmployeeFormValues>;
-  setValue: UseFormSetValue<EmployeeFormValues>;
+  register: UseFormRegister<EmployeeFormInputValues>;
+  watch: UseFormWatch<EmployeeFormInputValues>;
+  setValue: UseFormSetValue<EmployeeFormInputValues>;
   isHiring: boolean;
-  errors: FieldErrors<EmployeeFormValues>;
+  errors: FieldErrors<EmployeeFormInputValues>;
   lookups?: EmployeeLookups;
   references: ReferenceData;
   companies: Company[];
@@ -68,7 +68,7 @@ export function EmployeeFormSections(props: Props) {
     ? props.references.departments.filter((item) => !item.branchId || item.branchId === branchId)
     : props.references.departments;
   const designationId = props.watch("designationId");
-  // edited by wali: Position options are filtered by designation only.
+  // edited by wali: Filter designation and position options by the selected department.
   const filteredPositions = designationId
     ? props.references.positions.filter(
         (position) => position.designationId === designationId,
@@ -116,10 +116,9 @@ export function EmployeeFormSections(props: Props) {
           <label className="emp-field"><span>Employment type <b>*</b></span><EmployeeMenuSelect value={props.watch("employmentTypeId")} placeholder="Select type" options={(props.lookups?.employmentTypes ?? []).map((item) => ({ value: item.employmentTypeId, label: item.typeName }))} onChange={(value) => props.setValue("employmentTypeId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading} /><FieldError message={props.errors.employmentTypeId?.message} /></label>
           <label className="emp-field"><span>Employee status <b>*</b></span><EmployeeMenuSelect value={props.watch("employeeStatusId")} placeholder="Select status" options={(props.lookups?.employeeStatuses ?? []).map((item) => ({ value: item.employeeStatusId, label: item.statusName }))} onChange={(value) => props.setValue("employeeStatusId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading} /><FieldError message={props.errors.employeeStatusId?.message} /></label>
           <label className="emp-field"><span>Joining date <b>*</b></span><input type="date" {...props.register("joiningDate")} /><FieldError message={props.errors.joiningDate?.message} /></label>
-          <label className="emp-field"><span>Branch {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={branchId} placeholder={props.isHiring ? "Select branch" : "No branch"} options={props.references.branches.map((item) => ({ value: item.branchId, label: item.branchName }))} onChange={(value) => { props.setValue("branchId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("departmentId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading} /><FieldError message={props.errors.branchId?.message} /></label>
-          {/* edited by wali: Keep company designations independent of branch and department selection. */}
-          <label className="emp-field"><span>Department {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={departmentId} placeholder={!branchId ? "Select branch first" : props.isHiring ? "Select department" : "No department"} options={filteredDepartments.map((item) => ({ value: item.departmentId, label: item.departmentName }))} onChange={(value) => { props.setValue("departmentId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !branchId} /><FieldError message={props.errors.departmentId?.message} /></label>
-          <label className="emp-field"><span>Designation {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={designationId} placeholder={props.isHiring ? "Select designation" : "No designation"} options={props.references.designations.map((item) => ({ value: item.designationId, label: item.designationName }))} onChange={(value) => { props.setValue("designationId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading} /><FieldError message={props.errors.designationId?.message} /></label>
+          <label className="emp-field"><span>Branch {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={branchId} placeholder={props.isHiring ? "Select branch" : "No branch"} options={props.references.branches.map((item) => ({ value: item.branchId, label: item.branchName }))} onChange={(value) => { props.setValue("branchId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("departmentId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading} /><FieldError message={props.errors.branchId?.message} /></label>
+          <label className="emp-field"><span>Department {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={departmentId} placeholder={!branchId ? "Select branch first" : props.isHiring ? "Select department" : "No department"} options={filteredDepartments.map((item) => ({ value: item.departmentId, label: item.departmentName }))} onChange={(value) => { props.setValue("departmentId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !branchId} /><FieldError message={props.errors.departmentId?.message} /></label>
+          <label className="emp-field"><span>Designation {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={designationId} placeholder={!departmentId ? "Select department first" : props.isHiring ? "Select designation" : "No designation"} options={props.references.designations.filter((item) => item.departmentId === departmentId).map((item) => ({ value: item.designationId, label: item.designationName }))} onChange={(value) => { props.setValue("designationId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !departmentId} /><FieldError message={props.errors.designationId?.message} /></label>
           <label className="emp-field"><span>Position {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={props.watch("positionId")} placeholder={!departmentId ? "Select department first" : !designationId ? "Select designation first" : props.isHiring ? "Select position" : "No position"} options={filteredPositions.map((item) => ({ value: item.positionId, label: `${item.positionTitle} (${item.positionCode})` }))} onChange={(value) => props.setValue("positionId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading || !departmentId || !designationId} /><FieldError message={props.errors.positionId?.message} /></label>
           <label className="emp-field"><span>Project</span><EmployeeMenuSelect value={props.watch("projectId")} placeholder={!departmentId ? "Select department first" : "No project"} options={props.references.projects.map((item) => ({ value: item.projectId, label: `${item.projectName} (${item.projectCode})` }))} onChange={(value) => props.setValue("projectId", value, { shouldDirty: true, shouldValidate: true })} disabled={!departmentId} /></label>
           <label className="emp-field"><span>Reporting manager</span><EmployeeMenuSelect value={props.watch("reportingManagerId")} placeholder={!departmentId ? "Select department first" : "No manager"} options={availableManagers.filter((item) => item.employeeId !== props.currentEmployeeId).map((item) => ({ value: item.employeeId, label: `${item.fullName} · ${item.employeeCode}` }))} onChange={(value) => props.setValue("reportingManagerId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading || !departmentId} /></label>

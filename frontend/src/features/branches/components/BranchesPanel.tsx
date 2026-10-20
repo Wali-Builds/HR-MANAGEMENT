@@ -30,6 +30,7 @@ import {
 } from "../../organisation/components/OrganisationField";
 import { OrganisationResourceToolbar } from "../../organisation/components/OrganisationResourceToolbar";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 
 interface Props {
   companyId?: string | undefined;
@@ -105,7 +106,7 @@ function nullable(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-export function BranchesPanel({ companyId, canManage }: Props) {
+function BranchesPanelContent({ companyId, canManage }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -113,6 +114,7 @@ export function BranchesPanel({ companyId, canManage }: Props) {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<Branch | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const [form, setForm] = useState<BranchFormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [archiveTarget, setArchiveTarget] = useState<Branch | null>(null);
@@ -131,6 +133,24 @@ export function BranchesPanel({ companyId, canManage }: Props) {
   );
 
   const query = useBranches(params);
+  // edited by wali: Check the company-wide Head Office flag independently of the paginated list.
+  const headOfficeQuery = useBranches({
+    page: 1,
+    limit: 1,
+    sortBy: "branch_name",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    isHeadOffice: true,
+  });
+  // edited by wali: Legacy Head Office branch types must be changed before assigning another.
+  const headOfficeTypeQuery = useBranches({
+    page: 1,
+    limit: 1,
+    sortBy: "branch_name",
+    sortOrder: "ASC",
+    ...(companyId ? { companyId } : {}),
+    branchType: "HEAD_OFFICE",
+  });
   const createMutation = useCreateBranch();
   const updateMutation = useUpdateBranch();
   const archiveMutation = useArchiveBranch();
@@ -161,14 +181,53 @@ export function BranchesPanel({ companyId, canManage }: Props) {
   }, [canManage, openCreate, searchParams, setSearchParams]);
 
   function openEdit(branch: Branch) {
+    dialogMotion.reset();
     setEditing(branch);
     setForm(fromBranch(branch));
     setErrors({});
     setFormOpen(true);
   }
 
+  // edited by wali: Use the shared dialog motion provider when closing the branch form.
+  function closeForm(): void {
+    dialogMotion.close(() => { setFormOpen(false); setEditing(null); });
+  }
+
   function setField<K extends keyof BranchFormState>(key: K, value: BranchFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  // edited by wali: Keep the Head Office checkbox and branch type synchronized.
+  function setHeadOffice(checked: boolean): void {
+    const otherHeadOffice = [
+      ...(!headOfficeQuery.isPlaceholderData ? headOfficeQuery.data?.branches ?? [] : []),
+      ...(!headOfficeTypeQuery.isPlaceholderData ? headOfficeTypeQuery.data?.branches ?? [] : []),
+    ].find((branch) => branch.branchId !== editing?.branchId);
+
+    if (checked && otherHeadOffice) {
+      toast.error("A head office already exists. Edit that branch, clear its Head Office checkbox, and change its Branch type first.");
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      isHeadOffice: checked,
+      ...(checked ? { branchType: "HEAD_OFFICE" } : {}),
+    }));
+  }
+
+  // edited by wali: Changing away from HEAD_OFFICE clears the primary-office flag too.
+  function setBranchType(value: string): void {
+    if (value.trim().toUpperCase() === "HEAD_OFFICE") {
+      setHeadOffice(true);
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      branchType: value,
+      isHeadOffice: false,
+    }));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -217,7 +276,7 @@ export function BranchesPanel({ companyId, canManage }: Props) {
         await createMutation.mutateAsync(input);
         toast.success("Branch created successfully");
       }
-      setFormOpen(false);
+      closeForm();
       setEditing(null);
     } catch (error) {
       const apiError = normalizeApiError(error);
@@ -318,7 +377,7 @@ export function BranchesPanel({ companyId, canManage }: Props) {
         subtitle="Location, contact and operating settings for this branch."
         submitLabel={editing ? "Save changes" : "Create branch"}
         busy={busy}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         onSubmit={submit}
       >
         <div className="wf-org-form-grid">
@@ -333,8 +392,8 @@ export function BranchesPanel({ companyId, canManage }: Props) {
               searchable
               allowCustomValue
               customValueMaxLength={50}
-              options={[{ value: "HEAD_OFFICE", label: "Head office" }, { value: "REGIONAL_OFFICE", label: "Regional office" }, { value: "SITE_OFFICE", label: "Site office" }, { value: "WAREHOUSE", label: "Warehouse" }, { value: "OTHER", label: "Other" }]}
-              onChange={(value) => setField("branchType", value)}
+              options={[{ value: "REGIONAL_OFFICE", label: "Regional office" }, { value: "SITE_OFFICE", label: "Site office" }, { value: "WAREHOUSE", label: "Warehouse" }, { value: "OTHER", label: "Other" }]}
+              onChange={setBranchType}
             />
           </OrganisationField>
           <OrganisationField label="Official email"><TextInput type="email" value={form.officialEmail} onChange={(e) => setField("officialEmail", e.target.value)} /></OrganisationField>
@@ -349,7 +408,8 @@ export function BranchesPanel({ companyId, canManage }: Props) {
           <OrganisationField label="Longitude"><TextInput type="number" step="any" value={form.longitude} onChange={(e) => setField("longitude", e.target.value)} /></OrganisationField>
           <OrganisationField label="Address line 1"><TextInput value={form.addressLine1} onChange={(e) => setField("addressLine1", e.target.value)} /></OrganisationField>
           <OrganisationField label="Address line 2"><TextInput value={form.addressLine2} onChange={(e) => setField("addressLine2", e.target.value)} /></OrganisationField>
-          <label className="wf-org-check"><input type="checkbox" checked={form.isHeadOffice} onChange={(e) => setField("isHeadOffice", e.target.checked)} /><span><strong>Head office</strong><small>Mark this as the company’s primary location.</small></span></label>
+          {/* edited by wali: Require the previous head office to be cleared and retitled before reassignment. */}
+          <label className="wf-org-check"><input type="checkbox" checked={form.isHeadOffice} onChange={(e) => setHeadOffice(e.target.checked)} /><span><strong>Head office</strong><small>Mark this as the company’s primary location.</small></span></label>
           <label className="wf-org-check"><input type="checkbox" checked={form.isActive} onChange={(e) => setField("isActive", e.target.checked)} /><span><strong>Active branch</strong><small>Available for assignments and operational use.</small></span></label>
         </div>
       </OrganisationDialog>
@@ -364,5 +424,14 @@ export function BranchesPanel({ companyId, canManage }: Props) {
         onConfirm={() => void archive()}
       />
     </section>
+  );
+}
+
+export function BranchesPanel(props: Props) {
+  // edited by wali: Enable shared trigger-origin motion for the branch toolbar and dialog.
+  return (
+    <OrganisationDialogMotionProvider>
+      <BranchesPanelContent {...props} />
+    </OrganisationDialogMotionProvider>
   );
 }

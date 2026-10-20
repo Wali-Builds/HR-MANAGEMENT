@@ -62,19 +62,21 @@ export function useDepartments(params: DepartmentListParams) {
   });
 }
 
-export function useDesignations(params: DesignationListParams) {
+export function useDesignations(params: DesignationListParams, enabled = true) {
   return useQuery({
     queryKey: organisationQueryKeys.designations(params),
     queryFn: () => listDesignationsRequest(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 
-export function usePositions(params: PositionListParams) {
+export function usePositions(params: PositionListParams, enabled = true) {
   return useQuery({
     queryKey: organisationQueryKeys.positions(params),
     queryFn: () => listPositionsRequest(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

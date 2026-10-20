@@ -148,6 +148,8 @@ export interface DepartmentReference {
 export interface DesignationReference {
   designationId: string;
   companyId: string;
+  // edited by wali: Used to filter assignment choices by the selected department.
+  departmentId: string | null;
   designationCode: string;
   designationName: string;
   grade: string | null;

@@ -26,10 +26,11 @@ export function DeleteCompanyDialog({
   if (!company) {
     return null;
   }
+  const currentCompany = company;
 
   async function confirmDelete() {
     try {
-      await deleteMutation.mutateAsync(company.companyId);
+      await deleteMutation.mutateAsync(currentCompany.companyId);
       toast.success("Company deleted successfully");
       onDeleted();
     } catch (error) {
@@ -62,14 +63,14 @@ export function DeleteCompanyDialog({
 
         <span className="org-delete-dialog__icon"><AlertTriangle size={24} /></span>
         <span className="org-delete-dialog__eyebrow">Destructive action</span>
-        <h2 id="delete-company-title">Delete {company.displayName}?</h2>
+        <h2 id="delete-company-title">Delete {currentCompany.displayName}?</h2>
         <p>
           This soft-deletes the company, deactivates its users and revokes active
           sessions. Use it only when the organisation must no longer be accessible.
         </p>
 
         <div className="org-delete-dialog__record">
-          <BuildingRecord company={company} />
+          <BuildingRecord company={currentCompany} />
         </div>
 
         <footer>

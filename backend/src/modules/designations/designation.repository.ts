@@ -18,6 +18,7 @@ import type {
 const designationSelectColumns = `
   designation_id,
   company_id,
+  department_id,
   designation_code,
   designation_name,
   grade,
@@ -64,8 +65,30 @@ export async function findActiveCompanyById(
   return rows.length > 0;
 }
 
+export async function findActiveDepartmentForCompany(
+  departmentId: string,
+  companyId: string
+): Promise<boolean> {
+  const rows =
+    await databasePool.query(
+      `
+        SELECT department_id
+        FROM departments
+        WHERE department_id = ?
+          AND company_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+        LIMIT 1
+      `,
+      [departmentId, companyId]
+    );
+
+  return rows.length > 0;
+}
+
 export async function findDesignationCodeConflict(
   companyId: string,
+  departmentId: string,
   designationCode: string,
   excludeDesignationId?: string
 ): Promise<string | null> {
@@ -73,11 +96,13 @@ export async function findDesignationCodeConflict(
     SELECT designation_id
     FROM designations
     WHERE company_id = ?
+      AND department_id = ?
       AND designation_code = ?
   `;
 
   const values: unknown[] = [
     companyId,
+    departmentId,
     designationCode
   ];
 
@@ -113,6 +138,44 @@ export async function findDesignationCodeConflict(
     : null;
 }
 
+export async function areDesignationAssignmentsInDepartment(
+  designationId: string,
+  departmentId: string
+): Promise<boolean> {
+  // edited by wali: Only current assignments for active employees block moving a designation.
+  const rows = await databasePool.query(
+    `
+      SELECT department_id
+      FROM (
+        SELECT department_id
+        FROM positions
+        WHERE designation_id = ?
+
+        UNION ALL
+
+        SELECT ea.department_id
+        FROM employee_assignments ea
+        INNER JOIN employees e
+          ON e.employee_id = ea.employee_id
+        WHERE ea.designation_id = ?
+          AND ea.is_current = 1
+          AND e.is_active = 1
+          AND e.deleted_at IS NULL
+      ) linked_assignments
+    `,
+    [designationId, designationId]
+  );
+
+  return rows.every((row) => {
+    const department = row as {
+      department_id: string | number | bigint | null;
+    };
+
+    return department.department_id !== null &&
+      String(department.department_id) === departmentId;
+  });
+}
+
 export async function listDesignationRecords(
   options: DesignationListOptions
 ): Promise<DesignationListResult> {
@@ -129,6 +192,17 @@ export async function listDesignationRecords(
 
     values.push(
       options.companyId
+    );
+  }
+
+  if (options.departmentId) {
+    // edited by wali: Scope designation results to their owning department when requested.
+    conditions.push(
+      "department_id = ?"
+    );
+
+    values.push(
+      options.departmentId
     );
   }
 
@@ -304,6 +378,7 @@ export async function createDesignationRecord(
         `
           INSERT INTO designations (
               company_id,
+              department_id,
               designation_code,
               designation_name,
               grade,
@@ -315,12 +390,13 @@ export async function createDesignationRecord(
               is_active
           )
           VALUES (
-              ?, ?, ?, ?, ?, ?,
+              ?, ?, ?, ?, ?, ?, ?,
               ?, ?, ?, ?
           )
         `,
         [
           companyId,
+          input.departmentId,
           input.designationCode,
           input.designationName,
           input.grade ?? null,
@@ -487,6 +563,13 @@ export async function updateDesignationRecord(
       addUpdate(
         "designation_name",
         input.designationName
+      );
+    }
+
+    if (input.departmentId !== undefined) {
+      addUpdate(
+        "department_id",
+        input.departmentId
       );
     }
 

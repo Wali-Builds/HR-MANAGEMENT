@@ -1,11 +1,14 @@
 import { Check, ChevronDown, Search } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import "./EmployeeMenuSelect.css";
 
 export interface EmployeeSelectOption {
   value: string;
   label: string;
+  // edited by wali: Allow organisation dropdown options to show contextual icons such as Head Office.
+  icon?: ReactNode;
 }
 
 interface Props {
@@ -92,7 +95,11 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
         disabled={disabled}
         onClick={() => { setQuery(""); setIsOpen((current) => !current); }}
       >
-        <span className={selected ? "" : "is-placeholder"}>{selected?.label ?? placeholder}</span>
+        <span className="emp-menu-select__trigger-label">
+          <span className={selected ? "" : "is-placeholder"}>{selected?.label ?? placeholder}</span>
+          {/* edited by wali: Place contextual markers after the selected option name. */}
+          {selected?.icon}
+        </span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
       {isOpen && menuPosition ? createPortal(
@@ -112,7 +119,7 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
                 key={option.value}
                 onClick={() => { onChange(option.value); setIsOpen(false); setQuery(""); }}
               >
-                <span>{option.label}</span>{value === option.value ? <Check size={15} /> : null}
+                <span className="emp-menu-select__option-label">{option.label}{option.icon}</span>{value === option.value ? <Check size={15} /> : null}
               </button>
             ))}
             {canAddCustomValue ? (
