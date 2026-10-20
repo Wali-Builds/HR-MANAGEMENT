@@ -103,7 +103,8 @@
   background: #fef3f2;
 }
 
-/* Improve readability across the Projects workspace and its dialog. */
+/* edited by wali: Match wider workspace gutters while improving Projects page readability. */
+.wf-org-page.wf-projects-page { padding-inline: 8px; }
 .wf-projects-page .wf-org-hero p { font-size: 15px; font-weight: 500; }
 .wf-projects-page .wf-org-hero__scope span { font-size: 12px; font-weight: 750; }
 .wf-projects-page .wf-org-hero__scope strong { font-size: 15px; font-weight: 700; }
