@@ -8,6 +8,7 @@ import { listEmployeesRequest } from "../../employees/api/employee.api";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import { useOrganisationReferences } from "../../organisation/hooks/useOrganisation";
 import { OrganisationDialog } from "../../organisation/components/OrganisationDialog";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 import { OrganisationEmptyState } from "../../organisation/components/OrganisationEmptyState";
 import { OrganisationField, TextAreaInput, TextInput } from "../../organisation/components/OrganisationField";
 import { useQuery } from "@tanstack/react-query";
@@ -48,8 +49,9 @@ function displayDate(value: string | null) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
-export function ProjectsPage() {
+function ProjectsPageContent() {
   const user = useAuthStore((state) => state.user);
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const companyId = user?.companyId ?? undefined;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "ALL">("ALL");
@@ -87,6 +89,7 @@ export function ProjectsPage() {
 
   function openCreate() { setEditing(null); setErrors({}); setForm({ ...emptyForm, startDate: today() }); setDialogOpen(true); }
   function openEdit(project: Project) { setEditing(project); setErrors({}); setForm(toForm(project)); setDialogOpen(true); }
+  function closeDialog() { dialogMotion.close(() => { setDialogOpen(false); setEditing(null); }); }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,7 +125,7 @@ export function ProjectsPage() {
       };
       if (editing) { const update = { ...input }; delete update.companyId; await updateMutation.mutateAsync({ projectId: editing.projectId, input: update }); toast.success("Project updated."); }
       else { await createMutation.mutateAsync(input); toast.success("Project created."); }
-      setDialogOpen(false); setEditing(null);
+      closeDialog();
     } catch (error) { toast.error(normalizeApiError(error).message); }
   }
 
@@ -136,17 +139,17 @@ export function ProjectsPage() {
       <div className="wf-org-health-strip"><div><span><FolderKanban size={16} /></span><strong>{total}</strong><small>Projects shown</small></div><div><span><CircleDot size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "ACTIVE").length}</strong><small>Active</small></div><div><span><CalendarDays size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "PLANNED").length}</strong><small>Planned</small></div><div><span><UsersRound size={16} /></span><strong>{projects.filter((item) => item.projectManagerEmployeeId).length}</strong><small>With manager</small></div></div>
 
       <section className="wf-org-resource wf-projects-resource">
-        <header className="wf-org-resource-toolbar"><div className="wf-org-resource-toolbar__heading"><div><span>Project master data</span><h2>Company projects</h2><p>Projects are visible only within your company.</p></div><button type="button" className="wf-org-button wf-org-button--primary" onClick={openCreate}><Plus size={16} /> New project</button></div><div className="wf-org-resource-toolbar__tools"><label className="wf-org-search"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search projects" /></label><EmployeeMenuSelect className="wf-org-menu-select" value={status} placeholder="All statuses" options={[{ value: "ALL", label: "All statuses" }, ...PROJECT_STATUSES.map((value) => ({ value, label: statusLabels[value] }))]} onChange={(value) => setStatus(value as ProjectStatus | "ALL")} allowClear={false} /><div className="wf-org-resource-toolbar__pager"><span>{total} {total === 1 ? "project" : "projects"}</span><button type="button" title="Refresh" aria-label="Refresh" onClick={() => void query.refetch()}><RefreshCw className={query.isFetching ? "spin" : ""} size={15} /></button></div></div></header>
+        <header className="wf-org-resource-toolbar"><div className="wf-org-resource-toolbar__heading"><div><span>Project master data</span><h2>Company projects</h2><p>Projects are visible only within your company.</p></div><button type="button" className="wf-org-button wf-org-button--primary" onClick={(event) => { dialogMotion.capture(event); openCreate(); }}><Plus size={16} /> New project</button></div><div className="wf-org-resource-toolbar__tools"><label className="wf-org-search"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search projects" /></label><EmployeeMenuSelect className="wf-org-menu-select" value={status} placeholder="All statuses" options={[{ value: "ALL", label: "All statuses" }, ...PROJECT_STATUSES.map((value) => ({ value, label: statusLabels[value] }))]} onChange={(value) => setStatus(value as ProjectStatus | "ALL")} allowClear={false} /><div className="wf-org-resource-toolbar__pager"><span>{total} {total === 1 ? "project" : "projects"}</span><button type="button" title="Refresh" aria-label="Refresh" onClick={() => void query.refetch()}><RefreshCw className={query.isFetching ? "spin" : ""} size={15} /></button></div></div></header>
         {query.isLoading ? <div className="wf-org-table-skeleton">Loading projects…</div> : query.isError ? <OrganisationEmptyState title="Projects could not be loaded" description="Check your connection and try again." error={normalizeApiError(query.error).message} canCreate={false} onCreate={openCreate} onRetry={() => void query.refetch()} /> : projects.length === 0 ? <OrganisationEmptyState title={search || status !== "ALL" ? "No matching projects" : "No projects yet"} description={search || status !== "ALL" ? "Try another search or status." : "Create a project to make it available for project-based assignments."} canCreate onCreate={openCreate} onRetry={() => void query.refetch()} /> : (
           <div className="wf-org-table-wrap"><table className="wf-org-table"><thead><tr><th>Project</th><th>Organisation</th><th>Dates</th><th>Budget</th><th>Status</th><th aria-label="Actions" /></tr></thead><tbody>{projects.map((project) => {
             const branch = references.branches.find((item) => item.branchId === project.branchId)?.branchName;
             const department = references.departments.find((item) => item.departmentId === project.departmentId)?.departmentName;
-            return <tr key={project.projectId}><td><div className="wf-org-record-title"><span className="wf-org-record-icon"><FolderKanban size={17} /></span><div><strong>{project.projectName}</strong><small>{project.projectCode}{project.clientName ? ` · ${project.clientName}` : ""}</small></div></div></td><td><div className="wf-org-contact-lines"><span><Building2 size={13} /> {branch ?? "Company-wide"}</span><span><Network size={13} /> {department ?? "No department"}</span></div></td><td><div className="wf-org-contact-lines"><span>{displayDate(project.startDate)}</span><span>{displayDate(project.endDate)}</span></div></td><td>{project.budgetAmount == null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency: project.currencyCode, maximumFractionDigits: 2 }).format(project.budgetAmount)}</td><td><span className={`wf-org-status is-${project.projectStatus.toLowerCase()}`}><CircleDot size={11} /> {statusLabels[project.projectStatus]}</span></td><td><div className="wf-org-row-actions"><button type="button" onClick={() => openEdit(project)} title="Edit project"><Edit3 size={15} /></button></div></td></tr>;
+            return <tr key={project.projectId}><td><div className="wf-org-record-title"><span className="wf-org-record-icon"><FolderKanban size={17} /></span><div><strong>{project.projectName}</strong><small>{project.projectCode}{project.clientName ? ` · ${project.clientName}` : ""}</small></div></div></td><td><div className="wf-org-contact-lines"><span><Building2 size={13} /> {branch ?? "Company-wide"}</span><span><Network size={13} /> {department ?? "No department"}</span></div></td><td><div className="wf-org-contact-lines"><span>{displayDate(project.startDate)}</span><span>{displayDate(project.endDate)}</span></div></td><td>{project.budgetAmount == null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency: project.currencyCode, maximumFractionDigits: 2 }).format(project.budgetAmount)}</td><td><span className={`wf-org-status is-${project.projectStatus.toLowerCase()}`}><CircleDot size={11} /> {statusLabels[project.projectStatus]}</span></td><td><div className="wf-org-row-actions"><button type="button" onClick={(event) => { dialogMotion.capture(event); openEdit(project); }} title="Edit project"><Edit3 size={15} /></button></div></td></tr>;
           })}</tbody></table></div>
         )}
       </section>
 
-      <OrganisationDialog open={dialogOpen} title={editing ? "Edit project" : "Create project"} subtitle="Set project ownership, department and timeline." submitLabel={editing ? "Save changes" : "Create project"} busy={busy} onClose={() => setDialogOpen(false)} onSubmit={submit}>
+      <OrganisationDialog open={dialogOpen} title={editing ? "Edit project" : "Create project"} subtitle="Set project ownership, department and timeline." submitLabel={editing ? "Save changes" : "Create project"} busy={busy} onClose={closeDialog} onSubmit={submit}>
         <div className="wf-org-form-grid">
           <OrganisationField
             label="Project code"
@@ -171,4 +174,9 @@ export function ProjectsPage() {
       </OrganisationDialog>
     </section>
   );
+}
+
+// edited by wali: Apply the shared trigger-origin transition to project forms.
+export function ProjectsPage() {
+  return <OrganisationDialogMotionProvider><ProjectsPageContent /></OrganisationDialogMotionProvider>;
 }

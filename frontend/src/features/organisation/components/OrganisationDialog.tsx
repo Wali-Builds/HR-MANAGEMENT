@@ -23,7 +23,7 @@ export function OrganisationDialog({
   onClose,
   onSubmit,
 }: Props) {
-  const animation = useOrganisationDialogAnimation(open);
+  const animation = useOrganisationDialogAnimation<HTMLFormElement>(open);
 
   if (!open) return null;
 

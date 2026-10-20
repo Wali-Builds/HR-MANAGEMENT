@@ -20,6 +20,7 @@ import type {
   UploadEmployeeDocumentInput,
 } from "../types/employee-document.types";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
+import { useOrganisationDialogAnimation } from "../../organisation/components/OrganisationDialogMotion";
 
 const CATEGORY_OPTIONS = [
   "IDENTITY",
@@ -91,15 +92,17 @@ function DialogFrame({
   children,
   onClose,
 }: DialogFrameProps) {
+  // edited by wali: Animate document dialogs from their initiating button.
+  const animation = useOrganisationDialogAnimation(true);
   return (
     <div className="doc-dialog-layer" role="presentation">
       <button
         type="button"
-        className="doc-dialog-backdrop"
-        onClick={onClose}
+        className={`doc-dialog-backdrop ${animation.backdropMotionClassName}`}
+        onClick={animation.closing ? undefined : onClose}
         aria-label="Close dialog"
       />
-      <section className="doc-dialog" role="dialog" aria-modal="true">
+      <section ref={animation.dialogRef} className={`doc-dialog ${animation.dialogMotionClassName}`} role="dialog" aria-modal="true">
         <header className="doc-dialog__header">
           <div className="doc-dialog__title">
             <span>{icon}</span>

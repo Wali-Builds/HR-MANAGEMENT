@@ -37,6 +37,7 @@ import {
   EmployeeDocumentUploadDialog,
 } from "../components/EmployeeDocumentDialogs";
 import { EmployeeDocumentTable } from "../components/EmployeeDocumentTable";
+import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 import {
   useDeleteEmployeeDocument,
   useEmployeeDocuments,
@@ -75,7 +76,8 @@ function saveBlob(blob: Blob, filename: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-export function EmployeeDocumentsPage() {
+function EmployeeDocumentsPageContent() {
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const user = useAuthStore((state) => state.user);
   const { hasPermission, isPlatformAdmin } = usePermissions();
   const canViewAll = hasPermission("employee.view_all");
@@ -189,6 +191,12 @@ export function EmployeeDocumentsPage() {
   const deleteMutation = useDeleteEmployeeDocument();
   const documents = documentsQuery.data ?? [];
 
+  // edited by wali: Route document form closes through the shared 360 ms transition.
+  function closeUpload() { dialogMotion.close(() => setUploadOpen(false)); }
+  function closeEdit() { dialogMotion.close(() => setEditingDocument(null)); }
+  function closeReplace() { dialogMotion.close(() => setReplacingDocument(null)); }
+  function closeDelete() { dialogMotion.close(() => setDeletingDocument(null)); }
+
   const categories = Array.from(
     new Set([
       ...COMMON_CATEGORIES,
@@ -233,7 +241,7 @@ export function EmployeeDocumentsPage() {
         input,
       });
       toast.success("Document details updated");
-      setEditingDocument(null);
+      closeEdit();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -248,7 +256,7 @@ export function EmployeeDocumentsPage() {
         file,
       });
       toast.success("Stored document file replaced");
-      setReplacingDocument(null);
+      closeReplace();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -262,7 +270,7 @@ export function EmployeeDocumentsPage() {
         documentId: deletingDocument.documentId,
       });
       toast.success("Employee document deleted");
-      setDeletingDocument(null);
+      closeDelete();
     } catch (error) {
       toast.error(normalizeApiError(error).message);
     }
@@ -339,7 +347,7 @@ export function EmployeeDocumentsPage() {
                 type="button"
                 className="doc-primary-button"
                 disabled={!selectedEmployeeId}
-                onClick={() => setUploadOpen(true)}
+                onClick={(event) => { dialogMotion.capture(event); setUploadOpen(true); }}
               >
                 <FileUp size={16} /> Upload document
               </button>
@@ -501,7 +509,7 @@ export function EmployeeDocumentsPage() {
                   : "Upload the first document for this employee."}
               </p>
               {canManage && !deferredDocumentSearch && !category && expiryStatus === "ALL" && !confidentialOnly ? (
-                <button type="button" className="doc-primary-button" onClick={() => setUploadOpen(true)}>
+                <button type="button" className="doc-primary-button" onClick={(event) => { dialogMotion.capture(event); setUploadOpen(true); }}>
                   <FileUp size={16} /> Upload first document
                 </button>
               ) : null}
@@ -512,9 +520,9 @@ export function EmployeeDocumentsPage() {
               canManage={canManage}
               onPreview={(document) => void preview(document)}
               onDownload={(document) => void download(document)}
-              onEdit={setEditingDocument}
-              onReplace={setReplacingDocument}
-              onDelete={setDeletingDocument}
+              onEdit={(document, event) => { dialogMotion.capture(event); setEditingDocument(document); }}
+              onReplace={(document, event) => { dialogMotion.capture(event); setReplacingDocument(document); }}
+              onDelete={(document, event) => { dialogMotion.capture(event); setDeletingDocument(document); }}
             />
           )}
 
@@ -530,7 +538,7 @@ export function EmployeeDocumentsPage() {
         <EmployeeDocumentUploadDialog
           employeeName={selectedEmployee.fullName}
           isPending={uploadMutation.isPending}
-          onClose={() => setUploadOpen(false)}
+          onClose={closeUpload}
           onSubmit={upload}
         />
       ) : null}
@@ -539,7 +547,7 @@ export function EmployeeDocumentsPage() {
         <EmployeeDocumentEditDialog
           document={editingDocument}
           isPending={updateMutation.isPending}
-          onClose={() => setEditingDocument(null)}
+          onClose={closeEdit}
           onSubmit={update}
         />
       ) : null}
@@ -548,7 +556,7 @@ export function EmployeeDocumentsPage() {
         <EmployeeDocumentReplaceDialog
           document={replacingDocument}
           isPending={replaceMutation.isPending}
-          onClose={() => setReplacingDocument(null)}
+          onClose={closeReplace}
           onSubmit={replace}
         />
       ) : null}
@@ -557,10 +565,15 @@ export function EmployeeDocumentsPage() {
         <EmployeeDocumentDeleteDialog
           document={deletingDocument}
           isPending={deleteMutation.isPending}
-          onClose={() => setDeletingDocument(null)}
+          onClose={closeDelete}
           onConfirm={remove}
         />
       ) : null}
     </section>
   );
+}
+
+// edited by wali: Provide shared trigger-origin motion to employee document forms.
+export function EmployeeDocumentsPage() {
+  return <OrganisationDialogMotionProvider><EmployeeDocumentsPageContent /></OrganisationDialogMotionProvider>;
 }

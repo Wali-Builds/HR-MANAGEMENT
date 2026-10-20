@@ -55,6 +55,7 @@ import type {
 } from "../types/workforce-access.types";
 
 import "../workforce-access.css";
+import { OrganisationDialogMotionProvider, useOrganisationDialogAnimation, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 
 type DialogState =
   | {
@@ -183,15 +184,17 @@ function Modal({
   children: ReactNode;
   onClose: () => void;
 }) {
+  // edited by wali: Animate access dialogs from the action that opens them.
+  const animation = useOrganisationDialogAnimation(true);
   return (
     <div
-      className="wf-modal-backdrop"
+      className={`wf-modal-backdrop ${animation.backdropMotionClassName}`}
       role="presentation"
       onMouseDown={
         (
           event
         ) => {
-          if (
+          if (!animation.closing &&
             event.target ===
             event.currentTarget
           ) {
@@ -201,7 +204,8 @@ function Modal({
       }
     >
       <section
-        className="wf-modal"
+        ref={animation.dialogRef}
+        className={`wf-modal ${animation.dialogMotionClassName}`}
         role="dialog"
         aria-modal="true"
       >
@@ -280,7 +284,8 @@ function AccountStatus({
   );
 }
 
-export function WorkforceAccessPage() {
+function WorkforceAccessPageContent() {
+  const dialogMotion = useRequiredOrganisationDialogMotion();
   const authUser =
     useAuthStore(
       (
@@ -354,6 +359,9 @@ export function WorkforceAccessPage() {
     >(
       null
     );
+
+  // edited by wali: Use the shared close timing for workforce access dialogs.
+  function closeDialog() { dialogMotion.close(() => setDialog(null)); }
 
   const usersQuery =
     useAccessUsers({
@@ -536,7 +544,7 @@ export function WorkforceAccessPage() {
             type="button"
             className="wf-primary-button wf-access-hero__create-button"
             disabled={!companyId}
-            onClick={() => setDialog({ type: "create" })}
+            onClick={(event) => { dialogMotion.capture(event); setDialog({ type: "create" }); }}
           >
             <UserPlus size={17} />
             Create access
@@ -869,13 +877,15 @@ export function WorkforceAccessPage() {
                             className="wf-icon-button"
                             title="Manage role"
                             onClick={
-                              () =>
+                              (event) => {
+                                dialogMotion.capture(event);
                                 setDialog({
                                   type:
                                     "roles",
 
                                   user
-                                })
+                                });
+                              }
                             }
                           >
                             <ShieldCheck
@@ -888,13 +898,15 @@ export function WorkforceAccessPage() {
                             className="wf-icon-button"
                             title="Reset password"
                             onClick={
-                              () =>
+                              (event) => {
+                                dialogMotion.capture(event);
                                 setDialog({
                                   type:
                                     "password",
 
                                   user
-                                })
+                                });
+                              }
                             }
                           >
                             <KeyRound
@@ -1077,12 +1089,7 @@ export function WorkforceAccessPage() {
           isLoading={
             createMutation.isPending
           }
-          onClose={
-            () =>
-              setDialog(
-                null
-              )
-          }
+          onClose={closeDialog}
           onSubmit={
             async (
               input
@@ -1096,9 +1103,7 @@ export function WorkforceAccessPage() {
                   "Employee access created"
                 );
 
-                setDialog(
-                  null
-                );
+                closeDialog();
               } catch (error) {
                 toast.error(
                   normalizeApiError(
@@ -1126,12 +1131,7 @@ export function WorkforceAccessPage() {
           isLoading={
             rolesMutation.isPending
           }
-          onClose={
-            () =>
-              setDialog(
-                null
-              )
-          }
+          onClose={closeDialog}
           onSubmit={
             async (
               roles
@@ -1148,9 +1148,7 @@ export function WorkforceAccessPage() {
                   "Role assignment updated"
                 );
 
-                setDialog(
-                  null
-                );
+                closeDialog();
               } catch (error) {
                 toast.error(
                   normalizeApiError(
@@ -1172,12 +1170,7 @@ export function WorkforceAccessPage() {
           isLoading={
             passwordMutation.isPending
           }
-          onClose={
-            () =>
-              setDialog(
-                null
-              )
-          }
+          onClose={closeDialog}
           onSubmit={
             async (
               password
@@ -1206,9 +1199,7 @@ export function WorkforceAccessPage() {
                   "Temporary password set"
                 );
 
-                setDialog(
-                  null
-                );
+                closeDialog();
               } catch (error) {
                 toast.error(
                   normalizeApiError(
@@ -1222,6 +1213,11 @@ export function WorkforceAccessPage() {
       ) : null}
     </main>
   );
+}
+
+// edited by wali: Provide shared trigger-origin motion to workforce access forms.
+export function WorkforceAccessPage() {
+  return <OrganisationDialogMotionProvider><WorkforceAccessPageContent /></OrganisationDialogMotionProvider>;
 }
 
 function CreateAccessDialog({
@@ -1625,7 +1621,6 @@ function RoleDialog({
 
             <EmployeeMenuSelect value={roleCode} placeholder="Select a role" options={(lookups?.roles ?? []).map((role) => ({ value: role.roleCode, label: role.roleName }))} onChange={setRoleCode} />
           </label>
-
         </div>
 
         <footer className="wf-modal__footer">
