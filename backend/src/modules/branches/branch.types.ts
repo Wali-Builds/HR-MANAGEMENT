@@ -56,6 +56,8 @@ export interface BranchListOptions {
   page: number;
   limit: number;
   companyId: string | null;
+  // edited by wali: Keep Branch Admin branch pickers inside assigned scope.
+  branchIds?: string[];
   search?: string;
   branchType?: string;
   city?: string;

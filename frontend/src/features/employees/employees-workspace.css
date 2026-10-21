@@ -795,3 +795,24 @@
   .employee-self-profile--workspace .employee-self-profile__status { margin-left: 62px; }
   .employee-self-profile--workspace .employee-self-profile__section dl { grid-template-columns: 1fr; }
 }
+
+/* edited by wali: Improve readability on employee records opened from the Workforce directory. */
+.emp-record-page .emp-record-toolbar__left > div > span { font-size: 11px; }
+.emp-record-page .emp-record-toolbar h1 { font-size: 25px; }
+.emp-record-page .emp-record-toolbar__actions .emp-icon-button,
+.emp-record-page .emp-record-toolbar__actions .emp-secondary-action,
+.emp-record-page .emp-record-toolbar__actions .emp-primary-action,
+.emp-record-page .emp-record-toolbar__actions .emp-danger-icon { font-size: 13px; }
+.emp-record-page .emp-profile-hero__identity h2 { font-size: 27px; }
+.emp-record-page .emp-profile-hero__identity p { font-size: 15px; }
+.emp-record-page .emp-profile-hero__identity > span { font-size: 12px; }
+.emp-record-page .emp-profile-hero__facts span { font-size: 10px; }
+.emp-record-page .emp-profile-hero__facts strong { font-size: 12px; }
+.emp-record-page .emp-record-tabs button { font-size: 13px; }
+.emp-record-page .emp-record-card h3 { font-size: 16px; }
+.emp-record-page .emp-record-card p { font-size: 12px; }
+.emp-record-page .emp-detail-grid span,
+.emp-record-page .emp-contact-list small { font-size: 11px; }
+.emp-record-page .emp-detail-grid strong,
+.emp-record-page .emp-contact-list strong { font-size: 14px; }
+.emp-record-page .emp-detail-grid small { font-size: 11px; }

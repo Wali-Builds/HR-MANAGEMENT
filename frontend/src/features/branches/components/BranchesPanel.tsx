@@ -35,6 +35,8 @@ import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion }
 interface Props {
   companyId?: string | undefined;
   canManage: boolean;
+  view: "list" | "cards";
+  onViewChange: (view: "list" | "cards") => void;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -106,7 +108,7 @@ function nullable(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-function BranchesPanelContent({ companyId, canManage }: Props) {
+function BranchesPanelContent({ companyId, canManage, view, onViewChange }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -320,6 +322,8 @@ function BranchesPanelContent({ companyId, canManage }: Props) {
         onRefresh={() => void query.refetch()}
         onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
         onNextPage={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       {query.isLoading ? (
@@ -332,6 +336,7 @@ function BranchesPanelContent({ companyId, canManage }: Props) {
           canCreate={canManage && Boolean(companyId)}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
+          isRetrying={query.isFetching}
         />
       ) : (
         <div className="wf-org-table-wrap">
@@ -340,23 +345,23 @@ function BranchesPanelContent({ companyId, canManage }: Props) {
             <tbody>
               {branches.map((branch) => (
                 <tr key={branch.branchId}>
-                  <td>
+                  <td data-label="Branch">
                     <div className="wf-org-record-title">
                       <span className="wf-org-record-icon"><Building2 size={17} /></span>
                       <div><strong>{branch.branchName}</strong><small>{branch.branchCode}</small></div>
                       {branch.isHeadOffice ? <em><Star size={12} /> Head office</em> : null}
                     </div>
                   </td>
-                  <td>{branch.branchType ?? "—"}</td>
-                  <td><span className="wf-org-muted-line"><MapPin size={14} /> {[branch.city, branch.province].filter(Boolean).join(", ") || "Not provided"}</span></td>
-                  <td>
+                  <td data-label="Type">{branch.branchType ?? "—"}</td>
+                  <td data-label="Location"><span className="wf-org-muted-line"><MapPin size={14} /> {[branch.city, branch.province].filter(Boolean).join(", ") || "Not provided"}</span></td>
+                  <td data-label="Contact">
                     <div className="wf-org-contact-lines">
                       <span><Mail size={13} /> {branch.officialEmail ?? "—"}</span>
                       <span><Phone size={13} /> {branch.officialPhone ?? "—"}</span>
                     </div>
                   </td>
-                  <td><span className={`wf-org-status ${branch.isActive ? "is-active" : "is-inactive"}`}>{branch.isActive ? "Active" : "Inactive"}</span></td>
-                  <td>
+                  <td data-label="Status"><span className={`wf-org-status ${branch.isActive ? "is-active" : "is-inactive"}`}>{branch.isActive ? "Active" : "Inactive"}</span></td>
+                  <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
                         <button type="button" onClick={() => openEdit(branch)} title="Edit"><Edit3 size={15} /></button>

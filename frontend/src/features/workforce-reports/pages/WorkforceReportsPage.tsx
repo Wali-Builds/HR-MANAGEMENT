@@ -384,6 +384,7 @@ export function WorkforceReportsPage() {
           >
             <RefreshCw
               size={16}
+              className={reportQuery.isFetching ? "spin" : ""}
             />
 
             Refresh
@@ -409,7 +410,7 @@ export function WorkforceReportsPage() {
         <section className="wf-panel wf-empty-state">
           <RefreshCw
             size={30}
-            className="is-spinning"
+            className="spin"
           />
 
           <h2>

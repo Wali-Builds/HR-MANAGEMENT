@@ -12,6 +12,7 @@ export type EmployeeActivityFilter = "all" | "active" | "inactive";
 interface Props {
   open: boolean;
   activity: EmployeeActivityFilter;
+  showBranchFilter: boolean;
   branchId: string;
   departmentId: string;
   employmentTypeId: string;
@@ -63,10 +64,13 @@ export function EmployeeFiltersPanel(props: Props) {
       </div>
 
       <div className="emp-filter-grid">
-        <label>
-          <span>Branch</span>
-          <EmployeeMenuSelect value={props.branchId} placeholder="All branches" options={props.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={props.onBranchChange} />
-        </label>
+        {/* edited by wali: Branch Admins already see records within their assigned branch scope. */}
+        {props.showBranchFilter ? (
+          <label>
+            <span>Branch</span>
+            <EmployeeMenuSelect value={props.branchId} placeholder="All branches" options={props.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={props.onBranchChange} />
+          </label>
+        ) : null}
 
         <label>
           <span>Department</span>

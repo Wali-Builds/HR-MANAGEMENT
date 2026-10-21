@@ -36,6 +36,8 @@ import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion }
 interface Props {
   companyId?: string | undefined;
   canManage: boolean;
+  view: "list" | "cards";
+  onViewChange: (view: "list" | "cards") => void;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -77,7 +79,7 @@ function nullable(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-function DepartmentsPanelContent({ companyId, canManage }: Props) {
+function DepartmentsPanelContent({ companyId, canManage, view, onViewChange }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -251,6 +253,8 @@ function DepartmentsPanelContent({ companyId, canManage }: Props) {
         onRefresh={() => void query.refetch()}
         onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
         onNextPage={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       {query.isLoading ? (
@@ -263,6 +267,7 @@ function DepartmentsPanelContent({ companyId, canManage }: Props) {
           canCreate={canManage && Boolean(companyId)}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
+          isRetrying={query.isFetching}
         />
       ) : (
         <div className="wf-org-table-wrap">
@@ -271,17 +276,17 @@ function DepartmentsPanelContent({ companyId, canManage }: Props) {
             <tbody>
               {departments.map((department) => (
                 <tr key={department.departmentId}>
-                  <td>
+                  <td data-label="Department">
                     <div className="wf-org-record-title">
                       <span className="wf-org-record-icon"><Network size={17} /></span>
                       <div><strong>{department.departmentName}</strong><small>{department.departmentCode}</small></div>
                     </div>
                   </td>
-                  <td><span className="wf-org-muted-line"><Building2 size={14} /> {department.branchName ?? "Company-wide"}</span></td>
-                  <td><span className="wf-org-muted-line"><GitBranch size={14} /> {department.parentDepartmentName ?? "Root department"}</span></td>
-                  <td>{department.costCenterCode ?? "—"}</td>
-                  <td><span className={`wf-org-status ${department.isActive ? "is-active" : "is-inactive"}`}>{department.isActive ? "Active" : "Inactive"}</span></td>
-                  <td>
+                  <td data-label="Branch"><span className="wf-org-muted-line"><Building2 size={14} /> {department.branchName ?? "Company-wide"}</span></td>
+                  <td data-label="Parent"><span className="wf-org-muted-line"><GitBranch size={14} /> {department.parentDepartmentName ?? "Root department"}</span></td>
+                  <td data-label="Cost centre">{department.costCenterCode ?? "—"}</td>
+                  <td data-label="Status"><span className={`wf-org-status ${department.isActive ? "is-active" : "is-inactive"}`}>{department.isActive ? "Active" : "Inactive"}</span></td>
+                  <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
                         <button type="button" onClick={() => openEdit(department)} title="Edit"><Edit3 size={15} /></button>

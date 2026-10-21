@@ -164,13 +164,10 @@ export const createRoleBodySchema =
         .array(
           permissionCodeSchema
         )
-        .min(
+        // edited by wali: Enforce the single-permission role rule at the API boundary.
+        .length(
           1,
-          "At least one permission must be assigned"
-        )
-        .max(
-          500,
-          "A role cannot contain more than 500 permissions"
+          "Exactly one permission must be assigned to a role"
         )
     })
     .strict()
@@ -269,13 +266,10 @@ export const replaceRolePermissionsBodySchema =
         .array(
           permissionCodeSchema
         )
-        .min(
+        // edited by wali: Keep permission replacements limited to one grant per role.
+        .length(
           1,
-          "At least one permission must be assigned"
-        )
-        .max(
-          500,
-          "A role cannot contain more than 500 permissions"
+          "Exactly one permission must be assigned to a role"
         )
     })
     .strict()

@@ -491,7 +491,8 @@ function assertLeaveConfigurationManageAccess(
 
 function assertLeavePolicyAssignmentViewAccess(
   auth: AuthContext,
-  employeeId: string
+  employeeId: string,
+  allowBranchBalanceInitializer = false
 ): void {
   if (
     isOwnEmployee(
@@ -499,6 +500,11 @@ function assertLeavePolicyAssignmentViewAccess(
       employeeId
     )
   ) {
+    return;
+  }
+
+  // edited by wali: Branch Admin can inspect effective entitlements for balance setup in their branch.
+  if (allowBranchBalanceInitializer) {
     return;
   }
 
@@ -1523,9 +1529,10 @@ export async function listLeaveTypes(
   auth:
     AuthContext
 ) {
-  assertLeaveConfigurationViewAccess(
-    auth
-  );
+  // edited by wali: Allow balance initializers to read leave types without granting policy management access.
+  if (!hasPermission(auth, "leave.balance.initialize")) {
+    assertLeaveConfigurationViewAccess(auth);
+  }
 
   const companyId =
     requireCompanyId(auth);
@@ -3630,9 +3637,27 @@ export async function getEffectiveEmployeeLeavePolicy(
     employee
   );
 
+  const isBranchAdmin =
+    auth.branchIds.length > 0 &&
+    getPermissions(auth).some((permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN");
+  const employeeIsInAssignedBranch =
+    employee.branch_id !== null &&
+    auth.branchIds.includes(String(employee.branch_id));
+
+  if (isBranchAdmin && !employeeIsInAssignedBranch) {
+    throw new AppError({
+      message: "You cannot view leave entitlements outside your assigned branch",
+      statusCode: 403,
+      code: "LEAVE_POLICY_BRANCH_ACCESS_DENIED"
+    });
+  }
+
   assertLeavePolicyAssignmentViewAccess(
     auth,
-    employeeId
+    employeeId,
+    isBranchAdmin &&
+      employeeIsInAssignedBranch &&
+      hasPermission(auth, "leave.balance.initialize")
   );
 
   const companyId =

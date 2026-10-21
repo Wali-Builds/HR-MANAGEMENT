@@ -16,7 +16,10 @@ export function DashboardLayout() {
       location.pathname === "/employees/documents" ||
       location.pathname === "/employees/access" ||
       location.pathname === "/projects" ||
-      location.pathname === "/roles"
+      location.pathname === "/roles" ||
+      // edited by wali: Reset document scroll when opening Leave or My Profile from the workspace.
+      location.pathname === "/leave" ||
+      location.pathname === "/my-profile"
     ) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }

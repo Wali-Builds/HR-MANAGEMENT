@@ -2,6 +2,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  LayoutGrid,
+  List,
   Plus,
   RefreshCw,
   Search,
@@ -25,6 +27,8 @@ interface Props {
   onRefresh: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  view: "list" | "cards";
+  onViewChange: (view: "list" | "cards") => void;
 }
 
 export function OrganisationResourceToolbar({
@@ -44,6 +48,8 @@ export function OrganisationResourceToolbar({
   onRefresh,
   onPreviousPage,
   onNextPage,
+  view,
+  onViewChange,
 }: Props) {
   const dialogMotion = useOrganisationDialogMotion();
   return (
@@ -89,6 +95,11 @@ export function OrganisationResourceToolbar({
           <button type="button" onClick={onPreviousPage} disabled={page <= 1} aria-label="Previous page"><ChevronLeft size={16} /></button>
           <small>{page} / {Math.max(totalPages, 1)}</small>
           <button type="button" onClick={onNextPage} disabled={page >= totalPages} aria-label="Next page"><ChevronRight size={16} /></button>
+          {/* edited by wali: Let each organisation section switch between table and cards. */}
+          <div className="wf-org-view-switcher" role="group" aria-label="Organisation records view">
+            <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => onViewChange("list")} aria-label="List view" aria-pressed={view === "list"}><List size={15} /></button>
+            <button type="button" className={view === "cards" ? "is-active" : ""} onClick={() => onViewChange("cards")} aria-label="Card view" aria-pressed={view === "cards"}><LayoutGrid size={15} /></button>
+          </div>
         </div>
       </div>
     </header>

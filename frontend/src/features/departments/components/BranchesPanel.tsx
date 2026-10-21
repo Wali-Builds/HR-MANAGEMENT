@@ -255,6 +255,7 @@ export function BranchesPanel({ companyId, canManage }: Props) {
           canCreate={canManage && Boolean(companyId)}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
+          isRetrying={query.isFetching}
         />
       ) : (
         <div className="wf-org-table-wrap">

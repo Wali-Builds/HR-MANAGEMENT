@@ -42,6 +42,13 @@ import type {
   UpdateRoleRecord
 } from "./role.types.js";
 
+// edited by wali: Tenant administrators can assign these built-in access markers.
+const TENANT_GRANTABLE_PERMISSION_CODES: string[] = [
+  "EMPLOYEE",
+  "COMPANY_ADMIN",
+  "BRANCH_ADMIN"
+];
+
 function databaseBoolean(
   value: number | boolean
 ): boolean {
@@ -261,7 +268,7 @@ async function validatePermissionCodes(
 
     if (disallowedPermissionCodes.length > 0) {
       throw new AppError({
-        message: "Company Administrators may only grant employee self-view permission for now",
+        message: "Company Administrators may only grant built-in tenant role permissions",
         statusCode: 403,
         code: "ROLE_PERMISSION_NOT_ALLOWED",
         details: { disallowedPermissionCodes }
@@ -362,8 +369,8 @@ export async function listPermissions(
   };
 
   if (!auth.isPlatformAdmin) {
-    // edited by wali: Company Admins may grant only employee self-view access for now.
-    options.allowedPermissionCodes = ["EMPLOYEE","COMPANY_ADMIN"];
+    // edited by wali: Expose Branch Admin alongside the existing tenant role permissions.
+    options.allowedPermissionCodes = TENANT_GRANTABLE_PERMISSION_CODES;
   }
 
   const result =
@@ -618,7 +625,7 @@ export async function createRole(
 
   await validatePermissionCodes(
     input.permissionCodes,
-    auth.isPlatformAdmin ? undefined : ["EMPLOYEE","COMPANY_ADMIN"]
+    auth.isPlatformAdmin ? undefined : TENANT_GRANTABLE_PERMISSION_CODES
   );
 
   const record:
@@ -880,11 +887,11 @@ export async function replaceRolePermissions(
   console.log("DEBUG permissionCodes:", input.permissionCodes);
   console.log(
     "DEBUG allowedPermissionCodes:",
-    auth.isPlatformAdmin ? undefined : ["EMPLOYEE","COMPANY_ADMIN"]
+    auth.isPlatformAdmin ? undefined : TENANT_GRANTABLE_PERMISSION_CODES
   );
   await validatePermissionCodes(
     input.permissionCodes,
-    auth.isPlatformAdmin ? undefined : ["EMPLOYEE","COMPANY_ADMIN"]
+    auth.isPlatformAdmin ? undefined : TENANT_GRANTABLE_PERMISSION_CODES
   );
 
   try {

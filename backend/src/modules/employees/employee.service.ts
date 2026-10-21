@@ -580,6 +580,29 @@ function assertCompanyAccess(
   }
 }
 
+// edited by wali: Validate employee records and assignments against Branch Admin scopes.
+function assignedBranchIds(auth: AuthContext): string[] {
+  return auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  )
+    ? auth.branchIds
+    : [];
+}
+
+function assertEmployeeBranchAccess(
+  auth: AuthContext,
+  branchId: string | null
+): void {
+  const branchIds = assignedBranchIds(auth);
+  if (branchIds.length > 0 && (!branchId || !branchIds.includes(branchId))) {
+    throw new AppError({
+      message: "This employee is outside your assigned branch access",
+      statusCode: 403,
+      code: "EMPLOYEE_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
 function resolveCompanyId(
   input: CreateEmployeeInput,
   auth: AuthContext
@@ -1358,6 +1381,10 @@ export async function listEmployees(
 
     companyId,
 
+    ...(assignedBranchIds(auth).length > 0
+      ? { branchIds: assignedBranchIds(auth) }
+      : {}),
+
     sortBy:
       query.sortBy,
 
@@ -1513,6 +1540,11 @@ export async function getEmployee(
     String(employee.company_id)
   );
 
+  assertEmployeeBranchAccess(
+    auth,
+    nullableId(employee.branch_id)
+  );
+
   // edited by wali: Keep this endpoint for workforce admins; employees use the restricted /me endpoint.
   if (!hasPermission(auth, "employee.view_all")) {
     throw new AppError({
@@ -1663,6 +1695,11 @@ export async function createEmployee(
         transferReason: null
       }
     );
+
+  assertEmployeeBranchAccess(
+    auth,
+    assignment.branchId
+  );
 
   if (
     assignment.effectiveFrom <
@@ -1826,6 +1863,11 @@ export async function updateEmployee(
   assertCompanyAccess(
     auth,
     companyId
+  );
+
+  assertEmployeeBranchAccess(
+    auth,
+    nullableId(existing.branch_id)
   );
 
   const resultingEmploymentTypeId =
@@ -2005,6 +2047,11 @@ export async function updateEmployee(
         },
         employeeId
       );
+
+    assertEmployeeBranchAccess(
+      auth,
+      assignment.branchId
+    );
 
     if (
       assignment.effectiveFrom <

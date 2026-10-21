@@ -44,9 +44,12 @@ import { ModulePlaceholderPage } from "./features/shared/pages/ModulePlaceholder
 import { NotFoundPage } from "./features/shared/pages/NotFoundPage";
 import { AuthLayout } from "./layouts/AuthLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";
+import { useRefreshClickAnimation } from "./hooks/useRefreshClickAnimation";
 
 
 export default function App() {
+  useRefreshClickAnimation();
+
   return (
     <Routes>
       <Route element={<PublicRoute />}>
@@ -153,13 +156,17 @@ export default function App() {
             <Route path="/roles" element={<RolesPage />} />
           </Route>
 
-          {/* edited by wali: Route Leave to the Company Admin setup or the employee's self-service page. */}
+          {/* edited by wali: Route leave review to authorized Company and Branch Admins; keep configuration tenant-admin-only. */}
           <Route path="/leave" element={<LeaveHomePage />} />
-          <Route element={<CompanyAdminRoute />}>
+          <Route element={<PermissionRoute permissions={["leave.request.view"]} allowRoleCodes={["COMPANY_ADMIN"]} />}>
             {/* edited by wali: Keep request review beside Leave configuration in the module navigation. */}
             <Route path="/leave/requests" element={<LeaveRequestsPage />} />
-            {/* edited by wali: Protect the balance overview for tenant Company Admins. */}
+          </Route>
+          <Route element={<PermissionRoute permissions={["leave.balance.view"]} allowRoleCodes={["COMPANY_ADMIN"]} />}>
+            {/* edited by wali: Allow Company Admins and permissioned Branch Admins into their scoped balances. */}
             <Route path="/leave/balances" element={<LeaveBalancesPage />} />
+          </Route>
+          <Route element={<CompanyAdminRoute />}>
             <Route path="/leave/configuration" element={<LeaveSetupPage />} />
           </Route>
         </Route>

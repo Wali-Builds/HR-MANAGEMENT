@@ -1,6 +1,6 @@
 // edited by wali: Create roles and grant permissions through the existing backend API.
 import {
-  AlertTriangle, Check, CheckCheck, CheckCircle2, CircleHelp, KeyRound,
+  AlertTriangle, Check, CheckCircle2, CircleHelp, KeyRound,
   LoaderCircle, Plus, RefreshCw, Search, Shield, ShieldCheck, Trash2, UserCog, Users, X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -30,7 +30,10 @@ function initialForm(role: RoleRecord | null, presetCode: string | null): RoleFo
     roleName: role?.roleName ?? (presetCode === "COMPANY_ADMIN" ? "Company Administrator" : ""),
     description: role?.description ?? "",
     isActive: role?.isActive ?? true,
-    permissionCodes: role?.permissions.map((item) => item.permissionCode) ?? [],
+    // edited by wali: A role can grant exactly one permission, including when editing older multi-permission roles.
+    permissionCodes: role?.permissions[0]
+      ? [role.permissions[0].permissionCode]
+      : [],
   };
 }
 
@@ -60,9 +63,14 @@ function RoleDialog(props: {
   const selected = useMemo(() => new Set(form.permissionCodes), [form.permissionCodes]);
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return permissions.filter((item) =>
+    const matchingPermissions = permissions.filter((item) =>
       !term || [item.permissionCode, item.moduleName, item.actionName, item.description ?? ""]
         .join(" ").toLowerCase().includes(term),
+    );
+    // edited by wali: Keep Branch Admin visible before the existing access markers.
+    return matchingPermissions.sort((a, b) =>
+      Number(b.permissionCode.toUpperCase() === "BRANCH_ADMIN") -
+      Number(a.permissionCode.toUpperCase() === "BRANCH_ADMIN"),
     );
   }, [permissions, search]);
   const groups = useMemo(() => {
@@ -78,20 +86,8 @@ function RoleDialog(props: {
   function togglePermission(code: string) {
     setForm((current) => ({
       ...current,
-      permissionCodes: current.permissionCodes.includes(code)
-        ? current.permissionCodes.filter((item) => item !== code)
-        : [...current.permissionCodes, code],
+      permissionCodes: [code],
     }));
-  }
-  function toggleGroup(items: RolePermission[], select: boolean) {
-    setForm((current) => {
-      const codes = new Set(current.permissionCodes);
-      items.forEach((item) => {
-        if (select) codes.add(item.permissionCode);
-        else codes.delete(item.permissionCode);
-      });
-      return { ...current, permissionCodes: [...codes] };
-    });
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -114,8 +110,8 @@ function RoleDialog(props: {
       setError("Role name must contain at least 2 characters.");
       return;
     }
-    if (!form.permissionCodes.length) {
-      setError("Select at least one permission.");
+    if (form.permissionCodes.length !== 1) {
+      setError("Select exactly one permission.");
       return;
     }
     await onSave({
@@ -166,7 +162,7 @@ function RoleDialog(props: {
           </section>
           <section className="role-card role-permissions-card">
             <div className="role-section-heading"><span><Shield size={16} /></span>
-              <div><h3>Grant permissions</h3><p>Select the actions this role is allowed to perform.</p></div>
+              <div><h3>Grant permission</h3><p>Choose the single permission this role is allowed to perform.</p></div>
               <strong className="role-selected-count">{form.permissionCodes.length} selected</strong>
             </div>
             <label className="role-permission-search"><Search size={15} />
@@ -178,17 +174,13 @@ function RoleDialog(props: {
               <div className="role-empty"><Search size={20} /><strong>No matching permissions</strong><span>Try another search.</span></div>
             ) : (
               <div className="role-groups">{groups.map(([module, items]) => {
-                const count = items.filter((item) => selected.has(item.permissionCode)).length;
-                const allSelected = count === items.length;
                 return <details className="role-group" key={module} open={groups.length <= 4}>
-                  <summary><span><strong>{module}</strong><small>{count} of {items.length} selected</small></span>
-                    <button type="button" className="role-select-all" disabled={platformAdminRole}
-                      onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleGroup(items, !allSelected); }}>
-                      <CheckCheck size={14} />{allSelected ? "Clear" : "Select all"}
-                    </button>
+                  {/* edited by wali: Show the requested single-permission instruction above each group. */}
+                  <summary><span><strong>{module}</strong><small>Select the permission you want to give to the role</small></span>
                   </summary>
+                  {/* edited by wali: Grant permissions one checkbox at a time. */}
                   <div className="role-permission-list">{items.map((item) => <label className="role-permission" key={item.permissionCode}>
-                    <input type="checkbox" checked={selected.has(item.permissionCode)} disabled={platformAdminRole} onChange={() => togglePermission(item.permissionCode)} />
+                    <input type="radio" name="role-permission" checked={selected.has(item.permissionCode)} disabled={platformAdminRole} onChange={() => togglePermission(item.permissionCode)} />
                     <span className="role-permission__box"><Check size={12} /></span>
                     <span className="role-permission__text"><strong>{item.permissionCode}</strong><small>{item.description || item.moduleName + " / " + item.actionName}</small></span>
                   </label>)}</div>
@@ -236,8 +228,9 @@ function RolesPageContent() {
   }, [roles, search, status]);
   const hasCompanyAdmin = roles.some((role) => role.roleCode === "COMPANY_ADMIN" && role.isActive);
 
-  function create(code: string | null = null) { setEditing(null); setPresetCode(code); setDialogOpen(true); }
-  function edit(role: RoleRecord) { setEditing(role); setPresetCode(null); setDialogOpen(true); }
+  // edited by wali: Refresh the permission catalog when opening a role form after database updates.
+  function create(code: string | null = null) { void permissionsQuery.refetch(); setEditing(null); setPresetCode(code); setDialogOpen(true); }
+  function edit(role: RoleRecord) { void permissionsQuery.refetch(); setEditing(role); setPresetCode(null); setDialogOpen(true); }
   // edited by wali: Use the shared 360 ms close animation for role forms.
   function closeDialog() { dialogMotion.close(() => { setDialogOpen(false); setEditing(null); setPresetCode(null); }); }
 
@@ -315,11 +308,11 @@ function RolesPageContent() {
         <select className="roles-select" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} aria-label="Filter roles">
           <option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option>
         </select>
-        <button type="button" className="roles-button roles-button--secondary" disabled={loading} onClick={() => { void rolesQuery.refetch(); void permissionsQuery.refetch(); }}><RefreshCw size={14} /> Refresh</button>
+        <button type="button" className="roles-button roles-button--secondary" disabled={loading} onClick={() => { void rolesQuery.refetch(); void permissionsQuery.refetch(); }}><RefreshCw className={rolesQuery.isFetching || permissionsQuery.isFetching ? "spin" : ""} size={14} /> Refresh</button>
       </div>
       {loading ? <div className="roles-state"><LoaderCircle className="role-spin" size={25} /><strong>Loading roles and permissions</strong></div>
       : loadError ? <div className="roles-state roles-state--error"><AlertTriangle size={24} /><strong>Could not load role data</strong>
-        <span>{normalizeApiError(loadError).message}</span><button type="button" className="roles-button roles-button--secondary" onClick={() => { void rolesQuery.refetch(); void permissionsQuery.refetch(); }}><RefreshCw size={14} /> Try again</button></div>
+        <span>{normalizeApiError(loadError).message}</span><button type="button" className="roles-button roles-button--secondary" onClick={() => { void rolesQuery.refetch(); void permissionsQuery.refetch(); }}><RefreshCw className={rolesQuery.isFetching || permissionsQuery.isFetching ? "spin" : ""} size={14} /> Try again</button></div>
       : !visibleRoles.length ? <div className="roles-state"><Shield size={26} /><strong>{roles.length ? "No roles match" : "No roles found"}</strong>
         <span>{roles.length ? "Change the search or status filter." : "Create a role to define user access."}</span></div>
       : <div className="roles-table-scroll"><table className="roles-table"><thead><tr><th>Role</th><th>Type</th><th>Permissions</th><th>Status</th><th>Actions</th></tr></thead>

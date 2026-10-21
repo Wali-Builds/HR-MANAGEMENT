@@ -46,6 +46,8 @@ export interface LeavePeriodListFilters {
 
 export interface LeaveBalanceListFilters {
   employeeId?: string;
+  // edited by wali: Limit company balance searches to assigned employee branches.
+  branchIds?: string[];
   leaveTypeId?: string;
   leavePeriodId?: string;
   periodStatus?: string;
@@ -3169,6 +3171,12 @@ function applyLeaveBalanceFilters(
     parameters.push(
       filters.employeeId
     );
+  }
+
+  // edited by wali: Keep balance result rows within assigned branches.
+  if (filters.branchIds?.length) {
+    conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")}))`);
+    parameters.push(...filters.branchIds);
   }
 
   if (filters.leaveTypeId) {

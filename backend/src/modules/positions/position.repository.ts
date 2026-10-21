@@ -373,6 +373,13 @@ export async function listPositionRecords(
     );
   }
 
+  // edited by wali: Keep branch-admin position lists inside assigned branches.
+  if (options.branchIds?.length) {
+    const placeholders = options.branchIds.map(() => "?").join(", ");
+    conditions.push(`p.branch_id IN (${placeholders})`);
+    values.push(...options.branchIds);
+  }
+
   if (options.departmentId) {
     conditions.push(
       "p.department_id = ?"

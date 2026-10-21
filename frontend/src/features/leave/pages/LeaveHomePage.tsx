@@ -3,7 +3,7 @@ import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { MyLeavePage } from "./MyLeavePage";
 
-// edited by wali: Open Company Admins on Requests and keep employee users on their own requests.
+// edited by wali: Keep self-service available to linked administrators alongside admin leave tools.
 export function LeaveHomePage() {
   const user = useAuthStore((state) => state.user);
   const { hasPermission } = usePermissions();
@@ -13,7 +13,8 @@ export function LeaveHomePage() {
         user.permissions.some((permission) => permission.toUpperCase() === "COMPANY_ADMIN")),
   );
 
-  if (isCompanyAdmin) return <Navigate to="/leave/requests" replace />;
+  // edited by wali: Linked Company and Branch Admins can submit and review their own leave requests.
   if (user?.employeeId && hasPermission("employee.view_self")) return <MyLeavePage />;
+  if (isCompanyAdmin || hasPermission("leave.request.view")) return <Navigate to="/leave/requests" replace />;
   return <Navigate to="/unauthorized" replace />;
 }

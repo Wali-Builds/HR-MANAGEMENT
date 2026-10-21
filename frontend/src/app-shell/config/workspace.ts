@@ -373,11 +373,12 @@ const moduleNavigation: Partial<
   ],
   // edited by wali: Keep the initial Leave navigation focused on Company Admin setup.
   leave: [
+    // edited by wali: Make My requests available to every linked employee, including administrators.
     { label: "My requests", to: "/leave", employeeOnly: true },
     // edited by wali: Give Company Admins a dedicated inbox for employee leave requests.
-    { label: "Requests", to: "/leave/requests", companyAdminOnly: true },
-    // edited by wali: Add a company-wide leave balance view for Company Admins.
-    { label: "Balances", to: "/leave/balances", companyAdminOnly: true },
+    { label: "Requests", to: "/leave/requests", companyAdminOnly: true, permissions: ["leave.request.view"] },
+    // edited by wali: Show leave balances to Company Admins and Branch Admins with scoped balance access.
+    { label: "Balances", to: "/leave/balances", companyAdminOnly: true, permissions: ["leave.balance.view"] },
     { label: "Configuration", to: "/leave/configuration", companyAdminOnly: true },
   ],
   attendance: [

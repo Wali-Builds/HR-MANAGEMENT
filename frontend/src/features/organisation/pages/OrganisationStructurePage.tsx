@@ -54,6 +54,14 @@ export function OrganisationStructurePage({ section }: Props) {
   const [selectedCompanyId, setSelectedCompanyId] = useState(
     user?.companyId ?? "",
   );
+  // edited by wali: Remember the preferred list or card layout across structure sections.
+  const [view, setView] = useState<"list" | "cards">(() =>
+    window.localStorage.getItem("organisation-structure-view") === "cards" ? "cards" : "list",
+  );
+  const changeView = (nextView: "list" | "cards") => {
+    window.localStorage.setItem("organisation-structure-view", nextView);
+    setView(nextView);
+  };
 
   // edited by wali: Only Platform Admins need the company directory to select a tenant.
   const companiesQuery = useCompanies({
@@ -161,11 +169,11 @@ export function OrganisationStructurePage({ section }: Props) {
       ) : (
         <div className="wf-org-workspace">
           <OrganisationTabs counts={counts} />
-          <main className="wf-org-workspace__content">
-            {section === "branches" ? <BranchesPanel companyId={companyId} canManage={canManage} /> : null}
-            {section === "departments" ? <DepartmentsPanel companyId={companyId} canManage={canManage} /> : null}
-            {section === "designations" ? <DesignationsPanel companyId={companyId} canManage={canManage} /> : null}
-            {section === "positions" ? <PositionsPanel companyId={companyId} canManage={canManage} /> : null}
+          <main className={`wf-org-workspace__content${view === "cards" ? " wf-org-workspace__content--cards" : ""}`}>
+            {section === "branches" ? <BranchesPanel companyId={companyId} canManage={canManage} view={view} onViewChange={changeView} /> : null}
+            {section === "departments" ? <DepartmentsPanel companyId={companyId} canManage={canManage} view={view} onViewChange={changeView} /> : null}
+            {section === "designations" ? <DesignationsPanel companyId={companyId} canManage={canManage} view={view} onViewChange={changeView} /> : null}
+            {section === "positions" ? <PositionsPanel companyId={companyId} canManage={canManage} view={view} onViewChange={changeView} /> : null}
           </main>
         </div>
       )}

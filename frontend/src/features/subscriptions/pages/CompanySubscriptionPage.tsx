@@ -135,7 +135,7 @@ export function CompanySubscriptionPage() {
         {loadError ? (
           <div className="my-subscription__state my-subscription__state--error">
             <span>{normalizeApiError(loadError).message}</span>
-            <button type="button" onClick={() => { void plansQuery.refetch(); void currentQuery.refetch(); }}><RefreshCw size={14} /> Retry</button>
+            <button type="button" onClick={() => { void plansQuery.refetch(); void currentQuery.refetch(); }}><RefreshCw className={plansQuery.isFetching || currentQuery.isFetching ? "spin" : ""} size={14} /> Retry</button>
           </div>
         ) : plansQuery.isLoading ? (
           <div className="my-subscription__state"><LoaderCircle className="my-subscription__spin" /> Loading available plans...</div>

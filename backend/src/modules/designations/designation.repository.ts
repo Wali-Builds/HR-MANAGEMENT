@@ -86,6 +86,26 @@ export async function findActiveDepartmentForCompany(
   return rows.length > 0;
 }
 
+// edited by wali: Resolve designation scope through its department's branch assignment.
+export async function findDepartmentBranchForCompany(
+  departmentId: string,
+  companyId: string
+): Promise<string | null> {
+  const rows = await databasePool.query(
+    `
+      SELECT branch_id
+      FROM departments
+      WHERE department_id = ?
+        AND company_id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+    `,
+    [departmentId, companyId]
+  );
+  const row = rows[0] as { branch_id: string | number | bigint | null } | undefined;
+  return row?.branch_id == null ? null : String(row.branch_id);
+}
+
 export async function findDesignationCodeConflict(
   companyId: string,
   departmentId: string,
@@ -166,7 +186,8 @@ export async function areDesignationAssignmentsInDepartment(
     [designationId, designationId]
   );
 
-  return rows.every((row) => {
+  // edited by wali: Narrow raw database results before comparing linked department IDs.
+  return rows.every((row: unknown) => {
     const department = row as {
       department_id: string | number | bigint | null;
     };
@@ -193,6 +214,17 @@ export async function listDesignationRecords(
     values.push(
       options.companyId
     );
+  }
+
+  // edited by wali: Filter designations to departments in assigned branches.
+  if (options.branchIds?.length) {
+    const placeholders = options.branchIds.map(() => "?").join(", ");
+    conditions.push(`department_id IN (
+      SELECT department_id
+      FROM departments
+      WHERE branch_id IN (${placeholders})
+    )`);
+    values.push(...options.branchIds);
   }
 
   if (options.departmentId) {

@@ -1237,6 +1237,13 @@ export async function listEmployeeRecords(
     );
   }
 
+  // edited by wali: Filter workforce results by assigned Branch Admin scopes.
+  if (options.branchIds?.length) {
+    const placeholders = options.branchIds.map(() => "?").join(", ");
+    conditions.push(`ea.branch_id IN (${placeholders})`);
+    values.push(...options.branchIds);
+  }
+
   if (options.departmentId) {
     conditions.push(
       "ea.department_id = ?"

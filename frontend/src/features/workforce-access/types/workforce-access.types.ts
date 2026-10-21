@@ -26,6 +26,7 @@ export interface AccessUser {
   employeeCode: string | null;
   employeeName: string | null;
   employeeOfficialEmail: string | null;
+  employeeBranchId: string | null;
   isEmployeeArchived: boolean;
   username: string;
   email: string | null;
@@ -74,6 +75,7 @@ export interface AccessLookupRole {
   roleName: string;
   description: string | null;
   isSystemRole: boolean;
+  hasBranchAdminAccess: boolean;
 }
 
 export interface AccessLookupEmployee {
@@ -82,6 +84,7 @@ export interface AccessLookupEmployee {
   employeeCode: string;
   employeeName: string;
   officialEmail: string | null;
+  branchId: string | null;
 }
 
 export interface AccessLookupCompany {

@@ -27,14 +27,33 @@ export function ModuleNavigation({
     hasAnyPermission,
   } = usePermissions();
   const activeModule = getWorkspaceModule(location.pathname);
-  const navigation = getModuleNavigation(activeModule.id).filter((item) =>
-    (!item.companyAdminOnly || Boolean(user && !user.isPlatformAdmin && user.companyId && (user.roleCodes.includes("COMPANY_ADMIN") || user.permissions.some((permission) => permission.toUpperCase() === "COMPANY_ADMIN")))) &&
-    (!item.employeeOnly || Boolean(user?.employeeId)) &&
-    (!item.permissions || item.permissions.length === 0 ||
+  // edited by wali: Match Leave tab visibility to the Company Admin route access override.
+  const isCompanyAdmin = Boolean(
+    user &&
+      !user.isPlatformAdmin &&
+      user.companyId &&
+      (user.roleCodes.includes("COMPANY_ADMIN") ||
+        user.permissions.some((permission) => permission.toUpperCase() === "COMPANY_ADMIN")),
+  );
+  const navigation = getModuleNavigation(activeModule.id).filter((item) => {
+    const hasCompanyAdminSectionAccess =
+      !item.companyAdminOnly ||
+      isCompanyAdmin ||
+      Boolean(item.permissions?.length && hasAnyPermission(item.permissions));
+    const hasRequiredPermissions =
+      (item.companyAdminOnly && isCompanyAdmin) ||
+      !item.permissions ||
+      item.permissions.length === 0 ||
       (item.requireAllPermissions
         ? hasAllPermissions(item.permissions)
-        : hasAnyPermission(item.permissions))),
-  );
+        : hasAnyPermission(item.permissions));
+
+    return (
+      hasCompanyAdminSectionAccess &&
+      (!item.employeeOnly || Boolean(user?.employeeId)) &&
+      hasRequiredPermissions
+    );
+  });
   const ActiveIcon = activeModule.icon;
 
   const activeNavigationItem = navigation

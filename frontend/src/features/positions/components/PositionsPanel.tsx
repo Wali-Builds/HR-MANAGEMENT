@@ -41,6 +41,8 @@ import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion }
 interface Props {
   companyId?: string | undefined;
   canManage: boolean;
+  view: "list" | "cards";
+  onViewChange: (view: "list" | "cards") => void;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -117,7 +119,7 @@ function money(value: number | null, currency: string): string {
   }).format(value);
 }
 
-function PositionsPanelContent({ companyId, canManage }: Props) {
+function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
@@ -305,6 +307,8 @@ function PositionsPanelContent({ companyId, canManage }: Props) {
         onRefresh={() => void query.refetch()}
         onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
         onNextPage={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       {query.isLoading ? (
@@ -317,6 +321,7 @@ function PositionsPanelContent({ companyId, canManage }: Props) {
           canCreate={canManage && Boolean(companyId)}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
+          isRetrying={query.isFetching}
         />
       ) : (
         <div className="wf-org-table-wrap">
@@ -325,27 +330,27 @@ function PositionsPanelContent({ companyId, canManage }: Props) {
             <tbody>
               {positions.map((position) => (
                 <tr key={position.positionId}>
-                  <td>
+                  <td data-label="Position">
                     <div className="wf-org-record-title">
                       <span className="wf-org-record-icon"><BriefcaseBusiness size={17} /></span>
                       <div><strong>{position.positionTitle}</strong><small>{/* edited by wali: Escaped middle dot keeps the position-code separator encoding-safe. */}{position.positionCode} {"\u00b7"} {position.positionType}</small></div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Organisation">
                     <div className="wf-org-contact-lines">
                       <span><Building2 size={13} /> {position.branchName ?? "Company-wide"}</span>
                       <span><Network size={13} /> {position.departmentName ?? "No department"}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Headcount">
                     <div className="wf-org-headcount">
                       <span><UsersRound size={14} /> {position.filledHeadcount} / {position.approvedHeadcount}</span>
                       <small>{position.availableHeadcount} available</small>
                     </div>
                   </td>
-                  <td>{money(position.minimumSalary, position.currencyCode)} {"\u2013"} {money(position.maximumSalary, position.currencyCode)}</td>
-                  <td><span className={`wf-org-status is-${position.positionStatus.toLowerCase()}`}><CircleDot size={11} /> {position.positionStatus}</span></td>
-                  <td>
+                  <td data-label="Salary range">{money(position.minimumSalary, position.currencyCode)} {"\u2013"} {money(position.maximumSalary, position.currencyCode)}</td>
+                  <td data-label="Status"><span className={`wf-org-status is-${position.positionStatus.toLowerCase()}`}><CircleDot size={11} /> {position.positionStatus}</span></td>
+                  <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
                         <button type="button" onClick={() => openEdit(position)} title="Edit"><Edit3 size={15} /></button>

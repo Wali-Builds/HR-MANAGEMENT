@@ -251,6 +251,29 @@ function assertCompanyAccess(
   }
 }
 
+// edited by wali: Keep position access within a Branch Admin's assigned branch.
+function assignedBranchIds(auth: AuthContext): string[] {
+  return auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  )
+    ? auth.branchIds
+    : [];
+}
+
+function assertPositionBranchAccess(
+  auth: AuthContext,
+  branchId: string | null
+): void {
+  const branchIds = assignedBranchIds(auth);
+  if (branchIds.length > 0 && (!branchId || !branchIds.includes(branchId))) {
+    throw new AppError({
+      message: "This position is outside your assigned branch access",
+      statusCode: 403,
+      code: "POSITION_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
 function resolveCompanyId(
   input: CreatePositionInput,
   auth: AuthContext
@@ -582,6 +605,19 @@ export async function listPositions(
     companyId = auth.companyId;
   }
 
+  const branchIds = assignedBranchIds(auth);
+  if (
+    query.branchId &&
+    branchIds.length > 0 &&
+    !branchIds.includes(query.branchId)
+  ) {
+    throw new AppError({
+      message: "You cannot list positions outside your assigned branches",
+      statusCode: 403,
+      code: "POSITION_BRANCH_ACCESS_DENIED"
+    });
+  }
+
   const options:
   PositionListOptions = {
     page: query.page,
@@ -595,6 +631,8 @@ export async function listPositions(
           branchId: query.branchId
         }
       : {}),
+
+    ...(branchIds.length > 0 ? { branchIds } : {}),
 
     ...(query.departmentId !==
     undefined
@@ -701,6 +739,11 @@ export async function getPosition(
     String(position.company_id)
   );
 
+  assertPositionBranchAccess(
+    auth,
+    databaseIdToString(position.branch_id)
+  );
+
   return mapPosition(position);
 }
 
@@ -748,6 +791,11 @@ export async function createPosition(
         input.reportsToPositionId ??
         null
     }
+  );
+
+  assertPositionBranchAccess(
+    auth,
+    input.branchId ?? null
   );
 
   validateSalaryRange(
@@ -835,12 +883,22 @@ export async function updatePosition(
     companyId
   );
 
+  assertPositionBranchAccess(
+    auth,
+    databaseIdToString(existing.branch_id)
+  );
+
   const resultingBranchId =
     input.branchId !== undefined
       ? input.branchId
       : databaseIdToString(
           existing.branch_id
         );
+
+  assertPositionBranchAccess(
+    auth,
+    resultingBranchId
+  );
 
   const resultingDepartmentId =
     input.departmentId !== undefined
@@ -1043,6 +1101,11 @@ export async function closePosition(
   assertCompanyAccess(
     auth,
     String(position.company_id)
+  );
+
+  assertPositionBranchAccess(
+    auth,
+    databaseIdToString(position.branch_id)
   );
 
   const currentAssignments =

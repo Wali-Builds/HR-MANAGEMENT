@@ -59,6 +59,8 @@ export interface DesignationListOptions {
   limit: number;
 
   companyId: string | null;
+  // edited by wali: Scope designation results through their department branch.
+  branchIds?: string[];
   departmentId?: string;
 
   search?: string;

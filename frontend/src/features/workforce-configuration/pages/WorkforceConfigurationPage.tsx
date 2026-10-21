@@ -446,6 +446,7 @@ export function WorkforceConfigurationPage() {
           >
             <RefreshCw
               size={16}
+              className={companyQuery.isFetching || lookupsQuery.isFetching || countsQuery.isFetching ? "spin" : ""}
             />
 
             Refresh

@@ -24,6 +24,7 @@ import {
   createSuccessfulSession,
   findUserByIdentifier,
   getAuthenticatedContext,
+  hasAssignmentToInactiveRole,
   loadAuthorization,
   recordFailedLogin
 } from "./auth.repository.js";
@@ -187,6 +188,27 @@ export async function loginUser(
       isPlatformAdmin
     );
 
+  // edited by wali: Block sign-in for users still assigned to a deactivated role and return the requested message.
+  if (
+    !isPlatformAdmin &&
+    await hasAssignmentToInactiveRole(user.user_id)
+  ) {
+    throw new AppError({
+      message: "Your role is not active now.",
+      statusCode: 403,
+      code: "ASSIGNED_ROLE_INACTIVE"
+    });
+  }
+
+  // edited by wali: Prevent users whose role assignments are all inactive from starting a new session.
+  if (!isPlatformAdmin && authorization.roleCodes.length === 0) {
+    throw new AppError({
+      message: "Your account has no active role and cannot sign in",
+      statusCode: 403,
+      code: "NO_ACTIVE_ROLE"
+    });
+  }
+
   const refreshToken =
     generateRefreshToken();
 
@@ -260,7 +282,10 @@ export async function loginUser(
       authorization.roleCodes,
 
     permissions:
-      authorization.permissions
+      authorization.permissions,
+
+    branchIds:
+      authorization.branchIds
   };
 
   return {
@@ -405,7 +430,10 @@ export async function refreshUserSession(
       authorization.roleCodes,
 
     permissions:
-      authorization.permissions
+      authorization.permissions,
+
+    branchIds:
+      authorization.branchIds
   };
 
   return {

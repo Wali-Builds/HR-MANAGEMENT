@@ -54,6 +54,14 @@ const userSelectColumns = `
   e.middle_name AS employee_middle_name,
   e.last_name AS employee_last_name,
   e.official_email AS employee_official_email,
+  (
+    SELECT ea.branch_id
+    FROM employee_assignments ea
+    WHERE ea.employee_id = e.employee_id
+      AND ea.is_current = 1
+    ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+    LIMIT 1
+  ) AS employee_branch_id,
   e.deleted_at AS employee_deleted_at
 `;
 
@@ -74,6 +82,7 @@ const roleSelectColumns = `
 
   r.role_code,
   r.role_name,
+  r.is_active AS role_is_active,
 
   ur.company_id,
   c.company_code,
@@ -391,8 +400,8 @@ export async function findUserRolesByUserId(
                ur.department_id
 
         WHERE ur.user_id = ?
-          AND ur.is_active = 1
-          AND r.is_active = 1
+          -- edited by wali: Keep a deactivated role assignment visible while the role itself is inactive.
+          AND (ur.is_active = 1 OR r.is_active = 0)
           AND (
               ur.expires_at IS NULL
               OR ur.expires_at >
@@ -448,8 +457,8 @@ export async function findRolesForUsers(
         WHERE ur.user_id IN (
           ${placeholders}
         )
-          AND ur.is_active = 1
-          AND r.is_active = 1
+          -- edited by wali: Keep deactivated role assignments in Workforce Access for inactive status display.
+          AND (ur.is_active = 1 OR r.is_active = 0)
           AND (
               ur.expires_at IS NULL
               OR ur.expires_at >
@@ -1164,7 +1173,15 @@ export async function getUserLookupRecords(
             role_code,
             role_name,
             description,
-            is_system_role
+            is_system_role,
+            EXISTS (
+              SELECT 1
+              FROM role_permissions rp
+              INNER JOIN permissions p
+                ON p.permission_id = rp.permission_id
+              WHERE rp.role_id = roles.role_id
+                AND p.permission_code = 'BRANCH_ADMIN'
+            ) AS has_branch_admin_access
         FROM roles
         WHERE is_active = 1
           AND (
@@ -1264,7 +1281,15 @@ export async function getUserLookupRecords(
               e.first_name,
               e.middle_name,
               e.last_name,
-              e.official_email
+              e.official_email,
+              (
+                SELECT ea.branch_id
+                FROM employee_assignments ea
+                WHERE ea.employee_id = e.employee_id
+                  AND ea.is_current = 1
+                ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+                LIMIT 1
+              ) AS branch_id
           FROM employees e
 
           WHERE e.company_id = ?
@@ -1306,6 +1331,7 @@ export async function getUserLookupRecords(
 
           is_system_role:
             number | boolean;
+          has_branch_admin_access: number | boolean;
         }>
       ).map((row) => ({
         roleId:
@@ -1324,7 +1350,11 @@ export async function getUserLookupRecords(
           row.is_system_role === true ||
           Number(
             row.is_system_role
-          ) === 1
+          ) === 1,
+
+        // edited by wali: Let Workforce Access recognize roles carrying the Branch Admin marker.
+        hasBranchAdminAccess:
+          row.has_branch_admin_access === true || Number(row.has_branch_admin_access) === 1
       })),
 
     employees:
@@ -1341,6 +1371,7 @@ export async function getUserLookupRecords(
           middle_name: string | null;
           last_name: string | null;
           official_email: string | null;
+          branch_id: string | number | bigint | null;
         }>
       ).map((row) => ({
         employeeId:
@@ -1369,7 +1400,11 @@ export async function getUserLookupRecords(
             .join(" "),
 
         officialEmail:
-          row.official_email
+          row.official_email,
+
+        // edited by wali: Carry the employee's home branch into their role assignment.
+        branchId:
+          row.branch_id === null ? null : String(row.branch_id)
       })),
 
     companies:

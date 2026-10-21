@@ -10,6 +10,30 @@ export function usePermissions() {
       user?.permissions ?? [],
     );
 
+    // edited by wali: Give the Branch Admin marker only its agreed branch-scoped capabilities.
+    const branchAdminPermissions = new Set([
+      "branch.view",
+      "department.view",
+      "department.manage",
+      "designation.view",
+      "designation.manage",
+      "position.view",
+      "position.manage",
+      "employee.view_all",
+      "employee.view_self",
+      "employee.create",
+      "employee.update",
+      "leave.period.view",
+      "leave.request.view",
+      "leave.request.approve",
+      "leave.balance.view",
+      "leave.balance.initialize",
+    ]);
+    const isBranchAdmin = Boolean(
+      user?.companyId &&
+      permissionSet.has("BRANCH_ADMIN"),
+    );
+
     // edited by wali: Restrict workforce structure setup to the linked Company Admin.
     const isCompanyAdminOnlyPermission = (permission: string): boolean =>
       permission.startsWith("employee.") ||
@@ -32,9 +56,12 @@ export function usePermissions() {
       !user?.isPlatformAdmin &&
       user?.companyId &&
       (
-        user.roleCodes.includes("COMPANY_ADMIN") ||
+        // edited by wali: Normalize role markers so casing from legacy role records cannot hide Company Admin access.
+        user.roleCodes.some(
+          (roleCode) => roleCode.trim().toUpperCase() === "COMPANY_ADMIN",
+        ) ||
         user.permissions?.some(
-          (permission) => permission.toUpperCase() === "COMPANY_ADMIN",
+          (permission) => permission.trim().toUpperCase() === "COMPANY_ADMIN",
         )
       ),
     );
@@ -56,6 +83,14 @@ export function usePermissions() {
         permission === "payroll.approve");
 
     const hasPermission = (permission: string): boolean => {
+      // edited by wali: Only linked Branch Admin accounts can open their own employee profile.
+      if (
+        isBranchAdmin &&
+        branchAdminPermissions.has(permission) &&
+        (permission !== "employee.view_self" || Boolean(user?.employeeId))
+      ) {
+        return true;
+      }
       // edited by wali: Normal employees can view only their own profile.
       // The EMPLOYEE permission represents normal employee self-service access.
       if (
@@ -102,6 +137,7 @@ export function usePermissions() {
       roleCodes: user?.roleCodes ?? [],
       isPlatformAdmin:
         user?.isPlatformAdmin ?? false,
+      isBranchAdmin,
       hasPermission,
       hasAnyPermission,
       hasAllPermissions,

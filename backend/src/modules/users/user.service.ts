@@ -180,10 +180,10 @@ function mapRole(
         role.expires_at
       ),
 
+    // edited by wali: A role grant is active only when both the assignment and the role are active.
     isActive:
-      databaseBoolean(
-        role.is_active
-      )
+      databaseBoolean(role.is_active) &&
+      databaseBoolean(role.role_is_active)
   };
 }
 
@@ -219,6 +219,10 @@ function mapUser(
 
     employeeOfficialEmail:
       user.employee_official_email,
+
+    // edited by wali: Use the employee's current organization assignment as a role-scope default.
+    employeeBranchId:
+      user.employee_branch_id === null ? null : String(user.employee_branch_id),
 
     // edited by wali: Surface archived employee status so Access Control can block reactivation.
     isEmployeeArchived:

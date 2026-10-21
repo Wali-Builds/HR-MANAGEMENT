@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, Umbrella, X } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
+import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import { approveCompanyLeaveRequest, getCompanyLeaveRequests, rejectCompanyLeaveRequest } from "../api/leave-requests.api";
 import type { CompanyLeaveRequestDetails } from "../types/leave-requests.types";
 import "../leave-setup.css";
 
-// edited by wali: Let Company Admin review tenant requests and record approval decisions.
+// edited by wali: Let authorized admins review scoped requests and record approval decisions.
 export function LeaveRequestsPage() {
   const queryClient = useQueryClient();
   const [pendingOnly, setPendingOnly] = useState(true);
@@ -41,8 +42,8 @@ export function LeaveRequestsPage() {
     <section className="leave-setup__step leave-admin__toolbar">
       <div><h2>Requests</h2><p>Approve or reject pending leave requests. Decisions follow the configured approval order.</p></div>
       <div className="leave-admin__filters" role="group" aria-label="Filter requests">
-        <button type="button" className={`leave-setup__button ${pendingOnly ? "leave-setup__button--primary" : ""}`} aria-pressed={pendingOnly} onClick={() => { setPendingOnly(true); setPage(1); }}>Pending</button>
-        <button type="button" className={`leave-setup__button ${!pendingOnly ? "leave-setup__button--primary" : ""}`} aria-pressed={!pendingOnly} onClick={() => { setPendingOnly(false); setPage(1); }}>All submitted</button>
+        {/* edited by wali: Use the shared workforce dropdown for request status filtering. */}
+        <label className="leave-admin__filter"><span>Request status</span><EmployeeMenuSelect className="leave-admin__select" value={pendingOnly ? "PENDING" : "ALL"} placeholder="Select request status" options={[{ value: "PENDING", label: "Pending" }, { value: "ALL", label: "All submitted" }]} onChange={(value) => { setPendingOnly(value === "PENDING"); setPage(1); }} allowClear={false} /></label>
       </div>
     </section>
     {requestsQuery.isLoading ? <div className="leave-setup__step"><div className="leave-setup__loading"><LoaderCircle size={16} />Loading company requests...</div></div>
