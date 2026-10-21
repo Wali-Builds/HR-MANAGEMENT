@@ -340,10 +340,24 @@ function assertCompanyRequestListAccess(
   });
 }
 
-function assertRequestViewAccess(
+// edited by wali: Detect branch-scoped administration for leave data boundaries.
+function isBranchAdmin(auth: AuthContext): boolean {
+  return auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN");
+}
+
+// edited by wali: Prevent leave detail and decision endpoints from crossing assigned branches.
+function assertLeaveEmployeeBranch(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
+  if (isBranchAdmin(auth) && (!employee.branch_id || !auth.branchIds.includes(String(employee.branch_id)))) {
+    throw new AppError({ message: "You cannot access leave records outside your assigned branch", statusCode: 403, code: "LEAVE_REQUEST_BRANCH_ACCESS_DENIED" });
+  }
+}
+
+async function assertRequestViewAccess(
   auth: AuthContext,
   employeeId: string
-): void {
+): Promise<void> {
+  // edited by wali: Apply branch scope to every direct leave request read endpoint.
+  if (isBranchAdmin(auth)) assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(employeeId));
   if (isOwnEmployee(auth, employeeId)) {
     return;
   }
@@ -366,10 +380,12 @@ function assertRequestViewAccess(
   });
 }
 
-function assertRequestManageAccess(
+async function assertRequestManageAccess(
   auth: AuthContext,
   employeeId: string
-): void {
+): Promise<void> {
+  // edited by wali: Apply branch scope to every employee leave request mutation.
+  if (isBranchAdmin(auth)) assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(employeeId));
   if (isOwnEmployee(auth, employeeId)) {
     return;
   }
@@ -1248,6 +1264,8 @@ export async function listLeaveRequests(
     await listLeaveRequestRecords(
       companyId,
       {
+        // edited by wali: Keep Branch Admin leave queues inside the assigned branch.
+        ...(isBranchAdmin(auth) ? { branchIds: auth.branchIds } : {}),
         ...(query.employeeId !== undefined
           ? { employeeId: query.employeeId }
           : {}),
@@ -1375,7 +1393,7 @@ export async function listEmployeeLeaveRequests(
     await getEmployeeOrThrow(employeeId);
 
   assertEmployeeCompany(auth, employee);
-  assertRequestViewAccess(auth, employeeId);
+  await assertRequestViewAccess(auth, employeeId);
 
   const companyId =
     String(employee.company_id);
@@ -1532,7 +1550,7 @@ export async function getLeaveRequest(
     });
   }
 
-  assertRequestViewAccess(
+  await assertRequestViewAccess(
     auth,
     String(request.employee_id)
   );
@@ -1568,7 +1586,7 @@ export async function getEmployeeLeaveRequest(
     await getEmployeeOrThrow(employeeId);
 
   assertEmployeeCompany(auth, employee);
-  assertRequestViewAccess(auth, employeeId);
+  await assertRequestViewAccess(auth, employeeId);
 
   const companyId =
     String(employee.company_id);
@@ -1638,7 +1656,7 @@ export async function updateLeaveRequest(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(existing.employee_id)
   );
@@ -1756,7 +1774,7 @@ export async function submitLeaveRequest(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(existing.employee_id)
   );
@@ -1828,7 +1846,7 @@ export async function cancelLeaveRequest(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(existing.employee_id)
   );
@@ -1901,7 +1919,7 @@ export async function withdrawLeaveRequest(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(existing.employee_id)
   );
@@ -1978,7 +1996,7 @@ export async function listLeaveRequestDays(
     });
   }
 
-  assertRequestViewAccess(
+  await assertRequestViewAccess(
     auth,
     String(request.employee_id)
   );
@@ -2021,7 +2039,7 @@ export async function listLeaveRequestAttachments(
     });
   }
 
-  assertRequestViewAccess(
+  await assertRequestViewAccess(
     auth,
     String(request.employee_id)
   );
@@ -2064,7 +2082,7 @@ export async function createLeaveRequestAttachment(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(request.employee_id)
   );
@@ -2139,7 +2157,7 @@ export async function deleteLeaveRequestAttachment(
     });
   }
 
-  assertRequestManageAccess(
+  await assertRequestManageAccess(
     auth,
     String(request.employee_id)
   );
@@ -2189,6 +2207,11 @@ export async function listPendingLeaveApprovals(
       {
         decision:
           query.decision,
+
+        // edited by wali: Scope pending approvals to employees in assigned branches.
+        ...(isBranchAdmin(auth) ? { branchIds: auth.branchIds } : {}),
+        // edited by wali: Let a Branch Admin review actionable requests throughout the assigned branch.
+        ...(isBranchAdmin(auth) ? { includeAllBranchPending: true } : {}),
 
         ...(query.leaveTypeId !== undefined
           ? { leaveTypeId: query.leaveTypeId }
@@ -2253,7 +2276,7 @@ export async function listLeaveRequestApprovals(
     });
   }
 
-  assertRequestViewAccess(
+  await assertRequestViewAccess(
     auth,
     String(request.employee_id)
   );
@@ -2283,6 +2306,13 @@ export async function approveLeaveRequest(
   const companyId =
     requireCompanyId(auth);
 
+  // edited by wali: Verify the target request belongs to an assigned branch before deciding it.
+  const targetRequest = await findLeaveRequestRecordById(companyId, leaveRequestId);
+  if (!targetRequest) {
+    throw new AppError({ message: "Leave request was not found", statusCode: 404, code: "LEAVE_REQUEST_NOT_FOUND" });
+  }
+  assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(String(targetRequest.employee_id)));
+
   try {
     const result =
       await approveLeaveRequestRecord(
@@ -2293,7 +2323,7 @@ export async function approveLeaveRequest(
         input.comments ?? null,
         createActor(auth),
         metadata,
-        isTenantCompanyAdmin(auth)
+        isTenantCompanyAdmin(auth) || isBranchAdmin(auth)
       );
 
     if (!result) {
@@ -2347,6 +2377,13 @@ export async function rejectLeaveRequest(
   const companyId =
     requireCompanyId(auth);
 
+  // edited by wali: Verify the target request belongs to an assigned branch before deciding it.
+  const targetRequest = await findLeaveRequestRecordById(companyId, leaveRequestId);
+  if (!targetRequest) {
+    throw new AppError({ message: "Leave request was not found", statusCode: 404, code: "LEAVE_REQUEST_NOT_FOUND" });
+  }
+  assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(String(targetRequest.employee_id)));
+
   try {
     const result =
       await rejectLeaveRequestRecord(
@@ -2357,7 +2394,7 @@ export async function rejectLeaveRequest(
         input.comments,
         createActor(auth),
         metadata,
-        isTenantCompanyAdmin(auth)
+        isTenantCompanyAdmin(auth) || isBranchAdmin(auth)
       );
 
     if (!result) {

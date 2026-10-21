@@ -663,6 +663,8 @@
 .wf-page.wf-access-page .wf-subtext { font-size: 12px; font-weight: 500; }
 .wf-page.wf-access-page .wf-chip,
 .wf-page.wf-access-page .wf-badge { font-size: 11px; font-weight: 800; }
+/* edited by wali: Mark preserved assignments to deactivated roles in red. */
+.wf-page.wf-access-page .wf-chip--inactive { color: #a12f37; background: #fde8e8; }
 .wf-page.wf-access-page .wf-pager { font-size: 13px; font-weight: 600; }
 .wf-page.wf-access-page .wf-empty-state p { font-size: 14px; font-weight: 500; }
 .wf-page.wf-access-page .wf-modal__header p { font-size: 13px; }

@@ -320,6 +320,8 @@ employeeLeaveBalanceRouter.get(
 employeeLeaveBalanceRouter.post(
   "/:employeeId/leave-balances/initialize",
   requireAnyPermission(
+    // edited by wali: Dedicated capability grants only balance initialization to Branch Admin.
+    "leave.balance.initialize",
     "leave.balance.manage",
     "leave.manage"
   ),

@@ -4,6 +4,7 @@ import { AlertCircle, Check, CheckCircle2, LoaderCircle, Plus, Search, Umbrella,
 import { normalizeApiError } from "../../../api/api-error";
 import { listEmployeesRequest } from "../../employees/api/employee.api";
 import type { Employee } from "../../employees/types/employee.types";
+import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import { getCompanyLeaveBalances, initializeEmployeeLeaveBalance } from "../api/leave-balance.api";
 import type { CompanyLeaveBalance, InitializeEmployeeLeaveBalanceInput } from "../types/leave-balance.types";
 import { getLeavePeriods, getLeaveTypes, getMyEffectiveLeavePolicy } from "../api/leave-setup.api";
@@ -17,7 +18,7 @@ function todayLocal(): string {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
 
-// edited by wali: Fetch all tenant employees so staff without a balance record remain visible.
+// edited by wali: Fetch all employees visible to this administrator so staff without balances remain visible.
 async function getAllCompanyEmployees(): Promise<Employee[]> {
   const firstPage = await listEmployeesRequest({ page: 1, limit: PAGE_SIZE, sortBy: "employee_code", sortOrder: "ASC" });
   const employees = [...firstPage.employees];
@@ -39,7 +40,7 @@ async function getAllCompanyBalances(): Promise<CompanyLeaveBalance[]> {
   return balances;
 }
 
-// edited by wali: Give Company Admins a searchable, read-only overview of every employee's leave balances.
+// edited by wali: Give authorized administrators a searchable overview limited to their employee scope.
 export function LeaveBalancesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -113,7 +114,7 @@ export function LeaveBalancesPage() {
   const error = balancesQuery.error ?? typesQuery.error ?? periodsQuery.error ?? balancePolicyQuery.error ?? balanceMutation.error;
   const isPageLoading = balancesQuery.isLoading || typesQuery.isLoading || periodsQuery.isLoading;
 
-  // edited by wali: Initialize a ledger-backed balance from this Company Admin workspace.
+  // edited by wali: Initialize a ledger-backed balance for an employee in the administrator's scope.
   const submitBalance = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setNotice("");
     if (!balanceEmployeeId || !balanceLeaveTypeId || !balancePeriodId || matchingBalance) return;
@@ -141,13 +142,15 @@ export function LeaveBalancesPage() {
     {error && <div className="leave-setup__notice leave-setup__notice--error"><AlertCircle size={17} />{normalizeApiError(error).message}</div>}
 
     {isInitializeFormOpen && <section className="leave-setup__step leave-balances__initializer">
-      <div className="leave-setup__step-heading"><span><WalletCards size={17} /></span><div><h2>Initialize employee balance</h2><p>Create one balance for an employee, leave type, and open period.</p></div></div>
+      {/* edited by wali: Keep the initializer close control small and aligned with the section heading. */}
+      <div className="leave-setup__step-heading"><span><WalletCards size={17} /></span><div><h2>Initialize employee balance</h2><p>Create one balance for an employee, leave type, and open period.</p></div><button className="leave-setup__button leave-employee__form-close" type="button" aria-label="Close balance initializer" title="Close" onClick={() => { setIsInitializeFormOpen(false); setNotice(""); }}><X size={16} /></button></div>
       <div className="leave-setup__hint"><AlertCircle size={16} />Enter amounts from your HR records. Opening balance, accrued units, and carried-forward units are added to create the starting available balance.</div>
       {!periodsQuery.isLoading && openPeriods.length === 0 && <div className="leave-setup__hint"><AlertCircle size={16} />Create an open leave period in Configuration before initializing balances.</div>}
       <form className="leave-setup__form leave-setup__form--balance" onSubmit={submitBalance}>
-        <label><span>Employee</span><select required value={balanceEmployeeId} onChange={(event) => { setBalanceEmployeeId(event.target.value); setBalanceLeaveTypeId(""); }}><option value="">Select an employee</option>{activeEmployees.map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.fullName} ({employee.employeeCode})</option>)}</select></label>
-        <label><span>Leave type</span><select required disabled={!balanceEmployeeId || balancePolicyQuery.isLoading || !balanceTypes.length} value={balanceLeaveTypeId} onChange={(event) => setBalanceLeaveTypeId(event.target.value)}><option value="">{balancePolicyQuery.isLoading ? "Loading policy types..." : "Select an entitled type"}</option>{balanceTypes.map((type: LeaveType) => <option key={type.leaveTypeId} value={type.leaveTypeId}>{type.leaveTypeName} ({type.unitType.toLowerCase()})</option>)}</select></label>
-        <label><span>Open period</span><select required disabled={!openPeriods.length} value={balancePeriodId} onChange={(event) => setBalancePeriodId(event.target.value)}><option value="">Select a period</option>{openPeriods.map((period) => <option key={period.leavePeriodId} value={period.leavePeriodId}>{period.periodName} ({period.startDate} to {period.endDate})</option>)}</select></label>
+        {/* edited by wali: Match all balance initializer dropdowns to the shared workforce menu control. */}
+        <label><span>Employee</span><EmployeeMenuSelect className="leave-setup__select" value={balanceEmployeeId} placeholder="Select an employee" options={activeEmployees.map((employee) => ({ value: employee.employeeId, label: `${employee.fullName} (${employee.employeeCode})` }))} onChange={(value) => { setBalanceEmployeeId(value); setBalanceLeaveTypeId(""); }} searchable searchPlaceholder="Search employees" allowClear={false} /></label>
+        <label><span>Leave type</span><EmployeeMenuSelect className="leave-setup__select" value={balanceLeaveTypeId} placeholder={balancePolicyQuery.isLoading ? "Loading policy types..." : "Select an entitled type"} options={balanceTypes.map((type: LeaveType) => ({ value: type.leaveTypeId, label: `${type.leaveTypeName} (${type.unitType.toLowerCase()})` }))} onChange={setBalanceLeaveTypeId} disabled={!balanceEmployeeId || balancePolicyQuery.isLoading || !balanceTypes.length} allowClear={false} /></label>
+        <label><span>Open period</span><EmployeeMenuSelect className="leave-setup__select" value={balancePeriodId} placeholder="Select a period" options={openPeriods.map((period) => ({ value: period.leavePeriodId, label: `${period.periodName} (${period.startDate} to ${period.endDate})` }))} onChange={setBalancePeriodId} disabled={!openPeriods.length} allowClear={false} /></label>
         <label><span>Opening balance ({selectedBalanceRule?.unitType.toLowerCase() ?? "units"})</span><input type="number" min="0" step="0.01" required value={balanceOpening} onChange={(event) => setBalanceOpening(event.target.value)} /></label>
         <label><span>Accrued units ({selectedBalanceRule?.unitType.toLowerCase() ?? "units"})</span><input type="number" min="0" step="0.01" required value={balanceAccrued} onChange={(event) => setBalanceAccrued(event.target.value)} /></label>
         <label><span>Carried forward ({selectedBalanceRule?.unitType.toLowerCase() ?? "units"})</span><input type="number" min="0" step="0.01" required value={balanceCarryForward} onChange={(event) => setBalanceCarryForward(event.target.value)} /></label>
@@ -169,8 +172,9 @@ export function LeaveBalancesPage() {
       <section className="leave-setup__step leave-balances__toolbar">
         <label className="leave-balances__search"><span>Search employees</span><div><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, employee code, or department" /></div></label>
         {/* edited by wali: Populate filters from the leave setup API's actual response fields. */}
-        <label><span>Period</span><select value={periodId} onChange={(event) => setPeriodId(event.target.value)}><option value="">All periods</option>{periods.map((period) => <option key={period.leavePeriodId} value={period.leavePeriodId}>{period.periodName}</option>)}</select></label>
-        <label><span>Leave type</span><select value={leaveTypeId} onChange={(event) => setLeaveTypeId(event.target.value)}><option value="">All leave types</option>{leaveTypes.map((type) => <option key={type.leaveTypeId} value={type.leaveTypeId}>{type.leaveTypeName}</option>)}</select></label>
+        {/* edited by wali: Match balance filters to the shared dropdown style used across workforce pages. */}
+        <label><span>Period</span><EmployeeMenuSelect className="leave-balances__select" value={periodId} placeholder="All periods" options={periods.map((period) => ({ value: period.leavePeriodId, label: period.periodName }))} onChange={setPeriodId} /></label>
+        <label><span>Leave type</span><EmployeeMenuSelect className="leave-balances__select" value={leaveTypeId} placeholder="All leave types" options={leaveTypes.map((type) => ({ value: type.leaveTypeId, label: type.leaveTypeName }))} onChange={setLeaveTypeId} /></label>
       </section>
 
       {filteredEmployees.length === 0 ? <section className="leave-setup__step leave-balances__empty"><UsersRound size={24} /><strong>No employees found</strong><p>Try changing your search.</p></section> : <div className="leave-balances__employees">

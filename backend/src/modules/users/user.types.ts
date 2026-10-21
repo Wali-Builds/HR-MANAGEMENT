@@ -37,6 +37,8 @@ export interface UserDatabaseRow {
   employee_last_name: string | null;
   employee_official_email:
     string | null;
+  // edited by wali: Expose current branch so access-role forms can default scope correctly.
+  employee_branch_id: DatabaseId | null;
   employee_deleted_at: Date | string | null;
 }
 
@@ -47,6 +49,8 @@ export interface UserRoleDatabaseRow {
 
   role_code: string;
   role_name: string;
+  // edited by wali: Preserve role status separately from the user-role assignment status.
+  role_is_active: number | boolean;
 
   company_id: DatabaseId | null;
   company_code: string | null;
@@ -100,6 +104,7 @@ export interface UserResponse {
   employeeCode: string | null;
   employeeName: string | null;
   employeeOfficialEmail: string | null;
+  employeeBranchId: string | null;
   isEmployeeArchived: boolean;
 
   username: string;
@@ -216,6 +221,8 @@ export interface UserLookupRole {
   roleName: string;
   description: string | null;
   isSystemRole: boolean;
+  // edited by wali: Identifies roles that require an assigned branch scope.
+  hasBranchAdminAccess: boolean;
 }
 
 export interface UserLookupEmployee {
@@ -224,6 +231,7 @@ export interface UserLookupEmployee {
   employeeCode: string;
   employeeName: string;
   officialEmail: string | null;
+  branchId: string | null;
 }
 
 export interface UserLookupCompany {

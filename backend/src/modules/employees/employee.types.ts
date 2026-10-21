@@ -249,6 +249,8 @@ export interface EmployeeListOptions {
   companyId: string | null;
 
   branchId?: string;
+  // edited by wali: Limit employee lists to branches assigned to the Branch Admin.
+  branchIds?: string[];
   departmentId?: string;
   designationId?: string;
   reportingManagerId?: string;

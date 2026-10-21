@@ -360,13 +360,13 @@ export function EmployeeDocumentUploadDialog({
         <div className="doc-dialog__body">
           <DocumentFileDrop
             files={files}
-            maxFiles={3}
+            maxFiles={2}
             disabled={isPending}
-            title="Add up to 3 documents"
+            title="Add up to 2 documents"
             description="PDF, image or Microsoft Office files. Maximum size follows the server policy."
             icon={<FileUp size={24} />}
             onFilesChange={(nextFiles) => { setFiles(nextFiles); setError(null); }}
-            onLimitExceeded={() => setError("You can add up to 3 documents at a time.")}
+            onLimitExceeded={() => setError("You can add up to 2 documents at a time.")}
           />
           <MetadataFields values={values} onChange={setValues} />
           {error ? <p className="doc-form-error">{error}</p> : null}

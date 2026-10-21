@@ -164,6 +164,32 @@ function assertDepartmentCompanyAccess(
   }
 }
 
+// edited by wali: Enforce the branch attached to each Branch Admin role assignment.
+function branchAdminIds(auth: AuthContext): string[] {
+  return auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  )
+    ? auth.branchIds
+    : [];
+}
+
+function assertDepartmentBranchAccess(
+  auth: AuthContext,
+  branchId: string | null
+): void {
+  const assignedBranchIds = branchAdminIds(auth);
+  if (
+    assignedBranchIds.length > 0 &&
+    (!branchId || !assignedBranchIds.includes(branchId))
+  ) {
+    throw new AppError({
+      message: "This department is outside your assigned branch access",
+      statusCode: 403,
+      code: "DEPARTMENT_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
 function resolveCreateCompanyId(
   input: CreateDepartmentInput,
   auth: AuthContext
@@ -391,6 +417,19 @@ export async function listDepartments(
     );
   }
 
+  const assignedBranchIds = branchAdminIds(auth);
+  if (
+    query.branchId &&
+    assignedBranchIds.length > 0 &&
+    !assignedBranchIds.includes(query.branchId)
+  ) {
+    throw new AppError({
+      message: "You cannot list departments outside your assigned branches",
+      statusCode: 403,
+      code: "DEPARTMENT_BRANCH_ACCESS_DENIED"
+    });
+  }
+
   const options:
   DepartmentListOptions = {
     page:
@@ -412,6 +451,10 @@ export async function listDepartments(
           branchId:
             query.branchId
         }
+      : {}),
+
+    ...(assignedBranchIds.length > 0
+      ? { branchIds: assignedBranchIds }
       : {}),
 
     ...(query.parentDepartmentId !==
@@ -500,6 +543,11 @@ export async function getDepartment(
     )
   );
 
+  assertDepartmentBranchAccess(
+    auth,
+    nullableId(department.branch_id)
+  );
+
   return mapDepartment(department);
 }
 
@@ -532,6 +580,11 @@ export async function createDepartment(
   await validateBranch(
     input.branchId ?? null,
     companyId
+  );
+
+  assertDepartmentBranchAccess(
+    auth,
+    input.branchId ?? null
   );
 
   await validateParentDepartment(
@@ -618,12 +671,22 @@ export async function updateDepartment(
     companyId
   );
 
+  assertDepartmentBranchAccess(
+    auth,
+    nullableId(existingDepartment.branch_id)
+  );
+
   const resultingBranchId =
     input.branchId !== undefined
       ? input.branchId
       : nullableId(
           existingDepartment.branch_id
         );
+
+  assertDepartmentBranchAccess(
+    auth,
+    resultingBranchId
+  );
 
   const resultingParentId =
     input.parentDepartmentId !==
@@ -731,6 +794,11 @@ export async function deleteDepartment(
     String(
       department.company_id
     )
+  );
+
+  assertDepartmentBranchAccess(
+    auth,
+    nullableId(department.branch_id)
   );
 
   const deleted =

@@ -7,6 +7,8 @@ interface Props {
   canCreate: boolean;
   onCreate: () => void;
   onRetry: () => void;
+  // edited by wali: Reuse the global refresh animation while a retry is fetching records.
+  isRetrying?: boolean;
 }
 
 export function OrganisationEmptyState({
@@ -16,6 +18,7 @@ export function OrganisationEmptyState({
   canCreate,
   onCreate,
   onRetry,
+  isRetrying = false,
 }: Props) {
   return (
     <div className="wf-org-empty">
@@ -24,7 +27,7 @@ export function OrganisationEmptyState({
       <p>{error ?? description}</p>
       {error ? (
         <button type="button" className="wf-org-button wf-org-button--secondary" onClick={onRetry}>
-          <RefreshCw size={15} /> Try again
+          <RefreshCw className={isRetrying ? "spin" : ""} size={15} /> Try again
         </button>
       ) : canCreate ? (
         <button type="button" className="wf-org-button wf-org-button--primary" onClick={onCreate}>

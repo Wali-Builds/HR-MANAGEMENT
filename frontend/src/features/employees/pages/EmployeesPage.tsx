@@ -44,7 +44,7 @@ function readStoredView(): EmployeeWorkspaceView {
 export function EmployeesPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { hasPermission, isPlatformAdmin } = usePermissions();
+  const { hasPermission, isPlatformAdmin, isBranchAdmin } = usePermissions();
   const canCreate = hasPermission("employee.create");
   const canEdit = hasPermission("employee.update");
   const canArchive = hasPermission("employee.delete");
@@ -117,6 +117,17 @@ export function EmployeesPage() {
   const employeesQuery = useEmployees(listParams);
   const employees = employeesQuery.data?.employees ?? [];
   const pagination = employeesQuery.data?.pagination;
+  // edited by wali: Keep the Branch Admin department filter within the branches returned for their session.
+  const visibleDepartments = isBranchAdmin
+    ? references.departments.filter((department) =>
+        Boolean(
+          department.branchId &&
+            references.branches.some(
+              (branch) => branch.branchId === department.branchId,
+            ),
+        ),
+      )
+    : references.departments;
 
   const activeFilterCount = [
     activity !== "active",
@@ -204,6 +215,7 @@ export function EmployeesPage() {
         <EmployeeFiltersPanel
           open={filtersOpen}
           activity={activity}
+          showBranchFilter={!isBranchAdmin}
           branchId={branchId}
           departmentId={departmentId}
           employmentTypeId={employmentTypeId}
@@ -212,7 +224,7 @@ export function EmployeesPage() {
           joiningDateFrom={joiningDateFrom}
           joiningDateTo={joiningDateTo}
           branches={references.branches}
-          departments={references.departments}
+          departments={visibleDepartments}
           lookups={lookupsQuery.data}
           onActivityChange={setActivity}
           onBranchChange={setBranchId}
@@ -248,7 +260,7 @@ export function EmployeesPage() {
               <span className="emp-state-panel__icon emp-state-panel__icon--error"><UserRoundX size={27} /></span>
               <h2>Employees could not be loaded</h2>
               <p>{error.message}</p>
-              <button type="button" className="emp-secondary-action" onClick={() => void employeesQuery.refetch()}><RefreshCw size={16} /> Try again</button>
+              <button type="button" className="emp-secondary-action" onClick={() => void employeesQuery.refetch()}><RefreshCw className={employeesQuery.isFetching ? "spin" : ""} size={16} /> Try again</button>
             </div>
           ) : employees.length === 0 ? (
             <div className="emp-state-panel">

@@ -218,7 +218,7 @@ export function CompaniesPage() {
                 className="org-secondary-action"
                 onClick={() => void companiesQuery.refetch()}
               >
-                <RefreshCw size={16} /> Try again
+                <RefreshCw className={companiesQuery.isFetching ? "spin" : ""} size={16} /> Try again
               </button>
             </div>
           ) : companies.length === 0 ? (

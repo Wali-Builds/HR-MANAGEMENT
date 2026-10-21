@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleAlert, LoaderCircle, Plus, Umbrella } from "lucide-react";
 import { normalizeApiError } from "../../../api/api-error";
+import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import {
   createLeavePolicy,
   createLeavePolicyRule,
@@ -281,7 +282,8 @@ export function LeaveSetupPage() {
       <form className="leave-setup__form" onSubmit={submitType}>
         <label><span>Name</span><input required maxLength={150} value={typeName} onChange={(event) => setTypeName(event.target.value)} placeholder="Annual Leave" /></label>
         <label><span>Code</span><input required maxLength={50} pattern="[A-Za-z0-9 _-]+" value={typeCode} onChange={(event) => setTypeCode(event.target.value)} placeholder="ANNUAL_LEAVE" /></label>
-        <label><span>Unit</span><select disabled={Boolean(editingTypeId)} value={unitType} onChange={(event) => setUnitType(event.target.value as "DAYS" | "HOURS")}><option value="DAYS">Days</option><option value="HOURS">Hours</option></select></label>
+        {/* edited by wali: Match leave configuration selectors to the shared workforce dropdown. */}
+        <label><span>Unit</span><EmployeeMenuSelect className="leave-setup__select" disabled={Boolean(editingTypeId)} value={unitType} placeholder="Select a unit" options={[{ value: "DAYS", label: "Days" }, { value: "HOURS", label: "Hours" }]} onChange={(value) => setUnitType(value as "DAYS" | "HOURS")} allowClear={false} /></label>
         <label className="leave-setup__check"><input type="checkbox" checked={isPaid} onChange={(event) => setIsPaid(event.target.checked)} />Paid leave</label>
         <label className="leave-setup__check"><input type="checkbox" checked={requiresApproval} onChange={(event) => setRequiresApproval(event.target.checked)} />Requires approval</label>
         {editingTypeId && <>
@@ -316,7 +318,7 @@ export function LeaveSetupPage() {
       <div className="leave-setup__step-heading"><span>3</span><div><h2>Add entitlements and apply</h2><p>Set the number of days or hours employees receive each year.</p></div></div>
       {!policy ? <div className="leave-setup__hint"><CircleAlert size={16} />Create or select a policy first.</div> : <>
         <form className="leave-setup__form leave-setup__form--rule" onSubmit={submitRule}>
-          <label><span>Leave type</span><select required disabled={!availableTypes.length} value={ruleTypeId} onChange={(event) => setRuleTypeId(event.target.value)}><option value="">Select a type</option>{availableTypes.map((item) => <option key={item.leaveTypeId} value={item.leaveTypeId}>{item.leaveTypeName} ({item.unitType.toLowerCase()})</option>)}</select></label>
+          <label><span>Leave type</span><EmployeeMenuSelect className="leave-setup__select" disabled={!availableTypes.length} value={ruleTypeId} placeholder="Select a type" options={availableTypes.map((item) => ({ value: item.leaveTypeId, label: `${item.leaveTypeName} (${item.unitType.toLowerCase()})` }))} onChange={setRuleTypeId} searchable searchPlaceholder="Search leave types" allowClear={false} /></label>
           <label><span>Annual entitlement</span><input type="number" min="0" max="100000" step="0.5" required disabled={!availableTypes.length} value={annualEntitlement} onChange={(event) => setAnnualEntitlement(event.target.value)} /></label>
           <button className="leave-setup__button leave-setup__button--primary" type="submit" disabled={!ruleTypeId || ruleMutation.isPending}><Plus size={16} />{ruleMutation.isPending ? "Adding..." : "Add entitlement"}</button>
         </form>
@@ -338,8 +340,8 @@ export function LeaveSetupPage() {
       <div className="leave-setup__step-heading"><span>4</span><div><h2>Set up leave periods</h2><p>Choose annual or quarterly periods. The system fills in the dates; periods cannot overlap. Each request must fit within one open period.</p></div></div>
       <form className="leave-setup__form leave-setup__form--period" onSubmit={submitPeriod}>
         <label><span>Year</span><input type="number" min="1900" max="9999" required value={periodYear} onChange={(event) => setPeriodYear(event.target.value)} /></label>
-        <label><span>Period length</span><select value={periodFrequency} onChange={(event) => setPeriodFrequency(event.target.value as "ANNUAL" | "QUARTERLY")}><option value="ANNUAL">Annual</option><option value="QUARTERLY">Quarterly (3 months)</option></select></label>
-        {periodFrequency === "QUARTERLY" && <label><span>Quarter</span><select value={periodQuarter} onChange={(event) => setPeriodQuarter(Number(event.target.value))}><option value={1}>Q1 (Jan–Mar)</option><option value={2}>Q2 (Apr–Jun)</option><option value={3}>Q3 (Jul–Sep)</option><option value={4}>Q4 (Oct–Dec)</option></select></label>}
+        <label><span>Period length</span><EmployeeMenuSelect className="leave-setup__select" value={periodFrequency} placeholder="Select period length" options={[{ value: "ANNUAL", label: "Annual" }, { value: "QUARTERLY", label: "Quarterly (3 months)" }]} onChange={(value) => setPeriodFrequency(value as "ANNUAL" | "QUARTERLY")} allowClear={false} /></label>
+        {periodFrequency === "QUARTERLY" && <label><span>Quarter</span><EmployeeMenuSelect className="leave-setup__select" value={String(periodQuarter)} placeholder="Select quarter" options={[{ value: "1", label: "Q1 (Jan–Mar)" }, { value: "2", label: "Q2 (Apr–Jun)" }, { value: "3", label: "Q3 (Jul–Sep)" }, { value: "4", label: "Q4 (Oct–Dec)" }]} onChange={(value) => setPeriodQuarter(Number(value))} allowClear={false} /></label>}
         <label><span>Starts</span><input type="date" readOnly value={periodDates.startDate} /></label>
         <label><span>Ends</span><input type="date" readOnly value={periodDates.endDate} /></label>
         <button className="leave-setup__button leave-setup__button--primary" type="submit" disabled={periodMutation.isPending || !periodYear || periodsOverlappingSelectedRange.length > 0}><Plus size={16} />{periodMutation.isPending ? "Creating..." : `Create ${periodFrequency === "ANNUAL" ? "annual" : "quarterly"} period`}</button>

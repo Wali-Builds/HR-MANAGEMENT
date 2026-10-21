@@ -83,7 +83,7 @@ export function EmployeeRecordPage() {
           <div><span>Employees / {employee.employeeCode}</span><h1>{employee.fullName}</h1></div>
         </div>
         <div className="emp-record-toolbar__actions">
-          <button type="button" className="emp-icon-button" onClick={() => void employeeQuery.refetch()} title="Refresh"><RefreshCw size={15} /></button>
+          <button type="button" className="emp-icon-button" onClick={() => void employeeQuery.refetch()} title="Refresh"><RefreshCw className={employeeQuery.isFetching ? "spin" : ""} size={15} /></button>
           {canEdit ? (
             <button type="button" className="emp-secondary-action" onClick={() => void toggleActive()} disabled={updateMutation.isPending}>
               {employee.isActive ? <UserRoundX size={16} /> : <UserRoundCheck size={16} />}

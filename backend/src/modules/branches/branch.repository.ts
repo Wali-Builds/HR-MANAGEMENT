@@ -177,6 +177,12 @@ export async function listBranchRecords(
     );
   }
 
+  // edited by wali: Restrict Branch Admin branch lists to assigned branches.
+  if (options.branchIds?.length) {
+    conditions.push(`branch_id IN (${options.branchIds.map(() => "?").join(", ")})`);
+    values.push(...options.branchIds);
+  }
+
   if (
     options.isActive !== undefined
   ) {

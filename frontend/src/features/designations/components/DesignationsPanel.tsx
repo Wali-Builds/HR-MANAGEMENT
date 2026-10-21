@@ -35,6 +35,8 @@ import { OrganisationDialogMotionProvider, useRequiredOrganisationDialogMotion }
 interface Props {
   companyId?: string | undefined;
   canManage: boolean;
+  view: "list" | "cards";
+  onViewChange: (view: "list" | "cards") => void;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -102,7 +104,7 @@ function money(value: number | null): string {
   }).format(value);
 }
 
-function DesignationsPanelContent({ companyId, canManage }: Props) {
+function DesignationsPanelContent({ companyId, canManage, view, onViewChange }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
@@ -295,6 +297,8 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
         onRefresh={() => void query.refetch()}
         onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
         onNextPage={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       {query.isLoading ? (
@@ -307,6 +311,7 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
           canCreate={canManage && Boolean(companyId)}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
+          isRetrying={query.isFetching}
         />
       ) : (
         <div className="wf-org-table-wrap">
@@ -316,22 +321,22 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
               {designations.map((designation) => (
                 <tr key={designation.designationId}>
                   {/* edited by wali: Show the designation's branch together with its owning department. */}
-                  <td>
+                  <td data-label="Designation">
                     <div className="wf-org-record-title">
                       <span className="wf-org-record-icon"><BadgeCheck size={17} /></span>
                       <div><strong>{designation.designationName}</strong><small>{designation.designationCode}</small></div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Branch / department">
                     <strong>{departments.find((department) => department.departmentId === designation.departmentId)?.branchName ?? "No branch"}</strong>
                     <small className="wf-org-cell-note">{departments.find((department) => department.departmentId === designation.departmentId)?.departmentName ?? "Department unavailable"}</small>
                   </td>
                   {/* edited by wali: Escaped Unicode prevents corrupted dashes in empty grade and level values. */}
-                  <td>{designation.grade ?? "\u2014"}<small className="wf-org-cell-note">Level {designation.jobLevel ?? "\u2014"}</small></td>
-                  <td><span className="wf-org-muted-line"><Banknote size={14} /> {money(designation.minimumSalary)} {"\u2013"} {money(designation.maximumSalary)}</span></td>
-                  <td>{designation.isManagerial ? <span className="wf-org-tag"><ShieldCheck size={12} /> Managerial</span> : <span className="wf-org-tag wf-org-tag--neutral">Individual contributor</span>}</td>
-                  <td><span className={`wf-org-status ${designation.isActive ? "is-active" : "is-inactive"}`}>{designation.isActive ? "Active" : "Inactive"}</span></td>
-                  <td>
+                  <td data-label="Grade / level">{designation.grade ?? "\u2014"}<small className="wf-org-cell-note">Level {designation.jobLevel ?? "\u2014"}</small></td>
+                  <td data-label="Salary range"><span className="wf-org-muted-line"><Banknote size={14} /> {money(designation.minimumSalary)} {"\u2013"} {money(designation.maximumSalary)}</span></td>
+                  <td data-label="Classification">{designation.isManagerial ? <span className="wf-org-tag"><ShieldCheck size={12} /> Managerial</span> : <span className="wf-org-tag wf-org-tag--neutral">Individual contributor</span>}</td>
+                  <td data-label="Status"><span className={`wf-org-status ${designation.isActive ? "is-active" : "is-inactive"}`}>{designation.isActive ? "Active" : "Inactive"}</span></td>
+                  <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
                         <button type="button" onClick={() => openEdit(designation)} title="Edit"><Edit3 size={15} /></button>

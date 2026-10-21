@@ -47,9 +47,29 @@ function normalizeRole(
 }
 
 // edited by wali: Grant linked Company Administrators employee and organisation permissions within their tenant.
+const BRANCH_ADMIN_PERMISSIONS = new Set([
+  "branch.view",
+  "department.view",
+  "department.manage",
+  "designation.view",
+  "designation.manage",
+  "position.view",
+  "position.manage",
+  "employee.view_all",
+  "employee.view_self",
+  "employee.create",
+  "employee.update",
+  "leave.period.view",
+  "leave.request.view",
+  "leave.request.approve",
+  "leave.balance.view",
+  "leave.balance.initialize"
+]);
+
 function hasEffectivePermission(
   auth: AuthContext,
-  permissionCode: string
+  permissionCode: string,
+  requestMethod = "GET"
 ): boolean {
   const normalizedPermission =
     normalizePermission(permissionCode);
@@ -68,6 +88,46 @@ function hasEffectivePermission(
 
   if (hasEmployeeSelfView) {
     return true;
+  }
+
+  // edited by wali: Let a linked tenant Company Admin view their own employee profile even when the role grants only company_admin.
+  const hasCompanyAdminSelfView =
+    normalizedPermission === "employee.view_self" &&
+    !auth.isPlatformAdmin &&
+    auth.companyId !== null &&
+    auth.employeeId !== null &&
+    (auth.roleCodes.some(
+      (roleCode) => normalizeRole(roleCode) === "COMPANY_ADMIN"
+    ) || auth.permissions.some(
+      (permission) => normalizePermission(permission) === "company_admin"
+    ));
+
+  if (hasCompanyAdminSelfView) {
+    return true;
+  }
+
+  // edited by wali: Branch Admin grants agreed actions only when a role is assigned to a branch.
+  const isBranchAdmin = Boolean(
+    !auth.isPlatformAdmin &&
+    auth.companyId &&
+    auth.branchIds.length > 0 &&
+    auth.permissions.some(
+      (permission) => normalizePermission(permission) === "branch_admin"
+    )
+  );
+
+  if (isBranchAdmin) {
+    if (requestMethod.toUpperCase() === "DELETE") {
+      return false;
+    }
+
+    // edited by wali: Branch Admin can view their own profile only when linked to an employee record.
+    if (
+      BRANCH_ADMIN_PERMISSIONS.has(normalizedPermission) &&
+      (normalizedPermission !== "employee.view_self" || auth.employeeId !== null)
+    ) {
+      return true;
+    }
   }
 
   // edited by wali: Restrict company workforce data and structure to the linked Company Admin.
@@ -206,7 +266,7 @@ export function requireRole(
   }
 
   return (
-    _request,
+    request,
     response,
     next
   ): void => {
@@ -268,7 +328,7 @@ export function requirePermission(
   }
 
   return (
-    _request,
+    request,
     response,
     next
   ): void => {
@@ -276,7 +336,7 @@ export function requirePermission(
       const auth =
         getAuthContext(response);
 
-      if (!hasEffectivePermission(auth, requiredPermission)) {
+      if (!hasEffectivePermission(auth, requiredPermission, request.method)) {
         rejectAccess(
           next,
           "You do not have permission to perform this action",
@@ -312,7 +372,7 @@ export function requireAnyPermission(
   }
 
   return (
-    _request,
+    request,
     response,
     next
   ): void => {
@@ -323,7 +383,7 @@ export function requireAnyPermission(
       const hasPermission =
         requiredPermissions.some(
           (permissionCode) =>
-            hasEffectivePermission(auth, permissionCode)
+            hasEffectivePermission(auth, permissionCode, request.method)
         );
 
       if (!hasPermission) {
@@ -363,7 +423,7 @@ export function requireAllPermissions(
   }
 
   return (
-    _request,
+    request,
     response,
     next
   ): void => {
@@ -374,7 +434,7 @@ export function requireAllPermissions(
       const missingPermissions =
         requiredPermissions.filter(
           (permissionCode) =>
-            !hasEffectivePermission(auth, permissionCode)
+            !hasEffectivePermission(auth, permissionCode, request.method)
         );
 
       if (

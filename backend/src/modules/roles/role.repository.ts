@@ -113,26 +113,6 @@ async function revokeSessionsForRole(
   );
 }
 
-async function deactivateUserRoleAssignments(
-  connection: PoolConnection,
-  roleId: string
-): Promise<number> {
-  const result =
-    await connection.query(
-      `
-        UPDATE user_roles
-        SET is_active = 0
-        WHERE role_id = ?
-          AND is_active = 1
-      `,
-      [roleId]
-    );
-
-  return Number(
-    result.affectedRows ?? 0
-  );
-}
-
 export async function listRoleRecords(
   options: RoleListOptions
 ): Promise<RoleListResult> {
@@ -862,17 +842,11 @@ export async function updateRoleRecord(
     }
 
     let revokedSessionCount = 0;
-    let deactivatedAssignmentCount = 0;
 
     if (input.isActive === false) {
+      // edited by wali: Revoke sessions but leave assignments intact so users retain the visibly inactive role.
       revokedSessionCount =
         await revokeSessionsForRole(
-          connection,
-          roleId
-        );
-
-      deactivatedAssignmentCount =
-        await deactivateUserRoleAssignments(
           connection,
           roleId
         );
@@ -933,7 +907,9 @@ export async function updateRoleRecord(
             updatedRole,
 
           revokedSessionCount,
-          deactivatedAssignmentCount
+          // edited by wali: Keep user-role rows assigned so Workforce Access can show the inactive role.
+          roleAssignmentsRetained:
+            input.isActive === false
         }),
 
         `/api/v1/roles/${roleId}`,

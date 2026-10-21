@@ -63,7 +63,7 @@ export function CompanyFeaturesTab({ companyId }: { companyId: string }) {
             className="org-secondary-action"
             onClick={() => void featuresQuery.refetch()}
           >
-            <RefreshCw size={15} /> Try again
+            <RefreshCw className={featuresQuery.isFetching ? "spin" : ""} size={15} /> Try again
           </button>
         </div>
       </div>

@@ -181,9 +181,9 @@ export function MyLeavePage() {
     </section>}
 
     {/* edited by wali: Show the leave form only after the employee chooses New request. */}
-    {isRequestFormOpen && <section className="leave-setup__step">
-      <div className="leave-setup__step-heading"><span><Plus size={17} /></span><div><h2>{editingDraftId ? "Edit leave draft" : "Request leave"}</h2><p>Submitting sends your request to the company approver. Saving a draft does not submit it.</p></div></div>
-      <div className="leave-employee__form-close"><button className="leave-setup__button" type="button" onClick={() => { resetForm(); setNotice(""); setIsRequestFormOpen(false); }}><X size={16} />Close</button></div>
+    {isRequestFormOpen && <section className="leave-setup__step leave-employee__request-form-card">
+      {/* edited by wali: Keep the close action in the form heading to save vertical space. */}
+      <div className="leave-setup__step-heading"><span><Plus size={17} /></span><div><h2>{editingDraftId ? "Edit leave draft" : "Request leave"}</h2><p>Submitting sends your request to the company approver. Saving a draft does not submit it.</p></div><button className="leave-setup__button leave-employee__form-close" type="button" aria-label="Close request form" title="Close" onClick={() => { resetForm(); setNotice(""); setIsRequestFormOpen(false); }}><X size={16} /></button></div>
       {policyQuery.isLoading ? <Loading label="Loading your leave policy..." /> : !policy?.policy ? <div className="leave-setup__hint"><CircleAlert size={16} />No effective leave policy is available for you yet. Contact your company administrator.</div> : activeRules.length === 0 ? <div className="leave-setup__hint"><CircleAlert size={16} />Your policy has no active leave types available. Contact your company administrator.</div> : <form className="leave-setup__form leave-employee__form" onSubmit={handleSaveDraft}>
         <label><span>Leave type</span><select required value={leaveTypeId} onChange={(event) => { setLeaveTypeId(event.target.value); setNotice(""); }}><option value="">Select leave type</option>{activeRules.map((rule) => <option key={rule.leaveTypeId} value={rule.leaveTypeId}>{rule.leaveTypeName} ({rule.unitType.toLowerCase()})</option>)}</select></label>
         {isHourly && !hourlyAllowed && <div className="leave-setup__hint leave-employee__full-row"><CircleAlert size={16} />Hourly requests are not enabled for this type in your policy.</div>}

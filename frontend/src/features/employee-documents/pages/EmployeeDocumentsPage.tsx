@@ -496,7 +496,7 @@ function EmployeeDocumentsPageContent() {
               <h2>Documents could not be loaded</h2>
               <p>{normalizeApiError(documentsQuery.error).message}</p>
               <button type="button" className="doc-secondary-button" onClick={() => void documentsQuery.refetch()}>
-                <RefreshCw size={15} /> Try again
+                <RefreshCw className={documentsQuery.isFetching ? "spin" : ""} size={15} /> Try again
               </button>
             </div>
           ) : documents.length === 0 ? (

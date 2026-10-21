@@ -249,20 +249,24 @@ function AccountStatus({
 }: {
   user: AccessUser;
 }) {
+  // edited by wali: Mark accounts inactive when any assigned role is inactive and blocks login.
+  if (
+    !user.isActive ||
+    user.roles.some((role) => !role.isActive)
+  ) {
+    return (
+      <span className="wf-badge wf-badge--danger">
+        Inactive
+      </span>
+    );
+  }
+
   if (
     isLocked(user)
   ) {
     return (
       <span className="wf-badge wf-badge--danger">
         Locked
-      </span>
-    );
-  }
-
-  if (!user.isActive) {
-    return (
-      <span className="wf-badge">
-        Inactive
       </span>
     );
   }
@@ -662,6 +666,7 @@ function WorkforceAccessPageContent() {
           >
             <RefreshCw
               size={16}
+              className={usersQuery.isFetching ? "spin" : ""}
             />
 
             Refresh
@@ -686,7 +691,7 @@ function WorkforceAccessPageContent() {
           <div className="wf-empty-state">
             <RefreshCw
               size={28}
-              className="is-spinning"
+              className="spin"
             />
 
             <h2>
@@ -761,12 +766,20 @@ function WorkforceAccessPageContent() {
                 {users.map(
                   (
                     user
-                  ) => (
-                    <tr
-                      key={
-                        user.userId
-                      }
-                    >
+                  ) => {
+                    // edited by wali: Show one chip per role even if it has multiple scope assignments.
+                    const displayRoles = Array.from(
+                      new Map(
+                        user.roles.map((role) => [role.roleId, role])
+                      ).values()
+                    );
+
+                    return (
+                      <tr
+                        key={
+                          user.userId
+                        }
+                      >
                       <td>
                         <div className="wf-person-cell">
                           <span className="wf-avatar">
@@ -819,7 +832,8 @@ function WorkforceAccessPageContent() {
 
                       <td>
                         <div className="wf-chip-row">
-                          {user.roles
+                          {/* edited by wali: Keep deactivated role assignments visible and mark them inactive in red. */}
+                          {displayRoles
                             .slice(
                               0,
                               3
@@ -832,21 +846,20 @@ function WorkforceAccessPageContent() {
                                   key={
                                     role.userRoleId
                                   }
-                                  className="wf-chip"
+                                  className={`wf-chip${role.isActive ? "" : " wf-chip--inactive"}`}
                                 >
-                                  {
-                                    role.roleName
-                                  }
+                                  {/* edited by wali: Use the red chip color alone to identify an inactive role. */}
+                                  {role.roleName}
                                 </span>
                               )
                             )}
 
-                          {user.roles.length >
+                          {displayRoles.length >
                           3 ? (
                             <span className="wf-chip">
                               +
                               {
-                                user.roles.length -
+                                displayRoles.length -
                                 3
                               }
                             </span>
@@ -1001,8 +1014,9 @@ function WorkforceAccessPageContent() {
                           </button>
                         </div>
                       </td>
-                    </tr>
-                  )
+                      </tr>
+                    );
+                  }
                 )}
               </tbody>
             </table>
@@ -1246,6 +1260,8 @@ function CreateAccessDialog({
     useState("");
 
   const [roleCode, setRoleCode] = useState("");
+  const selectedRole = lookups?.roles.find((role) => role.roleCode === roleCode);
+  const selectedEmployee = lookups?.employees.find((employee) => employee.employeeId === employeeId);
 
   // edited by wali: Default employee access to the company's EMPLOYEE role when one exists.
   useEffect(() => {
@@ -1340,6 +1356,7 @@ function CreateAccessDialog({
             if (
               !employeeId ||
               !roleCode ||
+              (selectedRole?.hasBranchAdminAccess && !selectedEmployee?.branchId) ||
               !username ||
               password.length <
                 12
@@ -1379,10 +1396,10 @@ function CreateAccessDialog({
 
               roles: [
                 {
-                  // edited by wali: Assign the selected company-owned role to the employee login.
+                  // edited by wali: Bind Branch Admin access to the employee's existing branch assignment.
                   roleCode,
                   companyId,
-                  branchId: null,
+                  branchId: selectedRole?.hasBranchAdminAccess ? selectedEmployee?.branchId ?? null : null,
                   departmentId: null,
 
                   expiresAt:
@@ -1449,7 +1466,7 @@ function CreateAccessDialog({
           <label className="wf-field">
             <span>Role</span>
             <EmployeeMenuSelect value={roleCode} placeholder="Select a company role" options={(lookups?.roles ?? []).map((role) => ({ value: role.roleCode, label: role.roleName }))} onChange={setRoleCode} />
-            <small>{lookups?.roles.length ? "The selected role determines this employee's access." : "Create an employee role in Access Control before issuing login access."}</small>
+            <small>{selectedRole?.hasBranchAdminAccess ? (selectedEmployee?.branchId ? "Branch Admin access will be limited to this employee's assigned branch." : "Assign this employee to a branch before issuing Branch Admin access.") : lookups?.roles.length ? "The selected role determines this employee's access." : "Create an employee role in Access Control before issuing login access."}</small>
           </label>
 
           <label className="wf-field wf-field--wide">
@@ -1579,6 +1596,10 @@ function RoleDialog({
       "EMPLOYEE"
     );
 
+  // edited by wali: Default existing branch-role edits to the employee's current assignment branch.
+  const [branchId, setBranchId] = useState(primaryRole?.branchId ?? user.employeeBranchId ?? "");
+  const selectedRole = lookups?.roles.find((role) => role.roleCode === roleCode);
+
   return (
     <Modal
       title={`Role for ${user.username}`}
@@ -1595,11 +1616,17 @@ function RoleDialog({
           ) => {
             event.preventDefault();
 
+            if (selectedRole?.hasBranchAdminAccess && !branchId) {
+              toast.error("Select the branch this Branch Admin role will manage");
+              return;
+            }
+
             void onSubmit([
               {
                 roleCode,
                 companyId,
-                branchId: null,
+                // edited by wali: Preserve or select the branch scope for Branch Admin role assignments.
+                branchId: selectedRole?.hasBranchAdminAccess ? branchId : null,
                 departmentId: null,
 
                 expiresAt:
@@ -1612,7 +1639,6 @@ function RoleDialog({
           }
         }
       >
-        {/* edited by wali: Company roles apply across the tenant; branch and department scopes are not requested. */}
         <div className="wf-form-grid">
           <label className="wf-field wf-field--wide">
             <span>
@@ -1621,6 +1647,11 @@ function RoleDialog({
 
             <EmployeeMenuSelect value={roleCode} placeholder="Select a role" options={(lookups?.roles ?? []).map((role) => ({ value: role.roleCode, label: role.roleName }))} onChange={setRoleCode} />
           </label>
+          {selectedRole?.hasBranchAdminAccess ? <label className="wf-field wf-field--wide">
+            <span>Branch</span>
+            <EmployeeMenuSelect value={branchId} placeholder="Select branch for Branch Admin" options={(lookups?.branches ?? []).map((branch) => ({ value: branch.branchId, label: `${branch.branchCode} — ${branch.branchName}` }))} onChange={setBranchId} />
+            <small>This role only grants access to the selected branch.</small>
+          </label> : null}
         </div>
 
         <footer className="wf-modal__footer">

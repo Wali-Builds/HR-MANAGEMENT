@@ -58,7 +58,8 @@
 .leave-setup--configuration .leave-setup__form { gap: 10px; }
 .leave-setup--configuration .leave-setup__form label { gap: 5px; font-size: 11.5px; }
 .leave-setup--configuration .leave-setup__form input:not([type="checkbox"]),
-.leave-setup--configuration .leave-setup__form select { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; }
+.leave-setup--configuration .leave-setup__form select,
+.leave-setup--configuration .leave-setup__form .leave-setup__select .emp-menu-select__trigger { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; }
 .leave-setup--configuration .leave-setup__form .leave-setup__check { min-height: 36px; gap: 6px; }
 .leave-setup--configuration .leave-setup__rule-edit input { min-height: 34px; padding: 6px 9px; font-size: 12.5px; }
 .leave-setup__form {
@@ -73,7 +74,8 @@
 .leave-setup__form--period { grid-template-columns: repeat(5, minmax(100px, 1fr)) auto; }
 .leave-setup__form label { display: grid; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
 .leave-setup__form input:not([type="checkbox"]),
-.leave-setup__form select {
+.leave-setup__form select,
+.leave-setup__form .leave-setup__select .emp-menu-select__trigger {
   box-sizing: border-box;
   width: 100%;
   min-height: 42px;
@@ -85,9 +87,11 @@
   font: inherit;
 }
 .leave-setup__form input:focus,
-.leave-setup__form select:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
+.leave-setup__form select:focus,
+.leave-setup__form .leave-setup__select .emp-menu-select__trigger:focus-visible { outline: 2px solid #73c3c9; outline-offset: 1px; }
 .leave-setup__form input:disabled,
-.leave-setup__form select:disabled { background: #f0f3f5; cursor: not-allowed; }
+.leave-setup__form select:disabled,
+.leave-setup__form .leave-setup__select .emp-menu-select__trigger:disabled { background: #f0f3f5; cursor: not-allowed; }
 .leave-setup__form .leave-setup__check {
   display: flex;
   min-height: 42px;
@@ -176,11 +180,29 @@
 .leave-setup__loading { display: flex; align-items: center; gap: 8px; }
 .leave-employee__form { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
 .leave-employee__full-row { grid-column: 1 / -1; }
+/* edited by wali: Make the employee leave request panel and fields more compact. */
+.leave-employee__request-form-card { padding: 16px 18px; }
+.leave-employee__request-form-card > .leave-setup__step-heading { gap: 10px; margin-bottom: 12px; }
+.leave-employee__request-form-card > .leave-setup__step-heading h2 { margin-bottom: 2px; font-size: 17px; }
+.leave-employee__request-form-card > .leave-setup__step-heading p { font-size: 12px; }
+.leave-employee__request-form-card .leave-employee__form-close,
+.leave-balances__initializer .leave-employee__form-close { flex: 0 0 auto; margin: 0 0 0 auto; }
+.leave-employee__request-form-card .leave-employee__form-close,
+.leave-balances__initializer .leave-employee__form-close { width: 32px; height: 32px; min-height: 32px; padding: 0; align-items: center; justify-content: center; border-color: #f0c8c5; background: #fff5f4; color: #b42318; }
+.leave-employee__request-form-card .leave-employee__form-close:hover,
+.leave-balances__initializer .leave-employee__form-close:hover { border-color: #d92d20; background: #feeceb; color: #b42318; }
+.leave-employee__request-form-card .leave-employee__form { gap: 10px 12px; }
+.leave-employee__request-form-card .leave-employee__form label { gap: 4px; font-size: 12px; }
+.leave-employee__request-form-card .leave-employee__form input:not([type="checkbox"]),
+.leave-employee__request-form-card .leave-employee__form select { min-height: 36px; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.leave-employee__request-form-card .leave-employee__form textarea { min-height: 60px; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+.leave-employee__request-form-card .leave-employee__form .leave-setup__button { min-height: 36px; padding: 0 12px; font-size: 12px; }
 /* edited by wali: Align the employee's form close action above the request fields. */
 .leave-employee__form-close { display: flex; justify-content: flex-end; margin: -10px 0 14px; }
 /* edited by wali: Keep the employee balance control compact and view-only. */
 .leave-employee__header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
-.leave-employee__balances { width: min(100%, 720px); margin: -10px 0 18px auto; padding: 13px 16px; border: 1px solid #d8e3eb; border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgb(17 52 77 / 5%); }
+/* edited by wali: Balance the open balance panel's top spacing with the gap below it. */
+.leave-employee__balances { width: min(100%, 720px); margin: 3px 0 18px; margin-left: auto; padding: 13px 16px; border: 1px solid #d8e3eb; border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgb(17 52 77 / 5%); }
 .leave-employee__balances-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; color: #27465f; font-size: 13px; }
 .leave-employee__balances-heading small,
 .leave-employee__balance-type small,
@@ -315,7 +337,7 @@
 .leave-balances__summary-card strong { font-size: 19px; }
 .leave-balances__toolbar label { font-size: 12px; }
 .leave-balances__toolbar input,
-.leave-balances__toolbar select { min-height: 38px; padding: 7px 10px; font-size: 12px; }
+.leave-balances__toolbar .leave-balances__select .emp-menu-select__trigger { min-height: 38px; padding: 7px 10px; font-size: 12px; }
 .leave-balances__employee > header { padding: 14px 17px; }
 .leave-balances__employee > header strong { font-size: 15px; }
 .leave-balances__employee > header span { font-size: 12px; }
@@ -325,7 +347,12 @@
 .leave-balances__toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(190px, .7fr) minmax(190px, .7fr); align-items: end; gap: 14px; }
 .leave-balances__toolbar label { display: grid; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
 .leave-balances__toolbar input,
-.leave-balances__toolbar select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid #ccd9e3; border-radius: 9px; background: white; color: #173b54; font: inherit; }
+.leave-balances__toolbar .leave-balances__select .emp-menu-select__trigger { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid #ccd9e3; border-radius: 9px; background: white; color: #173b54; font: inherit; }
+.leave-balances__select { width: 100%; }
+.leave-setup__form .leave-setup__select { width: 100%; }
+.leave-admin__filter { display: grid; min-width: 190px; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
+.leave-admin__select { width: 100%; }
+.leave-admin__select .emp-menu-select__trigger { min-height: 42px; padding: 9px 12px; border-color: #ccd9e3; border-radius: 9px; font-size: 13px; }
 .leave-balances__search > div { position: relative; }
 .leave-balances__search svg { position: absolute; top: 13px; left: 12px; color: #71869a; }
 .leave-balances__search input { padding-left: 36px; }
@@ -378,6 +405,8 @@
   .leave-balances__summary { grid-template-columns: 1fr; }
   .leave-setup__balance-remarks { grid-column: auto; }
   .leave-employee__form { grid-template-columns: 1fr; }
+  .leave-employee__request-form-card > .leave-setup__step-heading { align-items: flex-start; }
+  .leave-employee__request-form-card > .leave-setup__step-heading > div { flex: 1; }
   .leave-employee__balances { margin: 0 0 16px; }
   .leave-employee__balances-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
   .leave-employee__balance-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

@@ -10,6 +10,7 @@ import {
   createDesignationRecord,
   findActiveCompanyById,
   findActiveDepartmentForCompany,
+  findDepartmentBranchForCompany,
   findDesignationById,
   findDesignationCodeConflict,
   areDesignationAssignmentsInDepartment,
@@ -177,6 +178,35 @@ function assertCompanyAccess(
   }
 }
 
+// edited by wali: Keep designation actions inside a Branch Admin's assigned branch.
+function assignedBranchIds(auth: AuthContext): string[] {
+  return auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  )
+    ? auth.branchIds
+    : [];
+}
+
+async function assertDesignationBranchAccess(
+  auth: AuthContext,
+  departmentId: string | null,
+  companyId: string
+): Promise<void> {
+  const branchIds = assignedBranchIds(auth);
+  if (branchIds.length === 0) return;
+
+  const branchId = departmentId
+    ? await findDepartmentBranchForCompany(departmentId, companyId)
+    : null;
+  if (!branchId || !branchIds.includes(branchId)) {
+    throw new AppError({
+      message: "This designation is outside your assigned branch access",
+      statusCode: 403,
+      code: "DESIGNATION_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
 function resolveCreateCompanyId(
   input: CreateDesignationInput,
   auth: AuthContext
@@ -314,6 +344,10 @@ export async function listDesignations(
 
     companyId,
 
+    ...(assignedBranchIds(auth).length > 0
+      ? { branchIds: assignedBranchIds(auth) }
+      : {}),
+
     ...(query.departmentId !== undefined
       ? { departmentId: query.departmentId }
       : {}),
@@ -415,6 +449,12 @@ export async function getDesignation(
     )
   );
 
+  await assertDesignationBranchAccess(
+    auth,
+    designation.department_id == null ? null : String(designation.department_id),
+    String(designation.company_id)
+  );
+
   return mapDesignation(
     designation
   );
@@ -462,6 +502,12 @@ export async function createDesignation(
         "INVALID_DESIGNATION_DEPARTMENT"
     });
   }
+
+  await assertDesignationBranchAccess(
+    auth,
+    input.departmentId,
+    companyId
+  );
 
   validateSalaryRange(
     input.minimumSalary ?? null,
@@ -545,6 +591,12 @@ export async function updateDesignation(
     companyId
   );
 
+  await assertDesignationBranchAccess(
+    auth,
+    existingDesignation.department_id == null ? null : String(existingDesignation.department_id),
+    companyId
+  );
+
   if (input.departmentId !== undefined) {
     // edited by wali: Prevent changing scope while linked records still use another department.
     const departmentExists =
@@ -562,6 +614,12 @@ export async function updateDesignation(
           "INVALID_DESIGNATION_DEPARTMENT"
       });
     }
+
+    await assertDesignationBranchAccess(
+      auth,
+      input.departmentId,
+      companyId
+    );
 
     if (
       input.departmentId !==
@@ -694,6 +752,12 @@ export async function deleteDesignation(
     String(
       designation.company_id
     )
+  );
+
+  await assertDesignationBranchAccess(
+    auth,
+    designation.department_id == null ? null : String(designation.department_id),
+    String(designation.company_id)
   );
 
   const deleted =

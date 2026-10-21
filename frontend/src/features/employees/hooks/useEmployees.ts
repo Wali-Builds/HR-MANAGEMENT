@@ -17,6 +17,7 @@ import {
   listPositionReferencesRequest,
   updateEmployeeRequest,
 } from "../api/employee.api";
+import { useAuthStore } from "../../../app/store/auth.store";
 import type {
   EmployeeListParams,
   EmployeeMutationInput,
@@ -63,36 +64,41 @@ export function useEmployeeReferenceData(
   companyId: string | undefined,
   enabled = true,
 ) {
+  const sessionScope = useAuthStore(
+    (state) => state.user?.sessionId ?? "anonymous",
+  );
+
   const branchQuery = useQuery({
-    queryKey: [...employeeQueryKeys.references(companyId), "branches"],
+    // edited by wali: Prevent directory references fetched by another signed-in account from being reused.
+    queryKey: [...employeeQueryKeys.references(companyId), sessionScope, "branches"],
     queryFn: () => listBranchReferencesRequest(companyId),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
 
   const departmentQuery = useQuery({
-    queryKey: [...employeeQueryKeys.references(companyId), "departments"],
+    queryKey: [...employeeQueryKeys.references(companyId), sessionScope, "departments"],
     queryFn: () => listDepartmentReferencesRequest(companyId),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
 
   const designationQuery = useQuery({
-    queryKey: [...employeeQueryKeys.references(companyId), "designations"],
+    queryKey: [...employeeQueryKeys.references(companyId), sessionScope, "designations"],
     queryFn: () => listDesignationReferencesRequest(companyId),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
 
   const positionQuery = useQuery({
-    queryKey: [...employeeQueryKeys.references(companyId), "positions"],
+    queryKey: [...employeeQueryKeys.references(companyId), sessionScope, "positions"],
     queryFn: () => listPositionReferencesRequest(companyId),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
 
   const managerQuery = useQuery({
-    queryKey: [...employeeQueryKeys.references(companyId), "managers"],
+    queryKey: [...employeeQueryKeys.references(companyId), sessionScope, "managers"],
     queryFn: () =>
       listEmployeesRequest({
         page: 1,

@@ -153,10 +153,106 @@ export async function loadAuthorization(
       )
   );
 
+  // edited by wali: Resolve branch scope only from active Branch Admin assignments.
+  const branchRows = await databasePool.query(
+    `
+      SELECT DISTINCT COALESCE(ur.branch_id, employee_assignment.branch_id) AS branch_id
+      FROM user_roles ur
+      INNER JOIN roles r
+          ON r.role_id = ur.role_id
+      INNER JOIN role_permissions rp
+          ON rp.role_id = r.role_id
+      INNER JOIN permissions p
+          ON p.permission_id = rp.permission_id
+      INNER JOIN users assigned_user
+          ON assigned_user.user_id = ur.user_id
+      LEFT JOIN employee_assignments employee_assignment
+          ON employee_assignment.assignment_id = (
+            SELECT ea.assignment_id
+            FROM employee_assignments ea
+            WHERE ea.employee_id = assigned_user.employee_id
+              AND ea.is_current = 1
+            ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+            LIMIT 1
+          )
+      INNER JOIN branches b
+          ON b.branch_id = COALESCE(ur.branch_id, employee_assignment.branch_id)
+         AND b.company_id = ur.company_id
+         AND b.is_active = 1
+         AND b.deleted_at IS NULL
+      WHERE ur.user_id = ?
+        AND COALESCE(ur.branch_id, employee_assignment.branch_id) IS NOT NULL
+        AND ur.company_id = (SELECT u.company_id FROM users u WHERE u.user_id = ?)
+        AND ur.is_active = 1
+        AND r.is_active = 1
+        AND p.permission_code = 'BRANCH_ADMIN'
+        AND (
+            ur.expires_at IS NULL
+            OR ur.expires_at > CURRENT_TIMESTAMP
+        )
+      ORDER BY branch_id
+    `,
+    [userId, userId]
+  );
+
+  const branchIds = branchRows.map((row: unknown) =>
+    String((row as { branch_id: DatabaseId }).branch_id)
+  );
+
+  // edited by wali: Expand the Branch Admin marker only for branch-bound assignments.
+  if (
+    branchIds.length > 0 &&
+    permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN")
+  ) {
+    permissions.push(
+      "branch.view",
+      "department.view",
+      "department.manage",
+      "designation.view",
+      "designation.manage",
+      "position.view",
+      "position.manage",
+      "employee.view_all",
+      "employee.create",
+      "employee.update",
+      "leave.period.view",
+      "leave.request.view",
+      "leave.request.approve",
+      "leave.balance.view",
+      // edited by wali: Initialization has a dedicated permission so adjustment/recalculation stays denied.
+      "leave.balance.initialize"
+    );
+  }
+
   return {
     roleCodes,
-    permissions
+    permissions,
+    branchIds
   };
+}
+
+// edited by wali: Detect users whose assigned role was deactivated so login can show the role-specific message.
+export async function hasAssignmentToInactiveRole(
+  userId: DatabaseId
+): Promise<boolean> {
+  const rows = await databasePool.query(
+    `
+      SELECT 1 AS has_inactive_role
+      FROM user_roles ur
+      INNER JOIN roles r
+          ON r.role_id = ur.role_id
+      WHERE ur.user_id = ?
+        AND r.is_active = 0
+        AND (
+            ur.expires_at IS NULL
+            OR ur.expires_at > CURRENT_TIMESTAMP
+        )
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  return rows.length > 0;
 }
 
 export async function recordFailedLogin(
@@ -459,6 +555,9 @@ export async function getAuthenticatedContext(
       authorization.roleCodes,
 
     permissions:
-      authorization.permissions
+      authorization.permissions,
+
+    branchIds:
+      authorization.branchIds
   };
 }

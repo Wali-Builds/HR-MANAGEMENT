@@ -237,6 +237,13 @@ export async function listDepartmentRecords(
     );
   }
 
+  // edited by wali: Keep branch-admin department lists inside assigned branches.
+  if (options.branchIds?.length) {
+    const placeholders = options.branchIds.map(() => "?").join(", ");
+    conditions.push(`d.branch_id IN (${placeholders})`);
+    values.push(...options.branchIds);
+  }
+
   if (options.parentDepartmentId) {
     conditions.push(
       "d.parent_department_id = ?"

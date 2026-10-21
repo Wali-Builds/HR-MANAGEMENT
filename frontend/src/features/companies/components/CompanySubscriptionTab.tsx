@@ -103,7 +103,7 @@ export function CompanySubscriptionTab({
               void usageQuery.refetch();
             }}
           >
-            <RefreshCw size={15} /> Try again
+            <RefreshCw className={subscriptionQuery.isFetching || usageQuery.isFetching ? "spin" : ""} size={15} /> Try again
           </button>
         </div>
       </div>

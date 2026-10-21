@@ -97,7 +97,9 @@ leavePolicyRouter.get(
     "leave.policy.manage",
     "leave.policy.assign",
     "leave.view",
-    "leave.manage"
+    "leave.manage",
+    // edited by wali: Let Branch Admin load leave-type labels for balance initialization only.
+    "leave.balance.initialize"
   ),
   validateRequest(
     listLeaveTypesRequestSchema

@@ -46,6 +46,8 @@ export interface PaginatedLeaveRequestResult<T> {
 
 export interface LeaveRequestListFilters {
   employeeId?: string;
+  // edited by wali: Limit Branch Admin request lists to assigned employee branches.
+  branchIds?: string[];
   leaveTypeId?: string;
   leavePeriodId?: string;
   requestStatus?: string;
@@ -81,9 +83,13 @@ export interface EmployeeLeaveRequestListFilters {
 
 export interface PendingLeaveApprovalListFilters {
   decision: string;
+  // edited by wali: Branch Admin sees every currently actionable request in assigned branches.
+  includeAllBranchPending?: boolean;
 
   leaveTypeId?: string;
   employeeId?: string;
+  // edited by wali: Limit pending approvals to assigned employee branches.
+  branchIds?: string[];
 
   dateFrom?: string;
   dateTo?: string;
@@ -1460,6 +1466,9 @@ async function lockLeaveApproval(
         INNER JOIN leave_requests lr
             ON lr.leave_request_id =
                lrap.leave_request_id
+
+        INNER JOIN employees e
+            ON e.employee_id = lr.employee_id
 
         WHERE lrap.leave_approval_id = ?
           AND lrap.leave_request_id = ?
@@ -5014,6 +5023,12 @@ export async function listLeaveRequestRecords(
     );
   }
 
+  // edited by wali: Scope leave request rows by the employee's active branch.
+  if (filters.branchIds?.length) {
+    conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")}))`);
+    parameters.push(...filters.branchIds);
+  }
+
   if (filters.leaveTypeId) {
     conditions.push(
       "lr.leave_type_id = ?"
@@ -7427,7 +7442,9 @@ export async function listPendingLeaveApprovalRecords(
     filters.decision
   ];
 
-  if (
+  if (filters.includeAllBranchPending) {
+    // edited by wali: Branch Admin inbox is branch-scoped rather than tied to an approver user ID.
+  } else if (
     filters.includeDelegated
   ) {
     conditions.push(`
@@ -7511,6 +7528,12 @@ export async function listPendingLeaveApprovalRecords(
     );
   }
 
+  // edited by wali: Pending approvals are visible only for assigned branches.
+  if (filters.branchIds?.length) {
+    conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")}))`);
+    parameters.push(...filters.branchIds);
+  }
+
   if (filters.dateFrom) {
     conditions.push(
       "lr.end_date >= ?"
@@ -7547,6 +7570,9 @@ export async function listPendingLeaveApprovalRecords(
             ON lr.leave_request_id =
                lrap.leave_request_id
 
+        INNER JOIN employees e
+            ON e.employee_id = lr.employee_id
+
         WHERE ${whereClause}
       `,
       parameters
@@ -7565,6 +7591,9 @@ export async function listPendingLeaveApprovalRecords(
         INNER JOIN leave_requests lr
             ON lr.leave_request_id =
                lrap.leave_request_id
+
+        INNER JOIN employees e
+            ON e.employee_id = lr.employee_id
 
         WHERE ${whereClause}
 

@@ -600,6 +600,14 @@ function assertLeaveBalanceManageAccess(
   });
 }
 
+// edited by wali: Check branch scope for employee-specific balance actions.
+function assertEmployeeLeaveBranch(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
+  const isBranchAdmin = auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN");
+  if (isBranchAdmin && (!employee.branch_id || !auth.branchIds.includes(String(employee.branch_id)))) {
+    throw new AppError({ message: "You cannot access leave balances outside your assigned branch", statusCode: 403, code: "LEAVE_BALANCE_BRANCH_ACCESS_DENIED" });
+  }
+}
+
 function assertLeaveBalanceAdjustmentAccess(
   auth: AuthContext
 ): void {
@@ -1947,6 +1955,8 @@ export async function listLeaveBalances(
     await listLeaveBalanceRecords(
       companyId,
       {
+        // edited by wali: Restrict Branch Admin balance listings to assigned branches.
+        ...(auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN") ? { branchIds: auth.branchIds } : {}),
         ...(query.employeeId !== undefined
           ? {
               employeeId:
@@ -2054,6 +2064,11 @@ export async function getLeaveBalance(
     });
   }
 
+  // edited by wali: Validate direct balance lookup against employee branch assignment.
+  if (auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN")) {
+    assertEmployeeLeaveBranch(auth, await getEmployeeOrThrow(String(balance.employee_id)));
+  }
+
   return mapLeaveBalance(
     balance
   );
@@ -2080,6 +2095,9 @@ export async function listEmployeeLeaveBalances(
     auth,
     employee
   );
+
+  // edited by wali: Employee balance routes respect Branch Admin scope.
+  assertEmployeeLeaveBranch(auth, employee);
 
   assertEmployeeLeaveBalanceViewAccess(
     auth,
@@ -2173,6 +2191,9 @@ export async function getEmployeeLeaveTypeBalance(
     employee
   );
 
+  // edited by wali: Employee balance routes respect Branch Admin scope.
+  assertEmployeeLeaveBranch(auth, employee);
+
   assertEmployeeLeaveBalanceViewAccess(
     auth,
     employeeId
@@ -2229,9 +2250,9 @@ export async function initializeEmployeeLeaveBalance(
   auth: AuthContext,
   metadata: RequestMetadata
 ) {
-  assertLeaveBalanceManageAccess(
-    auth
-  );
+  // edited by wali: Branch Admin can initialize balances, without gaining adjustment or recalculation rights.
+  const isBranchAdmin = auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN");
+  if (!isBranchAdmin) assertLeaveBalanceManageAccess(auth);
 
   const employee =
     await getEmployeeOrThrow(
@@ -2242,6 +2263,8 @@ export async function initializeEmployeeLeaveBalance(
     auth,
     employee
   );
+
+  assertEmployeeLeaveBranch(auth, employee);
 
   assertEmployeeActive(
     employee

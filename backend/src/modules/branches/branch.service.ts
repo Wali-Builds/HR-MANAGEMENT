@@ -299,6 +299,8 @@ export async function listBranches(
       query.limit,
 
     companyId,
+    // edited by wali: Branch Admins can only see their assigned branch records.
+    ...(auth.branchIds.length > 0 ? { branchIds: auth.branchIds } : {}),
 
     sortBy:
       query.sortBy,
@@ -395,6 +397,11 @@ export async function getBranch(
     auth,
     String(branch.company_id)
   );
+
+  // edited by wali: Block direct branch lookups outside the user's assignments.
+  if (auth.branchIds.length > 0 && !auth.branchIds.includes(String(branch.branch_id))) {
+    throw new AppError({ message: "You cannot access a branch outside your assignment", statusCode: 403, code: "BRANCH_ACCESS_DENIED" });
+  }
 
   return mapBranch(branch);
 }

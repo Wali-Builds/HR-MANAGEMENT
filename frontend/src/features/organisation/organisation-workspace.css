@@ -385,6 +385,28 @@
   text-align: center;
 }
 
+/* edited by wali: Match the employee directory switcher for organisation record layouts. */
+.wf-org-view-switcher {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #d8e1e8;
+  border-radius: 9px;
+  background: #f8fafb;
+}
+.wf-org-resource-toolbar__pager .wf-org-view-switcher button {
+  width: 29px;
+  height: 28px;
+  border-color: transparent;
+  background: transparent;
+}
+.wf-org-resource-toolbar__pager .wf-org-view-switcher button.is-active {
+  color: #0b5965;
+  border-color: #dce7ea;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 31, 51, 0.1);
+}
+
 .wf-org-button {
   min-height: 38px;
   display: inline-flex;
@@ -446,6 +468,23 @@
 .wf-org-table tbody tr:hover {
   background: #fbfdfd;
 }
+
+/* edited by wali: Render organisation rows as labelled, responsive cards when selected. */
+.wf-org-workspace__content--cards .wf-org-table-wrap { overflow: visible; padding: 12px; }
+.wf-org-workspace__content--cards .wf-org-table { display: block; min-width: 0; }
+.wf-org-workspace__content--cards .wf-org-table thead { display: none; }
+.wf-org-workspace__content--cards .wf-org-table tbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 265px), 1fr)); gap: 12px; }
+.wf-org-workspace__content--cards .wf-org-table tbody tr { display: flex; min-width: 0; flex-direction: column; padding: 12px 14px; border: 1px solid #dce4eb; border-radius: 13px; background: #fff; box-shadow: 0 2px 8px rgba(32, 55, 71, 0.04); }
+.wf-org-workspace__content--cards .wf-org-table tbody tr:hover { background: #fbfdfd; border-color: #bcd8dc; }
+.wf-org-workspace__content--cards .wf-org-table td { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #edf1f4; }
+.wf-org-workspace__content--cards .wf-org-table td::before { content: attr(data-label); flex: 0 0 38%; color: #718092; font-size: 11px; font-weight: 700; }
+/* edited by wali: Give organisation cards a shaded heading like the employee table header. */
+.wf-org-workspace__content--cards .wf-org-table td:first-child { display: block; margin: -12px -14px 0; padding: 12px 14px; border-bottom: 1px solid #dfe7ed; border-radius: 12px 12px 0 0; background: #f3f6f8; }
+.wf-org-workspace__content--cards .wf-org-table td:first-child::before { display: none; }
+.wf-org-workspace__content--cards .wf-org-table td:last-child { align-items: center; justify-content: flex-end; padding-bottom: 0; border-bottom: 0; }
+.wf-org-workspace__content--cards .wf-org-table td:last-child::before { margin-right: auto; }
+.wf-org-workspace__content--cards .wf-org-record-title { min-width: 0; }
+.wf-org-workspace__content--cards .wf-org-table td small.wf-org-cell-note { display: block; }
 
 .wf-org-record-title {
   display: flex;
