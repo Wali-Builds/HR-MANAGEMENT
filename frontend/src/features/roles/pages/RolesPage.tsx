@@ -6,15 +6,15 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { normalizeApiError } from "../../api/api-error";
-import { usePermissions } from "../../hooks/usePermissions";
-import { OrganisationDialogMotionProvider, useOrganisationDialogAnimation, useRequiredOrganisationDialogMotion } from "../organisation/components/OrganisationDialogMotion";
+import { normalizeApiError } from "../../../api/api-error";
+import { usePermissions } from "../../../hooks/usePermissions";
+import { OrganisationDialogMotionProvider, useOrganisationDialogAnimation, useRequiredOrganisationDialogMotion } from "../../organisation/components/OrganisationDialogMotion";
 import {
   createRoleRequest, deleteRoleRequest, listPermissionsRequest, listRolesRequest,
   replaceRolePermissionsRequest, roleKeys, updateRoleRequest,
-} from "./api/role.api";
-import type { RoleInput, RolePermission, RoleRecord } from "./types/role.types";
-import "./roles.css";
+} from "../api/role.api";
+import type { RoleInput, RolePermission, RoleRecord } from "../types/role.types";
+import "../roles.css";
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 interface RoleFormState {

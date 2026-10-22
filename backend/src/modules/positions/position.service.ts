@@ -835,6 +835,36 @@ export async function createPosition(
     return mapPosition(position);
   } catch (error) {
     if (
+      error instanceof Error &&
+      [
+        "POSITION_BRANCH_INACTIVE",
+        "POSITION_DEPARTMENT_INACTIVE"
+      ].includes(error.message)
+    ) {
+      throw new AppError({
+        message:
+          "The selected branch or department is inactive or unavailable",
+        statusCode: 422,
+        code:
+          "INVALID_POSITION_ORGANIZATION"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message ===
+        "POSITION_DESIGNATION_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "The selected designation is inactive, unavailable, or belongs to another company",
+        statusCode: 422,
+        code:
+          "INVALID_POSITION_DESIGNATION"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -987,17 +1017,13 @@ export async function updatePosition(
   }
 
   if (
-    (
-      input.positionStatus ===
-        "CLOSED" ||
-      input.positionStatus ===
-        "INACTIVE"
-    ) &&
+    input.positionStatus ===
+      "CLOSED" &&
     currentAssignments > 0
   ) {
     throw new AppError({
       message:
-        "A position with current employee assignments cannot be closed or made inactive",
+        "A position with current employee assignments cannot be closed",
 
       statusCode: 409,
 
@@ -1058,6 +1084,50 @@ export async function updatePosition(
 
     return mapPosition(position);
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "POSITION_HAS_ACTIVE_EMPLOYEES"
+    ) {
+      throw new AppError({
+        message:
+          "Deactivate all employees assigned to this position before making the position inactive",
+        statusCode: 409,
+        code:
+          "POSITION_HAS_ACTIVE_EMPLOYEES"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "POSITION_BRANCH_INACTIVE",
+        "POSITION_DEPARTMENT_INACTIVE"
+      ].includes(error.message)
+    ) {
+      throw new AppError({
+        message:
+          "The selected branch or department is inactive or unavailable",
+        statusCode: 422,
+        code:
+          "INVALID_POSITION_ORGANIZATION"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message ===
+        "POSITION_DESIGNATION_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "The selected designation is inactive, unavailable, or belongs to another company",
+        statusCode: 422,
+        code:
+          "INVALID_POSITION_DESIGNATION"
+      });
+    }
+
     if (
       isDuplicateEntryError(error)
     ) {

@@ -342,7 +342,8 @@ async function createPositionAssignment(
   positionId: string,
   assignmentType: string,
   effectiveFrom: string,
-  assignedByUserId: string
+  assignedByUserId: string,
+  restoreMatchingHistory = false
 ): Promise<void> {
   const positionRows =
     await connection.query(
@@ -460,6 +461,61 @@ async function createPositionAssignment(
     throw new Error(
       "POSITION_CAPACITY_EXCEEDED"
     );
+  }
+
+  if (restoreMatchingHistory) {
+    const matchingRows =
+      await connection.query(
+        `
+          SELECT position_assignment_id
+          FROM position_assignments
+          WHERE position_id = ?
+            AND employee_id = ?
+            AND effective_from = ?
+            AND is_current = 0
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [
+          positionId,
+          employeeId,
+          effectiveFrom
+        ]
+      );
+
+    const matchingAssignment =
+      matchingRows[0] as
+        | {
+            position_assignment_id:
+              | string
+              | number
+              | bigint;
+          }
+        | undefined;
+
+    if (matchingAssignment) {
+      await connection.query(
+        `
+          UPDATE position_assignments
+          SET
+              effective_to = NULL,
+              is_current = 1,
+              assigned_by_user_id = ?
+          WHERE position_assignment_id = ?
+        `,
+        [
+          assignedByUserId,
+          matchingAssignment.position_assignment_id
+        ]
+      );
+
+      await refreshPositionFilledHeadcount(
+        connection,
+        positionId
+      );
+
+      return;
+    }
   }
 
   await connection.query(
@@ -587,6 +643,161 @@ async function deactivateLinkedUserAccount(
     `,
     [employeeId]
   );
+}
+
+async function reactivateLinkedUserAccount(
+  connection: PoolConnection,
+  employeeId: string
+): Promise<void> {
+  await connection.query(
+    `
+      UPDATE users
+      SET is_active = 1
+      WHERE employee_id = ?
+        AND deleted_at IS NULL
+    `,
+    [employeeId]
+  );
+}
+
+async function restoreLatestEmployeeAssignments(
+  connection: PoolConnection,
+  employeeId: string,
+  assignedByUserId: string
+): Promise<void> {
+  const effectiveFrom =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
+
+  const currentAssignmentRows =
+    await connection.query(
+      `
+        SELECT assignment_id
+        FROM employee_assignments
+        WHERE employee_id = ?
+          AND is_current = 1
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [employeeId]
+    );
+
+  if (currentAssignmentRows.length === 0) {
+    const assignmentRows =
+      await connection.query(
+        `
+          SELECT
+              branch_id,
+              department_id,
+              project_id,
+              designation_id,
+              reporting_manager_id,
+              assignment_type,
+              work_location,
+              employment_percentage,
+              transfer_reason
+          FROM employee_assignments
+          WHERE employee_id = ?
+          ORDER BY
+              effective_from DESC,
+              assignment_id DESC
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [employeeId]
+      );
+
+    const previousAssignment =
+      assignmentRows[0] as
+        | {
+            branch_id: string | number | bigint | null;
+            department_id: string | number | bigint | null;
+            project_id: string | number | bigint | null;
+            designation_id: string | number | bigint | null;
+            reporting_manager_id: string | number | bigint | null;
+            assignment_type: string;
+            work_location: string | null;
+            employment_percentage: string | number;
+            transfer_reason: string | null;
+          }
+        | undefined;
+
+    if (previousAssignment) {
+      await connection.query(
+        `
+          INSERT INTO employee_assignments (
+              employee_id,
+              branch_id,
+              department_id,
+              project_id,
+              designation_id,
+              reporting_manager_id,
+              assignment_type,
+              effective_from,
+              effective_to,
+              work_location,
+              employment_percentage,
+              transfer_reason,
+              is_current
+          )
+          VALUES (
+              ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1
+          )
+        `,
+        [
+          employeeId,
+          previousAssignment.branch_id,
+          previousAssignment.department_id,
+          previousAssignment.project_id,
+          previousAssignment.designation_id,
+          previousAssignment.reporting_manager_id,
+          previousAssignment.assignment_type,
+          effectiveFrom,
+          previousAssignment.work_location,
+          previousAssignment.employment_percentage,
+          previousAssignment.transfer_reason
+        ]
+      );
+    }
+  }
+
+  const positionRows =
+    await connection.query(
+      `
+        SELECT
+            position_id,
+            assignment_type
+        FROM position_assignments
+        WHERE employee_id = ?
+        ORDER BY
+            effective_from DESC,
+            position_assignment_id DESC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [employeeId]
+    );
+
+  const previousPosition =
+    positionRows[0] as
+      | {
+          position_id: string | number | bigint;
+          assignment_type: string;
+        }
+      | undefined;
+
+  if (previousPosition) {
+    await createPositionAssignment(
+      connection,
+      employeeId,
+      String(previousPosition.position_id),
+      previousPosition.assignment_type,
+      effectiveFrom,
+      assignedByUserId,
+      true
+    );
+  }
 }
 
 // edited by wali: Archiving removes the login and frees its unique username/email while retaining the user row for history.
@@ -816,7 +1027,7 @@ export async function findActiveDepartmentForCompany(
   };
 }
 
-export async function findActiveDesignationForCompany(
+export async function findDesignationForCompany(
   designationId: string,
   companyId: string
 ): Promise<{ departmentId: string | null } | null> {
@@ -2459,25 +2670,6 @@ export async function updateEmployeeRecord(
           .toISOString()
           .slice(0, 10);
 
-      await connection.query(
-        `
-          UPDATE employee_assignments
-          SET
-              is_current = 0,
-              effective_to =
-                COALESCE(
-                  effective_to,
-                  ?
-                )
-          WHERE employee_id = ?
-            AND is_current = 1
-        `,
-        [
-          today,
-          employeeId
-        ]
-      );
-
       await closeCurrentPositionAssignments(
         connection,
         employeeId,
@@ -2485,6 +2677,24 @@ export async function updateEmployeeRecord(
       );
 
       await deactivateLinkedUserAccount(
+        connection,
+        employeeId
+      );
+    }
+
+    if (
+      input.isActive === true &&
+      Number(currentEmployee.is_active) !== 1
+    ) {
+      if (!assignment) {
+        await restoreLatestEmployeeAssignments(
+          connection,
+          employeeId,
+          actor.userId
+        );
+      }
+
+      await reactivateLinkedUserAccount(
         connection,
         employeeId
       );

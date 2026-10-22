@@ -625,6 +625,32 @@ export async function createDepartment(
     );
   } catch (error) {
     if (
+      error instanceof Error &&
+      error.message === "DEPARTMENT_PARENT_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active parent department",
+        statusCode: 422,
+        code:
+          "PARENT_DEPARTMENT_INACTIVE"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "DEPARTMENT_BRANCH_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active branch before creating this department",
+        statusCode: 422,
+        code:
+          "INVALID_DEPARTMENT_BRANCH"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -754,6 +780,46 @@ export async function updateDepartment(
     );
   } catch (error) {
     if (
+      error instanceof Error &&
+      error.message === "DEPARTMENT_PARENT_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active parent department before activating or moving this department",
+        statusCode: 422,
+        code:
+          "PARENT_DEPARTMENT_INACTIVE"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "DEPARTMENT_BRANCH_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active branch before activating this department",
+        statusCode: 422,
+        code:
+          "INVALID_DEPARTMENT_BRANCH"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message ===
+        "DEPARTMENT_HAS_ACTIVE_CHILDREN"
+    ) {
+      throw new AppError({
+        message:
+          "Deactivate all designations, positions, and child departments before deactivating this department",
+        statusCode: 409,
+        code:
+          "DEPARTMENT_HAS_ACTIVE_CHILDREN"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -801,12 +867,32 @@ export async function deleteDepartment(
     nullableId(department.branch_id)
   );
 
-  const deleted =
-    await softDeleteDepartmentRecord(
-      departmentId,
-      createActor(auth),
-      metadata
-    );
+  let deleted: boolean;
+
+  try {
+    deleted =
+      await softDeleteDepartmentRecord(
+        departmentId,
+        createActor(auth),
+        metadata
+      );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "DEPARTMENT_HAS_ACTIVE_CHILDREN"
+    ) {
+      throw new AppError({
+        message:
+          "Deactivate all designations, positions, and child departments before deactivating this department",
+        statusCode: 409,
+        code:
+          "DEPARTMENT_HAS_ACTIVE_CHILDREN"
+      });
+    }
+
+    throw error;
+  }
 
   if (!deleted) {
     throw new AppError({

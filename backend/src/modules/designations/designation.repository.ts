@@ -1,3 +1,7 @@
+import type {
+  PoolConnection
+} from "mariadb";
+
 import {
   databasePool
 } from "../../database/pool.js";
@@ -32,6 +36,30 @@ const designationSelectColumns = `
   created_at,
   updated_at
 `;
+
+async function lockActiveDepartmentForDesignation(
+  connection: PoolConnection,
+  departmentId: string,
+  companyId: string
+): Promise<void> {
+  const rows = await connection.query(
+    `
+      SELECT department_id
+      FROM departments
+      WHERE department_id = ?
+        AND company_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [departmentId, companyId]
+  );
+
+  if (rows.length === 0) {
+    throw new Error("DESIGNATION_DEPARTMENT_INACTIVE");
+  }
+}
 
 function safeJson(
   value: unknown
@@ -405,6 +433,12 @@ export async function createDesignationRecord(
     await connection.beginTransaction();
     transactionStarted = true;
 
+    await lockActiveDepartmentForDesignation(
+      connection,
+      input.departmentId,
+      companyId
+    );
+
     const insertResult =
       await connection.query(
         `
@@ -562,6 +596,53 @@ export async function updateDesignationRecord(
       transactionStarted = false;
 
       return null;
+    }
+
+    if (input.isActive === false) {
+      const positionRows =
+        await connection.query(
+          `
+            SELECT COUNT(*) AS position_count
+            FROM positions
+            WHERE designation_id = ?
+              AND position_status <> 'INACTIVE'
+          `,
+          [designationId]
+        );
+
+      const positionCount = Number(
+        String(
+          (
+            positionRows[0] as {
+              position_count: string | number | bigint;
+            }
+          ).position_count
+        )
+      );
+
+      if (positionCount > 0) {
+        throw new Error(
+          "DESIGNATION_HAS_POSITIONS"
+        );
+      }
+    }
+
+    const resultingDepartmentId =
+      input.departmentId ??
+      String(currentDesignation.department_id);
+    const resultingActive =
+      input.isActive ??
+      (Number(currentDesignation.is_active) === 1);
+
+    if (
+      resultingActive ||
+      input.departmentId !== undefined
+    ) {
+      await lockActiveDepartmentForDesignation(
+        connection,
+        resultingDepartmentId,
+        String(currentDesignation.company_id)
+      );
     }
 
     const assignments: string[] = [];
@@ -809,6 +890,33 @@ export async function softDeleteDesignationRecord(
       transactionStarted = false;
 
       return false;
+    }
+
+    const positionRows =
+      await connection.query(
+        `
+          SELECT COUNT(*) AS position_count
+          FROM positions
+          WHERE designation_id = ?
+            AND position_status <> 'INACTIVE'
+        `,
+        [designationId]
+      );
+
+    const positionCount = Number(
+      String(
+        (
+          positionRows[0] as {
+            position_count: string | number | bigint;
+          }
+        ).position_count
+      )
+    );
+
+    if (positionCount > 0) {
+      throw new Error(
+        "DESIGNATION_HAS_POSITIONS"
+      );
     }
 
     await connection.query(

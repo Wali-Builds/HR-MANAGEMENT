@@ -545,6 +545,19 @@ export async function createDesignation(
     );
   } catch (error) {
     if (
+      error instanceof Error &&
+      error.message === "DESIGNATION_DEPARTMENT_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active department before creating this designation",
+        statusCode: 422,
+        code:
+          "INVALID_DESIGNATION_DEPARTMENT"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -712,6 +725,33 @@ export async function updateDesignation(
     );
   } catch (error) {
     if (
+      error instanceof Error &&
+      error.message === "DESIGNATION_DEPARTMENT_INACTIVE"
+    ) {
+      throw new AppError({
+        message:
+          "Select an active department before activating or moving this designation",
+        statusCode: 422,
+        code:
+          "INVALID_DESIGNATION_DEPARTMENT"
+      });
+    }
+
+    if (
+      error instanceof Error &&
+      error.message ===
+        "DESIGNATION_HAS_POSITIONS"
+    ) {
+      throw new AppError({
+        message:
+          "Set all positions linked to this designation to inactive before deactivating it",
+        statusCode: 409,
+        code:
+          "DESIGNATION_HAS_POSITIONS"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -760,12 +800,32 @@ export async function deleteDesignation(
     String(designation.company_id)
   );
 
-  const deleted =
-    await softDeleteDesignationRecord(
-      designationId,
-      createActor(auth),
-      metadata
-    );
+  let deleted: boolean;
+
+  try {
+    deleted =
+      await softDeleteDesignationRecord(
+        designationId,
+        createActor(auth),
+        metadata
+      );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "DESIGNATION_HAS_POSITIONS"
+    ) {
+      throw new AppError({
+        message:
+          "Set all positions linked to this designation to inactive before deactivating it",
+        statusCode: 409,
+        code:
+          "DESIGNATION_HAS_POSITIONS"
+      });
+    }
+
+    throw error;
+  }
 
   if (!deleted) {
     throw new AppError({

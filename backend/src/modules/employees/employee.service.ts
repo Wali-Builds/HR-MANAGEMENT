@@ -11,7 +11,7 @@ import {
   findActiveBranchForCompany,
   findActiveCompanySettings,
   findActiveDepartmentForCompany,
-  findActiveDesignationForCompany,
+  findDesignationForCompany,
   findActiveEmployeeStatus,
   findActiveEmploymentType,
   findActiveManagerForCompany,
@@ -990,7 +990,7 @@ async function resolveAssignment(
 
   if (designationId) {
     const validDesignation =
-      await findActiveDesignationForCompany(
+      await findDesignationForCompany(
         designationId,
         companyId
       );
@@ -998,7 +998,7 @@ async function resolveAssignment(
     if (!validDesignation) {
       throw new AppError({
         message:
-          "The selected designation is invalid, inactive, or belongs to another company",
+          "The selected designation does not belong to this company",
 
         statusCode: 422,
 
