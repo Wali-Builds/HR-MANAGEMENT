@@ -1,3 +1,7 @@
+import type {
+  PoolConnection
+} from "mariadb";
+
 import {
   databasePool
 } from "../../database/pool.js";
@@ -56,6 +60,88 @@ function safeJson(
         ? String(currentValue)
         : currentValue
   );
+}
+
+async function lockActiveDesignationForPosition(
+  connection: PoolConnection,
+  designationId: string,
+  companyId: string
+): Promise<void> {
+  const rows =
+    await connection.query(
+      `
+        SELECT designation_id
+        FROM designations
+        WHERE designation_id = ?
+          AND company_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [
+        designationId,
+        companyId
+      ]
+    );
+
+  if (rows.length === 0) {
+    throw new Error(
+      "POSITION_DESIGNATION_INACTIVE"
+    );
+  }
+}
+
+async function lockActiveBranchForPosition(
+  connection: PoolConnection,
+  branchId: string | null,
+  companyId: string
+): Promise<void> {
+  if (!branchId) return;
+
+  const rows = await connection.query(
+    `
+      SELECT branch_id
+      FROM branches
+      WHERE branch_id = ?
+        AND company_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [branchId, companyId]
+  );
+
+  if (rows.length === 0) {
+    throw new Error("POSITION_BRANCH_INACTIVE");
+  }
+}
+
+async function lockActiveDepartmentForPosition(
+  connection: PoolConnection,
+  departmentId: string | null,
+  companyId: string
+): Promise<void> {
+  if (!departmentId) return;
+
+  const rows = await connection.query(
+    `
+      SELECT department_id
+      FROM departments
+      WHERE department_id = ?
+        AND company_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [departmentId, companyId]
+  );
+
+  if (rows.length === 0) {
+    throw new Error("POSITION_DEPARTMENT_INACTIVE");
+  }
 }
 
 export async function findActiveCompanyById(
@@ -613,6 +699,25 @@ export async function createPositionRecord(
     await connection.beginTransaction();
     transactionStarted = true;
 
+    await lockActiveBranchForPosition(
+      connection,
+      input.branchId ?? null,
+      companyId
+    );
+    await lockActiveDepartmentForPosition(
+      connection,
+      input.departmentId ?? null,
+      companyId
+    );
+
+    if (input.designationId) {
+      await lockActiveDesignationForPosition(
+        connection,
+        input.designationId,
+        companyId
+      );
+    }
+
     const insertResult =
       await connection.query(
         `
@@ -796,6 +901,82 @@ export async function updatePositionRecord(
       transactionStarted = false;
 
       return null;
+    }
+
+    const resultingBranchId =
+      input.branchId !== undefined
+        ? input.branchId
+        : currentPosition.branch_id === null
+          ? null
+          : String(currentPosition.branch_id);
+    const resultingDepartmentId =
+      input.departmentId !== undefined
+        ? input.departmentId
+        : currentPosition.department_id === null
+          ? null
+          : String(currentPosition.department_id);
+
+    const resultingDesignationId =
+      input.designationId !== undefined
+        ? input.designationId
+        : currentPosition.designation_id === null
+          ? null
+          : String(currentPosition.designation_id);
+
+    const resultingPositionStatus =
+      input.positionStatus ??
+      String(currentPosition.position_status);
+
+    if (resultingPositionStatus === "ACTIVE") {
+      await lockActiveBranchForPosition(
+        connection,
+        resultingBranchId,
+        String(currentPosition.company_id)
+      );
+      await lockActiveDepartmentForPosition(
+        connection,
+        resultingDepartmentId,
+        String(currentPosition.company_id)
+      );
+
+      if (resultingDesignationId) {
+        await lockActiveDesignationForPosition(
+          connection,
+          resultingDesignationId,
+          String(currentPosition.company_id)
+        );
+      }
+    }
+
+    if (input.positionStatus === "INACTIVE") {
+      const activeEmployeeRows =
+        await connection.query(
+          `
+            SELECT COUNT(DISTINCT e.employee_id) AS total
+            FROM position_assignments pa
+            INNER JOIN employees e
+                ON e.employee_id = pa.employee_id
+            WHERE pa.position_id = ?
+              AND pa.is_current = 1
+              AND (
+                  pa.effective_to IS NULL
+                  OR pa.effective_to >= CURRENT_DATE
+              )
+              AND e.is_active = 1
+          `,
+          [positionId]
+        );
+      const activeEmployees = Number(
+        String(
+          (activeEmployeeRows[0] as { total: number | string | bigint }).total
+        )
+      );
+
+      if (activeEmployees > 0) {
+        throw new Error(
+          "POSITION_HAS_ACTIVE_EMPLOYEES"
+        );
+      }
     }
 
     const assignments: string[] = [];

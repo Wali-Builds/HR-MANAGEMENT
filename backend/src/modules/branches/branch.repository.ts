@@ -1,3 +1,7 @@
+import type {
+  PoolConnection
+} from "mariadb";
+
 import {
   databasePool
 } from "../../database/pool.js";
@@ -43,6 +47,60 @@ const branchSelectColumns = `
   created_at,
   updated_at
 `;
+
+async function assertBranchCanBeDeactivated(
+  connection: PoolConnection,
+  branchId: string
+): Promise<void> {
+  const departmentRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM departments
+        WHERE branch_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+      `,
+      [branchId]
+    );
+  const designationRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM designations dg
+        INNER JOIN departments d
+            ON d.department_id = dg.department_id
+        WHERE d.branch_id = ?
+          AND dg.is_active = 1
+          AND dg.deleted_at IS NULL
+      `,
+      [branchId]
+    );
+  const positionRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM positions
+        WHERE branch_id = ?
+          AND position_status <> 'INACTIVE'
+      `,
+      [branchId]
+    );
+
+  const hasActiveChildren = [
+    departmentRows,
+    designationRows,
+    positionRows
+  ].some((rows) =>
+    Number(String((rows[0] as { total: number | string | bigint }).total)) > 0
+  );
+
+  if (hasActiveChildren) {
+    throw new Error(
+      "BRANCH_HAS_ACTIVE_CHILDREN"
+    );
+  }
+}
 
 function safeJson(
   value: unknown
@@ -546,6 +604,13 @@ export async function updateBranchRecord(
       return null;
     }
 
+    if (input.isActive === false) {
+      await assertBranchCanBeDeactivated(
+        connection,
+        branchId
+      );
+    }
+
 
     const assignments: string[] = [];
     const values: unknown[] = [];
@@ -875,6 +940,11 @@ export async function softDeleteBranchRecord(
 
       return false;
     }
+
+    await assertBranchCanBeDeactivated(
+      connection,
+      branchId
+    );
 
     await connection.query(
       `

@@ -1,3 +1,7 @@
+import type {
+  PoolConnection
+} from "mariadb";
+
 import {
   databasePool
 } from "../../database/pool.js";
@@ -33,6 +37,110 @@ const departmentSelectColumns = `
   p.department_name
     AS parent_department_name
 `;
+
+async function assertDepartmentCanBeDeactivated(
+  connection: PoolConnection,
+  departmentId: string
+): Promise<void> {
+  const designationRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM designations
+        WHERE department_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+      `,
+      [departmentId]
+    );
+  const positionRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM positions
+        WHERE department_id = ?
+          AND position_status <> 'INACTIVE'
+      `,
+      [departmentId]
+    );
+  const childDepartmentRows =
+    await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM departments
+        WHERE parent_department_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+      `,
+      [departmentId]
+    );
+
+  const activeChildren = [
+    designationRows,
+    positionRows,
+    childDepartmentRows
+  ].some((rows) =>
+    Number(String((rows[0] as { total: number | string | bigint }).total)) > 0
+  );
+
+  if (activeChildren) {
+    throw new Error(
+      "DEPARTMENT_HAS_ACTIVE_CHILDREN"
+    );
+  }
+}
+
+async function lockActiveBranchForDepartment(
+  connection: PoolConnection,
+  branchId: string | null,
+  companyId: string
+): Promise<void> {
+  if (!branchId) return;
+
+  const rows = await connection.query(
+    `
+      SELECT branch_id
+      FROM branches
+      WHERE branch_id = ?
+        AND company_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [branchId, companyId]
+  );
+
+  if (rows.length === 0) {
+    throw new Error("DEPARTMENT_BRANCH_INACTIVE");
+  }
+}
+
+async function lockActiveParentDepartment(
+  connection: PoolConnection,
+  parentDepartmentId: string | null,
+  companyId: string
+): Promise<void> {
+  if (!parentDepartmentId) return;
+
+  const rows = await connection.query(
+    `
+      SELECT department_id
+      FROM departments
+      WHERE department_id = ?
+        AND company_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [parentDepartmentId, companyId]
+  );
+
+  if (rows.length === 0) {
+    throw new Error("DEPARTMENT_PARENT_INACTIVE");
+  }
+}
 
 function safeJson(
   value: unknown
@@ -397,6 +505,17 @@ export async function createDepartmentRecord(
     await connection.beginTransaction();
     transactionStarted = true;
 
+    await lockActiveBranchForDepartment(
+      connection,
+      input.branchId ?? null,
+      companyId
+    );
+    await lockActiveParentDepartment(
+      connection,
+      input.parentDepartmentId ?? null,
+      companyId
+    );
+
     const insertResult =
       await connection.query(
         `
@@ -557,6 +676,49 @@ export async function updateDepartmentRecord(
       transactionStarted = false;
 
       return null;
+    }
+
+    if (input.isActive === false) {
+      await assertDepartmentCanBeDeactivated(
+        connection,
+        departmentId
+      );
+    }
+
+    const resultingBranchId =
+      input.branchId !== undefined
+        ? input.branchId
+        : currentDepartment.branch_id === null
+          ? null
+          : String(currentDepartment.branch_id);
+    const resultingActive =
+      input.isActive ??
+      (Number(currentDepartment.is_active) === 1);
+
+    if (resultingActive) {
+      await lockActiveBranchForDepartment(
+        connection,
+        resultingBranchId,
+        String(currentDepartment.company_id)
+      );
+    }
+
+    const resultingParentDepartmentId =
+      input.parentDepartmentId !== undefined
+        ? input.parentDepartmentId
+        : currentDepartment.parent_department_id === null
+          ? null
+          : String(currentDepartment.parent_department_id);
+
+    if (
+      resultingActive ||
+      input.parentDepartmentId !== undefined
+    ) {
+      await lockActiveParentDepartment(
+        connection,
+        resultingParentDepartmentId,
+        String(currentDepartment.company_id)
+      );
     }
 
     const assignments: string[] = [];
@@ -810,6 +972,11 @@ export async function softDeleteDepartmentRecord(
 
       return false;
     }
+
+    await assertDepartmentCanBeDeactivated(
+      connection,
+      departmentId
+    );
 
     await connection.query(
       `

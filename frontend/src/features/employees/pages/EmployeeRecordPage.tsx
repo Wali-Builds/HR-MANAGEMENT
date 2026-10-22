@@ -71,7 +71,12 @@ export function EmployeeRecordPage() {
   const facts = [
     ["Employee code", employee.employeeCode],
     ["Employment type", employee.employmentTypeName],
-    ["Employee status", employee.employeeStatusName],
+    [
+      "Employee status",
+      employee.isActive
+        ? employee.employeeStatusName
+        : "Inactive",
+    ],
     ["Joining date", employee.joiningDate],
   ];
 

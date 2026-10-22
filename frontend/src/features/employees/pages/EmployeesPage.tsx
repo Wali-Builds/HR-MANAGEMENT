@@ -56,7 +56,9 @@ export function EmployeesPage() {
   const [sortBy, setSortBy] = useState<EmployeeSortField>("updated_at");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DESC");
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [activity, setActivity] = useState<EmployeeActivityFilter>("active");
+  const [activity, setActivity] = useState<EmployeeActivityFilter>(
+    isBranchAdmin ? "all" : "active",
+  );
   const [branchId, setBranchId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [employmentTypeId, setEmploymentTypeId] = useState("");

@@ -578,6 +578,20 @@ export async function updateBranch(
     return mapBranch(branch);
   } catch (error) {
     if (
+      error instanceof Error &&
+      error.message ===
+        "BRANCH_HAS_ACTIVE_CHILDREN"
+    ) {
+      throw new AppError({
+        message:
+          "Deactivate all departments and positions before deactivating this branch",
+        statusCode: 409,
+        code:
+          "BRANCH_HAS_ACTIVE_CHILDREN"
+      });
+    }
+
+    if (
       isDuplicateEntryError(error)
     ) {
       throw new AppError({
@@ -618,12 +632,32 @@ export async function deleteBranch(
     String(branch.company_id)
   );
 
-  const deleted =
-    await softDeleteBranchRecord(
-      branchId,
-      createActor(auth),
-      metadata
-    );
+  let deleted: boolean;
+
+  try {
+    deleted =
+      await softDeleteBranchRecord(
+        branchId,
+        createActor(auth),
+        metadata
+      );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "BRANCH_HAS_ACTIVE_CHILDREN"
+    ) {
+      throw new AppError({
+        message:
+          "Deactivate all departments and positions before deactivating this branch",
+        statusCode: 409,
+        code:
+          "BRANCH_HAS_ACTIVE_CHILDREN"
+      });
+    }
+
+    throw error;
+  }
 
   if (!deleted) {
     throw new AppError({
