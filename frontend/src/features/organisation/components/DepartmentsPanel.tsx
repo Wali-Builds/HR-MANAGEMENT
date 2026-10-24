@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
@@ -154,8 +154,9 @@ function DepartmentsPanelContent({ companyId, canManage, view, onViewChange }: P
     setSearchParams(cleanParams, { replace: true });
   }, [canManage, openCreate, searchParams, setSearchParams]);
 
-  function openEdit(department: Department) {
-    dialogMotion.reset();
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
+  function openEdit(department: Department, event: MouseEvent<HTMLButtonElement>) {
+    dialogMotion.capture(event);
     setEditing(department);
     setForm(fromDepartment(department));
     setErrors({});
@@ -289,7 +290,7 @@ function DepartmentsPanelContent({ companyId, canManage, view, onViewChange }: P
                   <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
-                        <button type="button" onClick={() => openEdit(department)} title="Edit"><Edit3 size={15} /></button>
+                        <button type="button" onClick={(event) => openEdit(department, event)} title="Edit"><Edit3 size={15} /></button>
                         <button type="button" onClick={() => setArchiveTarget(department)} title="Archive"><MoreHorizontal size={16} /></button>
                       </div>
                     ) : null}

@@ -239,6 +239,24 @@ export async function findCompanyById(
   ) ?? null;
 }
 
+// edited by wali: Fetch the company identity fields needed by workspace headers.
+export async function findCompanyIdentityById(
+  companyId: string
+): Promise<{ company_id: string | number | bigint; display_name: string } | null> {
+  const rows = await databasePool.query(
+    `
+      SELECT company_id, display_name
+      FROM companies
+      WHERE company_id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+    `,
+    [companyId]
+  );
+
+  return (rows[0] as { company_id: string | number | bigint; display_name: string } | undefined) ?? null;
+}
+
 export async function createCompanyRecord(
   input: CreateCompanyInput,
   actor: CompanyActor,

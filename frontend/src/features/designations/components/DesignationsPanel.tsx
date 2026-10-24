@@ -8,7 +8,7 @@ import {
   Star,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
@@ -192,8 +192,9 @@ function DesignationsPanelContent({ companyId, canManage, view, onViewChange }: 
     setFormOpen(true);
   }
 
-  function openEdit(designation: Designation) {
-    dialogMotion.reset();
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
+  function openEdit(designation: Designation, event: MouseEvent<HTMLButtonElement>) {
+    dialogMotion.capture(event);
     setEditing(designation);
     const department = departments.find((item) => item.departmentId === designation.departmentId);
     setForm({ ...fromDesignation(designation), branchId: department?.branchId ?? "" });
@@ -339,7 +340,7 @@ function DesignationsPanelContent({ companyId, canManage, view, onViewChange }: 
                   <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
-                        <button type="button" onClick={() => openEdit(designation)} title="Edit"><Edit3 size={15} /></button>
+                        <button type="button" onClick={(event) => openEdit(designation, event)} title="Edit"><Edit3 size={15} /></button>
                         <button type="button" onClick={() => setArchiveTarget(designation)} title="Archive"><MoreHorizontal size={16} /></button>
                       </div>
                     ) : null}

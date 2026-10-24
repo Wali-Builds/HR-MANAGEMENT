@@ -10,7 +10,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
@@ -196,8 +196,9 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
     setFormOpen(true);
   }
 
-  function openEdit(position: Position) {
-    dialogMotion.reset();
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
+  function openEdit(position: Position, event: MouseEvent<HTMLButtonElement>) {
+    dialogMotion.capture(event);
     setEditing(position);
     setForm(fromPosition(position));
     setErrors({});
@@ -353,7 +354,7 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
                   <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
-                        <button type="button" onClick={() => openEdit(position)} title="Edit"><Edit3 size={15} /></button>
+                        <button type="button" onClick={(event) => openEdit(position, event)} title="Edit"><Edit3 size={15} /></button>
                         {position.positionStatus !== "CLOSED" ? <button type="button" onClick={() => setCloseTarget(position)} title="Close"><MoreHorizontal size={16} /></button> : null}
                       </div>
                     ) : null}

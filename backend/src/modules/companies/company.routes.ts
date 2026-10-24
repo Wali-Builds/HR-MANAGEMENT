@@ -24,6 +24,7 @@ import {
 import {
   createCompanyController,
   deleteCompanyController,
+  getOwnCompanyIdentityController,
   getCompanyController,
   listCompaniesController,
   updateCompanyController
@@ -53,6 +54,14 @@ companyRouter.get(
   asyncHandler(
     listCompaniesController
   )
+);
+
+// edited by wali: Expose the signed-in user's company identity for company-scoped views.
+companyRouter.get(
+  "/current",
+  authenticate,
+  requireCompletedPasswordChange,
+  asyncHandler(getOwnCompanyIdentityController)
 );
 
 companyRouter.get(
