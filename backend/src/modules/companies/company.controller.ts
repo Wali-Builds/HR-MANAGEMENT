@@ -20,6 +20,7 @@ import type {
 } from "./company.schema.js";
 
 import {
+  getOwnCompanyIdentity,
   createCompany,
   deleteCompany,
   getCompany,
@@ -46,6 +47,17 @@ function getAuthContext(
   }
 
   return auth;
+}
+
+export async function getOwnCompanyIdentityController(
+  _request: Request,
+  response: Response
+): Promise<void> {
+  const company = await getOwnCompanyIdentity(getAuthContext(response));
+  sendSuccess(response, {
+    message: "Company identity retrieved successfully",
+    data: { company }
+  });
 }
 
 function getRequestMetadata(

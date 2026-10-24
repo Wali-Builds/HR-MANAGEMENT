@@ -21,6 +21,12 @@
   box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
 }
 
+.wf-org-hero--center-company {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .wf-org-hero__identity {
   min-width: 0;
   display: flex;
@@ -844,6 +850,7 @@
 @media (max-width: 760px) {
   .wf-org-page { padding: 0 12px 12px; }
   .wf-org-hero { flex-direction: column; padding: 20px; }
+  .wf-org-hero--center-company { display: flex; align-items: stretch; }
   .wf-org-hero__scope { width: 100%; min-width: 0; }
   .wf-org-hero__scope > div:last-child { flex: 1; }
   .wf-org-hero__scope select { min-width: 0; }

@@ -8,6 +8,7 @@ import {
 import {
   createCompanyRequest,
   deleteCompanyRequest,
+  getCurrentCompanyIdentityRequest,
   getCompanyRequest,
   listCompaniesRequest,
   updateCompanyRequest,
@@ -42,6 +43,15 @@ export function useCompany(companyId: string | null) {
     queryKey: companyQueryKeys.detail(companyId ?? ""),
     queryFn: () => getCompanyRequest(companyId ?? ""),
     enabled: Boolean(companyId),
+  });
+}
+
+export function useCurrentCompanyIdentity(companyId: string | null) {
+  return useQuery({
+    queryKey: [...companyQueryKeys.all, "current-identity", companyId ?? "none"],
+    queryFn: getCurrentCompanyIdentityRequest,
+    enabled: Boolean(companyId),
+    staleTime: 300_000,
   });
 }
 

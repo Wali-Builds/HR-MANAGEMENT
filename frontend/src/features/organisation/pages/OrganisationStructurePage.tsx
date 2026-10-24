@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { useCompanies } from "../../companies/hooks/useCompanies";
+import { useCompanies, useCurrentCompanyIdentity } from "../../companies/hooks/useCompanies";
 import { BranchesPanel } from "../../branches/components/BranchesPanel";
 import { DepartmentsPanel } from "../components/DepartmentsPanel";
 import { DesignationsPanel } from "../../designations/components/DesignationsPanel";
@@ -75,6 +75,9 @@ export function OrganisationStructurePage({ section }: Props) {
   const companyId = isPlatformAdmin
     ? selectedCompanyId || undefined
     : user?.companyId ?? undefined;
+  const currentCompanyIdentityQuery = useCurrentCompanyIdentity(
+    !isPlatformAdmin ? companyId ?? null : null,
+  );
 
   const countsQuery = useOrganisationCounts(
     companyId,
@@ -115,7 +118,7 @@ export function OrganisationStructurePage({ section }: Props) {
 
   return (
     <section className="wf-org-page">
-      <header className="wf-org-hero">
+      <header className="wf-org-hero wf-org-hero--center-company">
         <div className="wf-org-hero__identity">
           <span className="wf-org-hero__identity-icon"><Settings2 size={19} /></span>
           <div className="wf-org-hero__copy">
@@ -145,7 +148,7 @@ export function OrganisationStructurePage({ section }: Props) {
                 ))}
               </select>
             ) : (
-              <strong>{selectedCompany?.displayName ?? "Your company"}</strong>
+              <strong>{selectedCompany?.displayName ?? currentCompanyIdentityQuery.data?.displayName ?? (currentCompanyIdentityQuery.isLoading ? "Loading company…" : "Your company")}</strong>
             )}
           </div>
         </div>

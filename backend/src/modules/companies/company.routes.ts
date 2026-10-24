@@ -24,6 +24,7 @@ import {
 import {
   createCompanyController,
   deleteCompanyController,
+  getOwnCompanyIdentityController,
   getCompanyController,
   listCompaniesController,
   updateCompanyController
@@ -53,6 +54,13 @@ companyRouter.get(
   asyncHandler(
     listCompaniesController
   )
+);
+
+companyRouter.get(
+  "/current",
+  authenticate,
+  requireCompletedPasswordChange,
+  asyncHandler(getOwnCompanyIdentityController)
 );
 
 companyRouter.get(

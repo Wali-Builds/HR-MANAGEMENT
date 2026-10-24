@@ -6,6 +6,7 @@ import type {
 
 import {
   createCompanyRecord,
+  findCompanyIdentityById,
   findCompanyById,
   findCompanyIdByCode,
   listCompanyRecords,
@@ -178,6 +179,32 @@ function assertCompanyAccess(
         "COMPANY_ACCESS_DENIED"
     });
   }
+}
+
+export async function getOwnCompanyIdentity(
+  auth: AuthContext
+): Promise<{ companyId: string; displayName: string }> {
+  if (!auth.companyId) {
+    throw new AppError({
+      message: "No company is assigned to this account",
+      statusCode: 403,
+      code: "COMPANY_SCOPE_REQUIRED"
+    });
+  }
+
+  const company = await findCompanyIdentityById(auth.companyId);
+  if (!company) {
+    throw new AppError({
+      message: "Company was not found",
+      statusCode: 404,
+      code: "COMPANY_NOT_FOUND"
+    });
+  }
+
+  return {
+    companyId: String(company.company_id),
+    displayName: company.display_name
+  };
 }
 
 export async function listCompanies(

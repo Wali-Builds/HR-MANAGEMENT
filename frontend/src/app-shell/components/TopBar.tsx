@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../../app/store/auth.store";
+import { useCurrentCompanyIdentity } from "../../features/companies/hooks/useCompanies";
 import { getWorkspaceModule } from "../config/workspace";
 import { AppSwitcher } from "./AppSwitcher";
 import { GlobalSearch } from "./GlobalSearch";
@@ -25,6 +26,7 @@ export function TopBar({ onOpenMobileNavigation }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const companyIdentityQuery = useCurrentCompanyIdentity(user?.companyId ?? null);
   const [appSwitcherOpen, setAppSwitcherOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -131,7 +133,7 @@ export function TopBar({ onOpenMobileNavigation }: TopBarProps) {
             <Building2 size={16} />
             <span>
               {user?.companyId
-                ? `Company #${user.companyId}`
+                ? companyIdentityQuery.data?.displayName ?? (companyIdentityQuery.isLoading ? "Loading company…" : "Your company")
                 : "All organisations"}
             </span>
           </div>

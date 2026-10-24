@@ -7,6 +7,19 @@ import type {
   CompanyMutationInput,
 } from "../types/company.types";
 
+export interface CompanyIdentity {
+  companyId: string;
+  displayName: string;
+}
+
+export async function getCurrentCompanyIdentityRequest(): Promise<CompanyIdentity> {
+  const response = await apiClient.get<
+    ApiSuccessResponse<{ company: CompanyIdentity }>
+  >("/companies/current");
+
+  return response.data.data.company;
+}
+
 export async function listCompaniesRequest(
   params: CompanyListParams,
 ): Promise<CompanyListResult> {

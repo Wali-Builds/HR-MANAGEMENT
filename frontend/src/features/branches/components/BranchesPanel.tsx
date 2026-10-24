@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
@@ -182,8 +182,8 @@ function BranchesPanelContent({ companyId, canManage, view, onViewChange }: Prop
     setSearchParams(cleanParams, { replace: true });
   }, [canManage, openCreate, searchParams, setSearchParams]);
 
-  function openEdit(branch: Branch) {
-    dialogMotion.reset();
+  function openEdit(branch: Branch, event: MouseEvent<HTMLButtonElement>) {
+    dialogMotion.capture(event);
     setEditing(branch);
     setForm(fromBranch(branch));
     setErrors({});
@@ -364,7 +364,7 @@ function BranchesPanelContent({ companyId, canManage, view, onViewChange }: Prop
                   <td data-label="Actions">
                     {canManage ? (
                       <div className="wf-org-row-actions">
-                        <button type="button" onClick={() => openEdit(branch)} title="Edit"><Edit3 size={15} /></button>
+                        <button type="button" onClick={(event) => openEdit(branch, event)} title="Edit"><Edit3 size={15} /></button>
                         <button type="button" onClick={() => setArchiveTarget(branch)} title="Archive"><MoreHorizontal size={16} /></button>
                       </div>
                     ) : null}

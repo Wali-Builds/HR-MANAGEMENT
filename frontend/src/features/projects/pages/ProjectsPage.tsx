@@ -4,6 +4,7 @@ import { Building2, CalendarDays, CircleDot, Edit3, FolderKanban, Network, Plus,
 import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
+import { useCurrentCompanyIdentity } from "../../companies/hooks/useCompanies";
 import { listEmployeesRequest } from "../../employees/api/employee.api";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import { useOrganisationReferences } from "../../organisation/hooks/useOrganisation";
@@ -53,6 +54,7 @@ function ProjectsPageContent() {
   const user = useAuthStore((state) => state.user);
   const dialogMotion = useRequiredOrganisationDialogMotion();
   const companyId = user?.companyId ?? undefined;
+  const companyIdentityQuery = useCurrentCompanyIdentity(companyId ?? null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "ALL">("ALL");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -132,9 +134,9 @@ function ProjectsPageContent() {
   const total = projects.length;
   return (
     <section className="wf-org-page wf-projects-page">
-      <header className="wf-org-hero">
+      <header className="wf-org-hero wf-org-hero--center-company">
         <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><FolderKanban size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">Project operations</span><h1>Projects</h1><p>Manage company projects and assign employees to active work in their departments.</p></div></div>
-        <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Building2 size={20} /></div><div><span>Working company</span><strong>{user?.companyId ? `Company ${user.companyId}` : "Your company"}</strong></div></div>
+        <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Building2 size={20} /></div><div><span>Working company</span><strong>{companyIdentityQuery.data?.displayName ?? (companyIdentityQuery.isLoading ? "Loading company…" : "Your company")}</strong></div></div>
       </header>
       <div className="wf-org-health-strip"><div><span><FolderKanban size={16} /></span><strong>{total}</strong><small>Projects shown</small></div><div><span><CircleDot size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "ACTIVE").length}</strong><small>Active</small></div><div><span><CalendarDays size={16} /></span><strong>{projects.filter((item) => item.projectStatus === "PLANNED").length}</strong><small>Planned</small></div><div><span><UsersRound size={16} /></span><strong>{projects.filter((item) => item.projectManagerEmployeeId).length}</strong><small>With manager</small></div></div>
 
