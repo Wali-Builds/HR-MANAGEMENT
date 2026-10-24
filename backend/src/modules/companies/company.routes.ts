@@ -56,6 +56,7 @@ companyRouter.get(
   )
 );
 
+// edited by wali: Expose the signed-in user's company identity for company-scoped views.
 companyRouter.get(
   "/current",
   authenticate,

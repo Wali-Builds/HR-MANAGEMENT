@@ -182,6 +182,7 @@ function BranchesPanelContent({ companyId, canManage, view, onViewChange }: Prop
     setSearchParams(cleanParams, { replace: true });
   }, [canManage, openCreate, searchParams, setSearchParams]);
 
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
   function openEdit(branch: Branch, event: MouseEvent<HTMLButtonElement>) {
     dialogMotion.capture(event);
     setEditing(branch);

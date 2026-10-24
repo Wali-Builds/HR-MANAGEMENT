@@ -154,6 +154,7 @@ function DepartmentsPanelContent({ companyId, canManage, view, onViewChange }: P
     setSearchParams(cleanParams, { replace: true });
   }, [canManage, openCreate, searchParams, setSearchParams]);
 
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
   function openEdit(department: Department, event: MouseEvent<HTMLButtonElement>) {
     dialogMotion.capture(event);
     setEditing(department);

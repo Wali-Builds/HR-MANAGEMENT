@@ -239,6 +239,7 @@ export async function findCompanyById(
   ) ?? null;
 }
 
+// edited by wali: Fetch the company identity fields needed by workspace headers.
 export async function findCompanyIdentityById(
   companyId: string
 ): Promise<{ company_id: string | number | bigint; display_name: string } | null> {

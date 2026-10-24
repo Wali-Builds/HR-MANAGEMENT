@@ -21,6 +21,7 @@
   box-shadow: 0 10px 34px rgba(15, 31, 51, 0.06);
 }
 
+/* edited by wali: Keep the company card vertically centered against the page heading. */
 .wf-org-hero--center-company {
   display: flex;
   justify-content: space-between;

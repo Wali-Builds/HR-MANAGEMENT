@@ -26,6 +26,7 @@ export function TopBar({ onOpenMobileNavigation }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  // edited by wali: Show the company name in the top bar instead of its database ID.
   const companyIdentityQuery = useCurrentCompanyIdentity(user?.companyId ?? null);
   const [appSwitcherOpen, setAppSwitcherOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);

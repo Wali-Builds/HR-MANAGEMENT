@@ -49,6 +49,7 @@ function getAuthContext(
   return auth;
 }
 
+// edited by wali: Return the authenticated company's name without requiring company-list access.
 export async function getOwnCompanyIdentityController(
   _request: Request,
   response: Response

@@ -46,6 +46,7 @@ export function useCompany(companyId: string | null) {
   });
 }
 
+// edited by wali: Cache the signed-in company's display name for company-scoped pages.
 export function useCurrentCompanyIdentity(companyId: string | null) {
   return useQuery({
     queryKey: [...companyQueryKeys.all, "current-identity", companyId ?? "none"],

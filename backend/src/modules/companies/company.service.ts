@@ -181,6 +181,7 @@ function assertCompanyAccess(
   }
 }
 
+// edited by wali: Resolve the signed-in user's company name from their company scope.
 export async function getOwnCompanyIdentity(
   auth: AuthContext
 ): Promise<{ companyId: string; displayName: string }> {

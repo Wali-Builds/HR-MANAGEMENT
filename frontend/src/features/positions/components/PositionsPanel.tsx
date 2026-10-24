@@ -196,6 +196,7 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
     setFormOpen(true);
   }
 
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
   function openEdit(position: Position, event: MouseEvent<HTMLButtonElement>) {
     dialogMotion.capture(event);
     setEditing(position);

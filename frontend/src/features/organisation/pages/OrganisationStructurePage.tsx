@@ -75,6 +75,7 @@ export function OrganisationStructurePage({ section }: Props) {
   const companyId = isPlatformAdmin
     ? selectedCompanyId || undefined
     : user?.companyId ?? undefined;
+  // edited by wali: Load the scoped company's name for the organisation header.
   const currentCompanyIdentityQuery = useCurrentCompanyIdentity(
     !isPlatformAdmin ? companyId ?? null : null,
   );

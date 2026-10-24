@@ -7,6 +7,7 @@ import type {
   CompanyMutationInput,
 } from "../types/company.types";
 
+// edited by wali: Keep the current-company response shape explicit for workspace headers.
 export interface CompanyIdentity {
   companyId: string;
   displayName: string;

@@ -54,6 +54,7 @@ function ProjectsPageContent() {
   const user = useAuthStore((state) => state.user);
   const dialogMotion = useRequiredOrganisationDialogMotion();
   const companyId = user?.companyId ?? undefined;
+  // edited by wali: Load the scoped company's name for the projects header.
   const companyIdentityQuery = useCurrentCompanyIdentity(companyId ?? null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "ALL">("ALL");

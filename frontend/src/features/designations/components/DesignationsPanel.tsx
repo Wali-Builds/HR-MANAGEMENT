@@ -192,6 +192,7 @@ function DesignationsPanelContent({ companyId, canManage, view, onViewChange }: 
     setFormOpen(true);
   }
 
+  // edited by wali: Capture the edit button so the form animation returns to its trigger.
   function openEdit(designation: Designation, event: MouseEvent<HTMLButtonElement>) {
     dialogMotion.capture(event);
     setEditing(designation);
