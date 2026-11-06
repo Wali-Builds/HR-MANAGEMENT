@@ -214,7 +214,8 @@ interface LockedShiftAssignmentRow {
   shift_id:
     | string
     | number
-    | bigint;
+    | bigint
+    | null;
 
   schedule_id:
     | string
@@ -248,6 +249,10 @@ interface LockedShiftAssignmentRow {
 
 interface ShiftListFilters {
   branchId?: string | undefined;
+  // added by wali: Limit branch administrators to their assigned branch scope.
+  branchIds?: string[] | undefined;
+  // added by wali: Scope shift results to schedules used by employees in a department.
+  departmentId?: string | undefined;
   isActive?: boolean | undefined;
   includeInactive: boolean;
   search?: string | undefined;
@@ -256,6 +261,10 @@ interface ShiftListFilters {
 }
 
 interface WorkScheduleListFilters {
+  // added by wali: Scope schedule results through their current employee assignments.
+  branchId?: string | undefined;
+  departmentId?: string | undefined;
+  branchIds?: string[] | undefined;
   isActive?: boolean | undefined;
   includeInactive: boolean;
   search?: string | undefined;
@@ -489,9 +498,7 @@ function assignmentLogSummary(
       ),
 
     shiftId:
-      String(
-        assignment.shift_id
-      ),
+      assignment.shift_id === null ? null : String(assignment.shift_id),
 
     scheduleId:
       assignment.schedule_id === null
@@ -642,18 +649,26 @@ const shiftSelect = `
       s.deleted_at,
 
       (
-        SELECT COUNT(*)
+        SELECT COUNT(DISTINCT esa_count.shift_assignment_id)
         FROM employee_shift_assignments esa_count
-        WHERE esa_count.shift_id =
-              s.shift_id
+        LEFT JOIN work_schedule_days wsd_count
+            ON wsd_count.schedule_id = esa_count.schedule_id
+           AND wsd_count.shift_id = s.shift_id
+           AND wsd_count.is_working_day = 1
+        WHERE (esa_count.schedule_id IS NULL AND esa_count.shift_id = s.shift_id)
+           OR wsd_count.schedule_day_id IS NOT NULL
       ) AS assignment_count,
 
       (
-        SELECT COUNT(*)
+        SELECT COUNT(DISTINCT esa_current.shift_assignment_id)
         FROM employee_shift_assignments esa_current
-        WHERE esa_current.shift_id =
-              s.shift_id
-          AND esa_current.is_current = 1
+        LEFT JOIN work_schedule_days wsd_current
+            ON wsd_current.schedule_id = esa_current.schedule_id
+           AND wsd_current.shift_id = s.shift_id
+           AND wsd_current.is_working_day = 1
+        WHERE esa_current.is_current = 1
+          AND ((esa_current.schedule_id IS NULL AND esa_current.shift_id = s.shift_id)
+               OR wsd_current.schedule_day_id IS NOT NULL)
       ) AS current_assignment_count,
 
       s.created_at,
@@ -675,8 +690,22 @@ const workScheduleSelect = `
       ws.schedule_name,
       ws.description,
 
-      ws.weekly_working_hours,
-      ws.weekly_working_days,
+      (
+        SELECT ROUND(COALESCE(SUM(CASE WHEN wsd_weekly.is_working_day = 1 THEN
+          COALESCE(weekly_shift.expected_work_minutes, wsd_weekly.expected_work_minutes)
+        ELSE 0 END), 0) / 60, 2)
+        FROM work_schedule_days wsd_weekly
+        LEFT JOIN shifts weekly_shift
+            ON weekly_shift.shift_id = wsd_weekly.shift_id
+           AND weekly_shift.company_id = ws.company_id
+        WHERE wsd_weekly.schedule_id = ws.schedule_id
+      ) AS weekly_working_hours,
+      (
+        SELECT COUNT(*)
+        FROM work_schedule_days wsd_weekly_days
+        WHERE wsd_weekly_days.schedule_id = ws.schedule_id
+          AND wsd_weekly_days.is_working_day = 1
+      ) AS weekly_working_days,
 
       ws.is_default,
       ws.is_active,
@@ -726,6 +755,14 @@ const workScheduleDaySelect = `
 
       wsd.day_of_week,
       wsd.is_working_day,
+      wsd.shift_id,
+      assigned_shift.shift_code,
+      assigned_shift.shift_name,
+      assigned_shift.start_time AS assigned_shift_start_time,
+      assigned_shift.end_time AS assigned_shift_end_time,
+      assigned_shift.crosses_midnight AS assigned_shift_crosses_midnight,
+      assigned_shift.break_minutes AS assigned_shift_break_minutes,
+      assigned_shift.expected_work_minutes AS assigned_shift_expected_work_minutes,
 
       wsd.planned_start_time,
       wsd.planned_end_time,
@@ -742,6 +779,11 @@ const workScheduleDaySelect = `
   INNER JOIN work_schedules ws
       ON ws.schedule_id =
          wsd.schedule_id
+  LEFT JOIN shifts assigned_shift
+      ON assigned_shift.shift_id =
+         wsd.shift_id
+     AND assigned_shift.company_id =
+         ws.company_id
 `;
 
 const shiftAssignmentSelect = `
@@ -790,7 +832,7 @@ const shiftAssignmentSelect = `
       assigned_user.username
           AS assigned_by_username,
 
-      assigned_user.full_name
+      assigned_user.username
           AS assigned_by_full_name,
 
       esa.remarks,
@@ -804,7 +846,7 @@ const shiftAssignmentSelect = `
       ON e.employee_id =
          esa.employee_id
 
-  INNER JOIN shifts s
+  LEFT JOIN shifts s
       ON s.shift_id =
          esa.shift_id
 
@@ -1405,6 +1447,38 @@ export async function listShiftRecords(
     parameters.push(
       filters.branchId
     );
+  }
+
+  // added by wali: Apply the caller's branch access scope to shift queries.
+  if (filters.branchIds?.length) {
+    conditions.push(
+      `s.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`
+    );
+    parameters.push(...filters.branchIds);
+  }
+
+  // added by wali: A shift belongs to a department through an active weekly schedule assigned to that department's employees.
+  if (filters.departmentId) {
+    conditions.push(`
+      EXISTS (
+        SELECT 1
+        FROM work_schedule_days wsd_department
+        INNER JOIN employee_shift_assignments esa_department
+            ON esa_department.schedule_id = wsd_department.schedule_id
+           AND esa_department.is_current = 1
+        INNER JOIN employees e_department
+            ON e_department.employee_id = esa_department.employee_id
+           AND e_department.company_id = s.company_id
+        INNER JOIN employee_assignments ea_department
+            ON ea_department.employee_id = e_department.employee_id
+           AND ea_department.is_current = 1
+        WHERE wsd_department.shift_id = s.shift_id
+          AND wsd_department.is_working_day = 1
+          AND ea_department.department_id = ?
+      )
+    `);
+
+    parameters.push(filters.departmentId);
   }
 
   if (
@@ -2196,6 +2270,40 @@ export async function listWorkScheduleRecords(
     companyId
   ];
 
+  // added by wali: Match schedules to current employee branch and department assignments.
+  if (filters.branchId || filters.departmentId || filters.branchIds?.length) {
+    const assignmentConditions = [
+      "esa_scope.schedule_id = ws.schedule_id",
+      "esa_scope.is_current = 1",
+      "e_scope.company_id = ws.company_id",
+      "ea_scope.employee_id = e_scope.employee_id",
+      "ea_scope.is_current = 1"
+    ];
+
+    if (filters.branchId) {
+      assignmentConditions.push("ea_scope.branch_id = ?");
+      parameters.push(filters.branchId);
+    }
+    if (filters.departmentId) {
+      assignmentConditions.push("ea_scope.department_id = ?");
+      parameters.push(filters.departmentId);
+    }
+    if (filters.branchIds?.length) {
+      assignmentConditions.push(`ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`);
+      parameters.push(...filters.branchIds);
+    }
+
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM employee_shift_assignments esa_scope
+      INNER JOIN employees e_scope
+          ON e_scope.employee_id = esa_scope.employee_id
+      INNER JOIN employee_assignments ea_scope
+          ON ${assignmentConditions.slice(2).join(" AND ")}
+      WHERE ${assignmentConditions.slice(0, 2).join(" AND ")}
+    )`);
+  }
+
   if (
     filters.isActive !==
     undefined
@@ -2939,13 +3047,23 @@ export async function replaceWorkScheduleDayRecords(
       ]
     );
 
+    let weeklyWorkMinutes = 0;
     for (const day of days) {
+      // added by wali: Validate each day-to-shift link against this tenant before replacing schedule rows.
+      if (day.isWorkingDay && day.shiftId) {
+        const assignedShift = await assertShiftAvailable(connection, companyId, day.shiftId);
+        weeklyWorkMinutes += Number(assignedShift.expected_work_minutes);
+      } else if (day.isWorkingDay) {
+        // Preserve weekly totals for legacy schedules that still store a time range directly on each day.
+        weeklyWorkMinutes += day.expectedWorkMinutes;
+      }
       await connection.query(
         `
           INSERT INTO work_schedule_days (
               schedule_id,
               day_of_week,
               is_working_day,
+              shift_id,
               planned_start_time,
               planned_end_time,
               break_minutes,
@@ -2953,6 +3071,7 @@ export async function replaceWorkScheduleDayRecords(
               crosses_midnight
           )
           VALUES (
+              ?,
               ?,
               ?,
               ?,
@@ -2969,6 +3088,7 @@ export async function replaceWorkScheduleDayRecords(
           day.isWorkingDay
             ? 1
             : 0,
+          day.shiftId,
           day.plannedStartTime,
           day.plannedEndTime,
           day.breakMinutes,
@@ -2986,21 +3106,6 @@ export async function replaceWorkScheduleDayRecords(
           day
         ) => day.isWorkingDay
       ).length;
-
-    const weeklyWorkMinutes =
-      days.reduce(
-        (
-          total,
-          day
-        ) =>
-          total +
-          (
-            day.isWorkingDay
-              ? day.expectedWorkMinutes
-              : 0
-          ),
-        0
-      );
 
     const weeklyWorkingHours =
       Number(
@@ -3134,7 +3239,7 @@ export async function replaceWorkScheduleDayRecords(
 
 export async function listEmployeeShiftAssignmentRecords(
   companyId: string,
-  employeeId: string,
+  employeeId: string | null,
   filters:
     EmployeeShiftAssignmentListFilters
 ): Promise<
@@ -3144,14 +3249,18 @@ export async function listEmployeeShiftAssignmentRecords(
 > {
   const conditions: string[] = [
     "e.company_id = ?",
-    "esa.employee_id = ?",
     "e.deleted_at IS NULL"
   ];
 
   const parameters: unknown[] = [
-    companyId,
-    employeeId
+    companyId
   ];
+
+  // added by wali: Allow the assignment overview to list every employee while retaining the employee-specific endpoint.
+  if (employeeId !== null) {
+    conditions.push("esa.employee_id = ?");
+    parameters.push(employeeId);
+  }
 
   if (filters.shiftId) {
     conditions.push(
@@ -3358,17 +3467,29 @@ export async function createEmployeeShiftAssignmentRecord(
       );
     }
 
-    await assertShiftAvailable(
-      connection,
-      companyId,
-      input.shiftId
-    );
+    if (input.shiftId) await assertShiftAvailable(connection, companyId, input.shiftId);
 
     await assertWorkScheduleAvailable(
       connection,
       companyId,
       input.scheduleId
     );
+
+    // added by wali: Enforce one schedule assignment per employee; subsequent changes must update the existing row.
+    const existingScheduleAssignment = await connection.query(
+      `
+        SELECT shift_assignment_id
+        FROM employee_shift_assignments
+        WHERE employee_id = ?
+          AND schedule_id IS NOT NULL
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [input.employeeId]
+    );
+    if (existingScheduleAssignment.length > 0) {
+      throw new Error("EMPLOYEE_ALREADY_HAS_SCHEDULE_ASSIGNMENT");
+    }
 
     await assertNoAssignmentOverlap(
       connection,
@@ -3530,11 +3651,9 @@ export async function updateEmployeeShiftAssignmentRecord(
       return null;
     }
 
-    const finalShiftId =
-      input.shiftId ??
-      String(
-        existing.shift_id
-      );
+    const finalShiftId = input.shiftId !== undefined
+      ? input.shiftId
+      : existing.shift_id === null ? null : String(existing.shift_id);
 
     const finalScheduleId =
       input.scheduleId !==
@@ -3573,11 +3692,7 @@ export async function updateEmployeeShiftAssignmentRecord(
         existing.is_current
       );
 
-    await assertShiftAvailable(
-      connection,
-      companyId,
-      finalShiftId
-    );
+    if (finalShiftId) await assertShiftAvailable(connection, companyId, finalShiftId);
 
     await assertWorkScheduleAvailable(
       connection,
@@ -3914,8 +4029,7 @@ export async function findEffectiveEmployeeShiftAssignmentRecord(
         WHERE e.company_id = ?
           AND esa.employee_id = ?
           AND e.deleted_at IS NULL
-          AND s.deleted_at IS NULL
-          AND s.is_active = 1
+          AND (esa.schedule_id IS NOT NULL OR (s.shift_id IS NOT NULL AND s.deleted_at IS NULL AND s.is_active = 1))
           AND esa.effective_from <= ?
           AND (
             esa.effective_to IS NULL

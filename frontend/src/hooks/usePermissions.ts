@@ -47,6 +47,12 @@ export function usePermissions() {
       permission === "designation.manage" ||
       permission === "position.view" ||
       permission === "position.manage" ||
+      // added by wali: Let tenant Company Admins view attendance and configure biometric devices.
+      permission === "attendance.view" ||
+      // added by wali: Let linked Company Admins access shift scheduling in their tenant.
+      permission === "attendance.scheduling.view" ||
+      permission === "attendance.scheduling.manage" ||
+      permission === "biometric.manage" ||
       permission.startsWith("payroll.");
 
     // edited by wali: Give linked Company Administrators workforce and employee access within their tenant.
@@ -78,6 +84,8 @@ export function usePermissions() {
         permission === "designation.manage" ||
         permission === "position.view" ||
         permission === "position.manage" ||
+        permission === "attendance.scheduling.view" ||
+        permission === "attendance.scheduling.manage" ||
         permission === "payroll.view" ||
         permission === "payroll.manage" ||
         permission === "payroll.approve");

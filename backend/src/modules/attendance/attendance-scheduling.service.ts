@@ -317,8 +317,17 @@ function hasPermission(
   auth: AuthContext,
   permissionCode: string
 ): boolean {
+  // added by wali: Company Admins can view and manage shifts scoped to their linked company.
+  const isTenantCompanyAdmin = Boolean(
+    !auth.isPlatformAdmin &&
+    auth.companyId &&
+    (auth.roleCodes.some((roleCode) => roleCode.trim().toUpperCase() === "COMPANY_ADMIN") ||
+      auth.permissions.some((permission) => permission.trim().toLowerCase() === "company_admin"))
+  );
+
   return (
     auth.isPlatformAdmin ||
+    (isTenantCompanyAdmin && ["attendance.scheduling.view", "attendance.scheduling.manage"].includes(permissionCode)) ||
     getPermissions(auth).includes(
       permissionCode
     )
@@ -785,6 +794,23 @@ function mapWorkScheduleDay(
     dayName:
       dayName(day),
 
+    shiftId:
+      row.shift_id === null
+        ? null
+        : String(row.shift_id),
+
+    shiftCode:
+      row.shift_code,
+
+    shiftName:
+      row.shift_name,
+
+    shiftStartTime:
+      timeOnly(row.assigned_shift_start_time),
+
+    shiftEndTime:
+      timeOnly(row.assigned_shift_end_time),
+
     isWorkingDay:
       databaseBoolean(
         row.is_working_day
@@ -792,25 +818,25 @@ function mapWorkScheduleDay(
 
     plannedStartTime:
       timeOnly(
-        row.planned_start_time
+        row.assigned_shift_start_time ?? row.planned_start_time
       ),
 
     plannedEndTime:
       timeOnly(
-        row.planned_end_time
+        row.assigned_shift_end_time ?? row.planned_end_time
       ),
 
     breakMinutes:
-      Number(row.break_minutes),
+      Number(row.assigned_shift_break_minutes ?? row.break_minutes),
 
     expectedWorkMinutes:
       Number(
-        row.expected_work_minutes
+        row.assigned_shift_expected_work_minutes ?? row.expected_work_minutes
       ),
 
     crossesMidnight:
       databaseBoolean(
-        row.crosses_midnight
+        row.assigned_shift_crosses_midnight ?? row.crosses_midnight
       ),
 
     createdAt:
@@ -848,7 +874,7 @@ function mapShiftAssignment(
       row.employee_name,
 
     shiftId:
-      String(row.shift_id),
+      nullableId(row.shift_id),
 
     shiftCode:
       row.shift_code,
@@ -857,19 +883,13 @@ function mapShiftAssignment(
       row.shift_name,
 
     shiftStartTime:
-      requiredTimeOnly(
-        row.shift_start_time
-      ),
+      row.shift_start_time === null ? null : requiredTimeOnly(row.shift_start_time),
 
     shiftEndTime:
-      requiredTimeOnly(
-        row.shift_end_time
-      ),
+      row.shift_end_time === null ? null : requiredTimeOnly(row.shift_end_time),
 
     shiftCrossesMidnight:
-      databaseBoolean(
-        row.shift_crosses_midnight
-      ),
+      row.shift_crosses_midnight === null ? null : databaseBoolean(row.shift_crosses_midnight),
 
     scheduleId:
       nullableId(
@@ -1274,6 +1294,12 @@ function translateRepositoryError(
         statusCode: 409
       },
 
+      EMPLOYEE_ALREADY_HAS_SCHEDULE_ASSIGNMENT: {
+        message:
+          "This employee already has a work schedule assignment. Edit the existing assignment instead.",
+        statusCode: 409
+      },
+
       SCHEDULING_BRANCH_NOT_FOUND: {
         message:
           "The selected branch was not found in this company",
@@ -1425,14 +1451,31 @@ export async function listShifts(
   const companyId =
     requireCompanyId(auth);
 
+  // added by wali: Restrict Branch Admin shift results to branches assigned to their account.
+  const assignedBranchIds = auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  ) ? auth.branchIds : [];
+
   const result =
     await listShiftRecords(
       companyId,
       {
+        ...(assignedBranchIds.length > 0
+          ? { branchIds: assignedBranchIds }
+          : {}),
+
         ...(query.branchId !== undefined
           ? {
               branchId:
                 query.branchId
+            }
+          : {}),
+
+        // added by wali: Pass department filters through to the shift list query.
+        ...(query.departmentId !== undefined
+          ? {
+              departmentId:
+                query.departmentId
             }
           : {}),
 
@@ -1933,10 +1976,27 @@ export async function listWorkSchedules(
   const companyId =
     requireCompanyId(auth);
 
+  // added by wali: Restrict Branch Admin schedule results to employees in their assigned branches.
+  const assignedBranchIds = auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
+  ) ? auth.branchIds : [];
+
   const result =
     await listWorkScheduleRecords(
       companyId,
       {
+        ...(assignedBranchIds.length > 0
+          ? { branchIds: assignedBranchIds }
+          : {}),
+
+        ...(query.branchId !== undefined
+          ? { branchId: query.branchId }
+          : {}),
+
+        ...(query.departmentId !== undefined
+          ? { departmentId: query.departmentId }
+          : {}),
+
         ...(query.isActive !== undefined
           ? {
               isActive:
@@ -2357,6 +2417,10 @@ export async function replaceWorkScheduleDays(
           isWorkingDay:
             day.isWorkingDay,
 
+          // added by wali: Persist the selected reusable shift on its matching weekday.
+          shiftId:
+            day.shiftId ?? null,
+
           plannedStartTime:
             day.plannedStartTime,
 
@@ -2513,6 +2577,54 @@ export async function listEmployeeShiftAssignments(
   };
 }
 
+// added by wali: Return the complete company assignment list so the page can show each employee beside their assigned schedule.
+export async function listAllShiftAssignments(
+  query: EmployeeShiftAssignmentListQuery,
+  auth: AuthContext
+) {
+  assertSchedulingViewAccess(auth);
+  const companyId = requireCompanyId(auth);
+  const result = await listEmployeeShiftAssignmentRecords(
+    companyId,
+    null,
+    {
+      ...(query.shiftId !== undefined ? { shiftId: query.shiftId } : {}),
+      ...(query.scheduleId !== undefined ? { scheduleId: query.scheduleId } : {}),
+      ...(query.assignmentType !== undefined ? { assignmentType: query.assignmentType } : {}),
+      ...(query.isCurrent !== undefined ? { isCurrent: query.isCurrent } : {}),
+      ...(query.dateFrom !== undefined ? { dateFrom: query.dateFrom } : {}),
+      ...(query.dateTo !== undefined ? { dateTo: query.dateTo } : {}),
+      page: query.page,
+      pageSize: query.pageSize
+    }
+  );
+
+  return {
+    shiftAssignments: result.records.map(mapShiftAssignment),
+    pagination: pagination(query.page, query.pageSize, result.totalRecords)
+  };
+}
+
+// added by wali: Check all weekday shifts against the selected employee's branch when assigning a weekly schedule.
+async function validateEmployeeScheduleShifts(
+  companyId: string,
+  employee: AttendanceEmployeeDatabaseRow,
+  scheduleId: string
+): Promise<void> {
+  const days = await listWorkScheduleDayRecords(companyId, scheduleId);
+  const shiftIds = [...new Set(days.filter((day) => databaseBoolean(day.is_working_day) && day.shift_id != null).map((day) => String(day.shift_id)))];
+  for (const shiftId of shiftIds) {
+    const shift = await findShiftRecordById(companyId, shiftId);
+    if (!shift || !databaseBoolean(shift.is_active)) {
+      throw new AppError({ message: "A shift in this schedule is missing or inactive", statusCode: 409, code: "WORK_SCHEDULE_SHIFT_INACTIVE" });
+    }
+    assertShiftBranchCompatibility(employee, shift);
+  }
+  if (!shiftIds.length) {
+    throw new AppError({ message: "Assign at least one shift to a working day before assigning this schedule to an employee", statusCode: 422, code: "WORK_SCHEDULE_HAS_NO_SHIFT" });
+  }
+}
+
 export async function createEmployeeShiftAssignment(
   employeeId: string,
   input:
@@ -2543,53 +2655,15 @@ export async function createEmployeeShiftAssignment(
       employee.company_id
     );
 
-  const shift =
-    await findShiftRecordById(
-      companyId,
-      input.shiftId
-    );
-
-  if (!shift) {
-    throw new AppError({
-      message:
-        "Shift was not found",
-
-      statusCode: 404,
-
-      code:
-        "SHIFT_NOT_FOUND"
-    });
-  }
+  const scheduleId = input.scheduleId ?? null;
 
   if (
-    !databaseBoolean(
-      shift.is_active
-    )
-  ) {
-    throw new AppError({
-      message:
-        "The selected shift is inactive",
-
-      statusCode: 409,
-
-      code:
-        "SHIFT_INACTIVE"
-    });
-  }
-
-  assertShiftBranchCompatibility(
-    employee,
-    shift
-  );
-
-  if (
-    input.scheduleId !== undefined &&
-    input.scheduleId !== null
+    scheduleId !== null
   ) {
     const schedule =
       await findWorkScheduleRecordById(
         companyId,
-        input.scheduleId
+        scheduleId
       );
 
     if (!schedule) {
@@ -2619,7 +2693,16 @@ export async function createEmployeeShiftAssignment(
           "WORK_SCHEDULE_INACTIVE"
       });
     }
+    await validateEmployeeScheduleShifts(companyId, employee, scheduleId);
   }
+
+  const assignmentShiftId = input.shiftId ?? null;
+  if (assignmentShiftId) {
+    const shift = await findShiftRecordById(companyId, assignmentShiftId);
+    if (!shift || !databaseBoolean(shift.is_active)) throw new AppError({ message: "The selected shift is missing or inactive", statusCode: 409, code: "SHIFT_INACTIVE" });
+    assertShiftBranchCompatibility(employee, shift);
+  }
+  if (!assignmentShiftId && !scheduleId) throw new AppError({ message: "Choose a work schedule", statusCode: 422, code: "SHIFT_ASSIGNMENT_SCHEDULE_REQUIRED" });
 
   const effectiveTo =
     input.effectiveTo ??
@@ -2635,11 +2718,10 @@ export async function createEmployeeShiftAssignment(
       employeeId,
 
       shiftId:
-        input.shiftId,
+        assignmentShiftId,
 
       scheduleId:
-        input.scheduleId ??
-        null,
+        scheduleId,
 
       effectiveFrom:
         input.effectiveFrom,
@@ -2725,16 +2807,18 @@ export async function updateEmployeeShiftAssignment(
     });
   }
 
-  const finalShiftId =
-    input.shiftId ??
-    String(existing.shift_id);
-
   const finalScheduleId =
     input.scheduleId !== undefined
       ? input.scheduleId
       : nullableId(
           existing.schedule_id
         );
+
+  const finalShiftId = input.shiftId !== undefined
+    ? input.shiftId
+    : input.scheduleId !== undefined
+      ? (finalScheduleId === null ? (existing.shift_id === null ? null : String(existing.shift_id)) : null)
+      : existing.shift_id === null ? null : String(existing.shift_id);
 
   const finalEffectiveFrom =
     input.effectiveFrom ??
@@ -2754,44 +2838,13 @@ export async function updateEmployeeShiftAssignment(
     finalEffectiveTo
   );
 
-  const shift =
-    await findShiftRecordById(
-      companyId,
-      finalShiftId
-    );
-
-  if (!shift) {
-    throw new AppError({
-      message:
-        "Shift was not found",
-
-      statusCode: 404,
-
-      code:
-        "SHIFT_NOT_FOUND"
-    });
+  if (finalShiftId) {
+    const shift = await findShiftRecordById(companyId, finalShiftId);
+    if (!shift || !databaseBoolean(shift.is_active)) throw new AppError({ message: "The selected shift is missing or inactive", statusCode: 409, code: "SHIFT_INACTIVE" });
+    assertShiftBranchCompatibility(employee, shift);
+  } else if (!finalScheduleId) {
+    throw new AppError({ message: "Choose a work schedule", statusCode: 422, code: "SHIFT_ASSIGNMENT_SCHEDULE_REQUIRED" });
   }
-
-  if (
-    !databaseBoolean(
-      shift.is_active
-    )
-  ) {
-    throw new AppError({
-      message:
-        "The selected shift is inactive",
-
-      statusCode: 409,
-
-      code:
-        "SHIFT_INACTIVE"
-    });
-  }
-
-  assertShiftBranchCompatibility(
-    employee,
-    shift
-  );
 
   if (
     finalScheduleId !== null
@@ -2829,14 +2882,15 @@ export async function updateEmployeeShiftAssignment(
           "WORK_SCHEDULE_INACTIVE"
       });
     }
+    await validateEmployeeScheduleShifts(companyId, employee, finalScheduleId);
   }
 
   const record:
     UpdateEmployeeShiftAssignmentRecord = {
-      ...(input.shiftId !== undefined
+      ...(input.shiftId !== undefined || input.scheduleId !== undefined
         ? {
             shiftId:
-              input.shiftId
+              finalShiftId
           }
         : {}),
 
@@ -3027,14 +3081,6 @@ export async function getEffectiveEmployeeShift(
     };
   }
 
-  const shift =
-    await findShiftRecordById(
-      companyId,
-      String(
-        assignment.shift_id
-      )
-    );
-
   const scheduleId =
     nullableId(
       assignment.schedule_id
@@ -3058,6 +3104,16 @@ export async function getEffectiveEmployeeShift(
             asOfDate
           )
         );
+
+  // added by wali: Return the shift assigned to this specific weekday as the employee's effective shift.
+  const effectiveShiftId = scheduleDay?.shift_id != null
+    ? String(scheduleDay.shift_id)
+    : scheduleDay && !databaseBoolean(scheduleDay.is_working_day)
+      ? null
+      : assignment.shift_id === null ? null : String(assignment.shift_id);
+  const shift = effectiveShiftId
+    ? await findShiftRecordById(companyId, effectiveShiftId)
+    : null;
 
   return {
     asOfDate,

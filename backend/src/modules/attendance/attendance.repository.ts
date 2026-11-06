@@ -143,6 +143,8 @@ interface BranchOwnershipRow {
 interface AttendanceRecordListFilters {
   employeeId?: string | undefined;
   branchId?: string | undefined;
+  // added by wali: Department is read from the employee's current assignment.
+  departmentId?: string | undefined;
 
   dateFrom?: string | undefined;
   dateTo?: string | undefined;
@@ -492,11 +494,15 @@ interface BiometricLogProcessingDatabaseRow {
   processing_error:
     | string
     | null;
+
+  time_zone: string;
 }
 
 export interface BiometricPunchProcessingResult {
   processingStatus:
     | "PROCESSED"
+    // added by wali: Distinguish a handled duplicate from a processing failure.
+    | "DUPLICATE_DISCARDED"
     | "ALREADY_PROCESSED";
 
   resolvedPunchType:
@@ -505,6 +511,27 @@ export interface BiometricPunchProcessingResult {
 
   attendanceRecord:
     AttendanceRecordDatabaseRow;
+}
+
+// added by wali: Check wall-clock punch minutes against an optional, inclusive shift window.
+function punchFallsInShiftWindow(
+  punchMinuteOfDay: number,
+  startTime: string | null,
+  endTime: string | null
+): boolean {
+  if (startTime === null || endTime === null) {
+    return false;
+  }
+
+  const startParts = startTime.split(":");
+  const endParts = endTime.split(":");
+  const startMinute = Number(startParts[0]) * 60 + Number(startParts[1]);
+  const endMinute = Number(endParts[0]) * 60 + Number(endParts[1]);
+
+  // added by wali: Treat a window whose end is earlier than its start as crossing midnight.
+  return startMinute <= endMinute
+    ? punchMinuteOfDay >= startMinute && punchMinuteOfDay <= endMinute
+    : punchMinuteOfDay >= startMinute || punchMinuteOfDay <= endMinute;
 }
 
 /*
@@ -565,9 +592,11 @@ function databaseDateOnly(
       ? value
       : new Date(value);
 
-  return date
-    .toISOString()
-    .slice(0, 10);
+  // added by wali: Preserve DATE values at local midnight instead of shifting the day through UTC.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 function toDatabaseDateTime(
   value: string
@@ -709,12 +738,19 @@ async function lockEmployeeRecord(
     await connection.query(
       `
         SELECT
-            employee_id,
-            company_id,
-            branch_id
-        FROM employees
-        WHERE employee_id = ?
-          AND deleted_at IS NULL
+            e.employee_id,
+            e.company_id,
+            (
+              SELECT ea.branch_id
+              FROM employee_assignments ea
+              WHERE ea.employee_id = e.employee_id
+                AND ea.is_current = 1
+              ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+              LIMIT 1
+            ) AS branch_id
+        FROM employees e
+        WHERE e.employee_id = ?
+          AND e.deleted_at IS NULL
         LIMIT 1
         FOR UPDATE
       `,
@@ -837,7 +873,7 @@ const attendancePolicyAssignmentSelect = `
       assigned_user.username
           AS assigned_by_username,
 
-      assigned_user.full_name
+      assigned_user.username
           AS assigned_by_full_name,
 
       eapa.created_at,
@@ -859,6 +895,7 @@ const attendanceDeviceSelect = `
 
       b.branch_code,
       b.branch_name,
+      COALESCE(b.timezone, c.timezone) AS time_zone,
 
       ad.device_code,
       ad.device_name,
@@ -874,7 +911,16 @@ const attendanceDeviceSelect = `
       ad.physical_location,
 
       ad.last_sync_at,
-      ad.sync_status,
+      /* added by wali: Derive offline presence after five minutes without a heartbeat or punch. */
+      CASE
+          WHEN ad.is_active = 1
+            AND (
+              ad.last_sync_at IS NULL
+              OR ad.last_sync_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)
+            )
+          THEN 'OFFLINE'
+          ELSE ad.sync_status
+      END AS sync_status,
 
       ad.is_active,
       ad.deleted_at,
@@ -882,6 +928,9 @@ const attendanceDeviceSelect = `
       ad.created_at,
       ad.updated_at
   FROM attendance_devices ad
+  INNER JOIN companies c
+      ON c.company_id =
+         ad.company_id
   LEFT JOIN branches b
       ON b.branch_id =
          ad.branch_id
@@ -949,7 +998,7 @@ const attendanceRecordSelect = `
         )
       ) AS employee_name,
 
-      e.branch_id,
+      ea.branch_id,
       b.branch_code,
       b.branch_name,
 
@@ -1012,7 +1061,7 @@ const attendanceRecordSelect = `
       finalized_user.username
           AS finalized_by_username,
 
-      finalized_user.full_name
+      finalized_user.username
           AS finalized_by_full_name,
 
       ar.finalized_at,
@@ -1038,9 +1087,18 @@ const attendanceRecordSelect = `
   INNER JOIN employees e
       ON e.employee_id =
          ar.employee_id
+  LEFT JOIN employee_assignments ea
+      ON ea.assignment_id = (
+          SELECT ea2.assignment_id
+          FROM employee_assignments ea2
+          WHERE ea2.employee_id = e.employee_id
+            AND ea2.is_current = 1
+          ORDER BY ea2.effective_from DESC, ea2.assignment_id DESC
+          LIMIT 1
+      )
   LEFT JOIN branches b
       ON b.branch_id =
-         e.branch_id
+         ea.branch_id
   LEFT JOIN shifts s
       ON s.shift_id =
          ar.shift_id
@@ -1756,7 +1814,7 @@ async function recalculateAttendanceRecord(
             s.overtime_after_minutes
                 AS shift_overtime_after_minutes,
 
-            wsd.expected_work_minutes
+            COALESCE(NULLIF(wsd.expected_work_minutes, 0), s.expected_work_minutes)
                 AS schedule_expected_work_minutes,
 
             CASE
@@ -2253,11 +2311,22 @@ export async function listAttendanceRecordRecords(
 
   if (filters.branchId) {
     conditions.push(
-      "e.branch_id = ?"
+      "ea.branch_id = ?"
     );
 
     parameters.push(
       filters.branchId
+    );
+  }
+
+  // added by wali: Apply department filter against the current employee assignment used by branch filtering.
+  if (filters.departmentId) {
+    conditions.push(
+      "ea.department_id = ?"
+    );
+
+    parameters.push(
+      filters.departmentId
     );
   }
 
@@ -2386,9 +2455,18 @@ export async function listAttendanceRecordRecords(
         INNER JOIN employees e
             ON e.employee_id =
                ar.employee_id
+        LEFT JOIN employee_assignments ea
+            ON ea.assignment_id = (
+                SELECT ea2.assignment_id
+                FROM employee_assignments ea2
+                WHERE ea2.employee_id = e.employee_id
+                  AND ea2.is_current = 1
+                ORDER BY ea2.effective_from DESC, ea2.assignment_id DESC
+                LIMIT 1
+            )
         LEFT JOIN branches b
             ON b.branch_id =
-               e.branch_id
+               ea.branch_id
         WHERE ${whereClause}
       `,
       parameters
@@ -4086,7 +4164,7 @@ export async function findAttendanceEmployeeByCode(
   const rows =
     await databasePool.query(
       `
-        -- edited by wali: Keep code-based employee lookup aligned with normalized assignment and status tables.
+        -- added by wali: Resolve a device's biometric identifier before falling back to the employee code.
 SELECT
             e.employee_id,
             e.company_id,
@@ -4111,12 +4189,23 @@ SELECT
                 LIMIT 1
             )
         WHERE e.company_id = ?
-          AND e.employee_code = ?
+          AND (
+            e.biometric_identifier = ?
+            OR e.employee_code = ?
+          )
           AND e.deleted_at IS NULL
+        ORDER BY
+          CASE
+            WHEN e.biometric_identifier = ? THEN 0
+            ELSE 1
+          END,
+          e.employee_id ASC
         LIMIT 1
       `,
       [
         companyId,
+        employeeCode,
+        employeeCode,
         employeeCode
       ]
     );
@@ -4181,8 +4270,8 @@ export async function listBiometricLogsForProcessing(
   BiometricLogProcessingDatabaseRow[]
 > {
   const conditions: string[] = [
-    "company_id = ?",
-    "is_processed = 0"
+    "bl.company_id = ?",
+    "bl.is_processed = 0"
   ];
 
   const parameters: unknown[] = [
@@ -4218,21 +4307,28 @@ export async function listBiometricLogsForProcessing(
   const rows =
     await databasePool.query(
       `
-        SELECT
-            biometric_log_id,
-            company_id,
-            device_id,
-            employee_id,
-            external_employee_code,
-            punch_time,
-            punch_type,
-            verification_method,
-            latitude,
-            longitude,
-            source_type,
-            is_processed,
-            processing_error
-        FROM biometric_logs
+      SELECT
+            bl.biometric_log_id,
+            bl.company_id,
+            bl.device_id,
+            bl.employee_id,
+            bl.external_employee_code,
+            bl.punch_time,
+            bl.punch_type,
+            bl.verification_method,
+            bl.latitude,
+            bl.longitude,
+            bl.source_type,
+            bl.is_processed,
+            bl.processing_error,
+            COALESCE(b.timezone, c.timezone) AS time_zone
+        FROM biometric_logs bl
+        INNER JOIN companies c
+            ON c.company_id = bl.company_id
+        LEFT JOIN attendance_devices ad
+            ON ad.device_id = bl.device_id
+        LEFT JOIN branches b
+            ON b.branch_id = ad.branch_id
         WHERE ${conditions.join(
           " AND "
         )}
@@ -4259,6 +4355,12 @@ export async function processBiometricPunchRecord(
     attendanceDate: string;
     punchAt: string;
     punchType: string | null;
+    // added by wali: Compare timezone-adjusted device wall time with the assigned shift's windows.
+    punchMinuteOfDay: number;
+    checkInStartTime: string | null;
+    checkInEndTime: string | null;
+    checkOutStartTime: string | null;
+    checkOutEndTime: string | null;
 
     shiftId: string | null;
     scheduleId: string | null;
@@ -4549,11 +4651,30 @@ export async function processBiometricPunchRecord(
         "EXIT"
       ]);
 
+    const punchInCheckInWindow = punchFallsInShiftWindow(
+      input.punchMinuteOfDay,
+      input.checkInStartTime,
+      input.checkInEndTime
+    );
+    const punchInCheckOutWindow = punchFallsInShiftWindow(
+      input.punchMinuteOfDay,
+      input.checkOutStartTime,
+      input.checkOutEndTime
+    );
+
     let resolvedPunchType:
       | "CHECK_IN"
       | "CHECK_OUT";
 
-    if (
+    if (punchInCheckInWindow) {
+      // added by wali: The configured window owns classification so extra punches cannot switch direction.
+      resolvedPunchType =
+        "CHECK_IN";
+    } else if (punchInCheckOutWindow) {
+      // added by wali: A punch in the configured check-out period is never mistaken for a check-in.
+      resolvedPunchType =
+        "CHECK_OUT";
+    } else if (
       checkInPunchTypes.has(
         normalizedPunchType
       )
@@ -4573,6 +4694,52 @@ export async function processBiometricPunchRecord(
         attendance.check_out_at !== null
           ? "CHECK_IN"
           : "CHECK_OUT";
+    }
+
+    // added by wali: Preserve the first check-in and checkout; mark later matching punches discarded.
+    const duplicateCheckIn =
+      resolvedPunchType === "CHECK_IN" && attendance.check_in_at !== null;
+    const duplicateCheckOut =
+      resolvedPunchType === "CHECK_OUT" && attendance.check_out_at !== null;
+
+    if (duplicateCheckIn || duplicateCheckOut) {
+      await connection.query(
+        `
+          UPDATE biometric_logs
+          SET
+              employee_id = ?,
+              is_processed = 1,
+              processing_error = 'DUPLICATE_PUNCH_DISCARDED',
+              processed_at = CURRENT_TIMESTAMP
+          WHERE biometric_log_id = ?
+            AND company_id = ?
+        `,
+        [
+          input.employeeId,
+          input.biometricLogId,
+          input.companyId
+        ]
+      );
+
+      const currentAttendance =
+        await selectAttendanceRecordUsingConnection(
+          connection,
+          input.companyId,
+          attendanceId
+        );
+
+      if (!currentAttendance) {
+        throw new Error("DUPLICATE_ATTENDANCE_RECORD_NOT_FOUND");
+      }
+
+      await connection.commit();
+      transactionStarted = false;
+
+      return {
+        processingStatus: "DUPLICATE_DISCARDED",
+        resolvedPunchType,
+        attendanceRecord: currentAttendance
+      };
     }
 
     if (
@@ -5630,6 +5797,14 @@ export async function listWorkScheduleDayRecords(
             ws.company_id,
             wsd.day_of_week,
             wsd.is_working_day,
+            wsd.shift_id,
+            assigned_shift.shift_code,
+            assigned_shift.shift_name,
+            assigned_shift.start_time AS assigned_shift_start_time,
+            assigned_shift.end_time AS assigned_shift_end_time,
+            assigned_shift.crosses_midnight AS assigned_shift_crosses_midnight,
+            assigned_shift.break_minutes AS assigned_shift_break_minutes,
+            assigned_shift.expected_work_minutes AS assigned_shift_expected_work_minutes,
             wsd.planned_start_time,
             wsd.planned_end_time,
             wsd.break_minutes,
@@ -5641,6 +5816,11 @@ export async function listWorkScheduleDayRecords(
         INNER JOIN work_schedules ws
             ON ws.schedule_id =
                wsd.schedule_id
+        LEFT JOIN shifts assigned_shift
+            ON assigned_shift.shift_id =
+               wsd.shift_id
+           AND assigned_shift.company_id =
+               ws.company_id
         WHERE ${conditions.join(" AND ")}
         ORDER BY
             wsd.schedule_id ASC,
@@ -5670,7 +5850,7 @@ export async function findEffectiveShiftAssignment(
             esa.shift_assignment_id,
             esa.employee_id,
 
-            s.company_id,
+            e.company_id,
 
             esa.shift_id,
             s.shift_code,
@@ -5691,14 +5871,16 @@ export async function findEffectiveShiftAssignment(
             assigned_user.username
                 AS assigned_by_username,
 
-            assigned_user.full_name
+            assigned_user.username
                 AS assigned_by_full_name,
 
             esa.remarks,
             esa.created_at,
             esa.updated_at
         FROM employee_shift_assignments esa
-        INNER JOIN shifts s
+        INNER JOIN employees e
+            ON e.employee_id = esa.employee_id
+        LEFT JOIN shifts s
             ON s.shift_id =
                esa.shift_id
         LEFT JOIN work_schedules ws
@@ -5713,8 +5895,7 @@ export async function findEffectiveShiftAssignment(
             esa.effective_to IS NULL
             OR esa.effective_to >= ?
           )
-          AND s.deleted_at IS NULL
-          AND s.is_active = 1
+          AND (esa.schedule_id IS NOT NULL OR s.shift_id IS NULL OR (s.deleted_at IS NULL AND s.is_active = 1))
           AND (
             ws.schedule_id IS NULL
             OR (
@@ -5920,6 +6101,43 @@ export async function findAttendanceDeviceById(
       | AttendanceDeviceDatabaseRow
       | undefined
   ) ?? null;
+}
+
+// added by wali: Resolve unauthenticated ADMS pushes only for an active device registered by its serial number.
+export async function findAttendanceDeviceBySerialNumber(
+  serialNumber: string
+): Promise<AttendanceDeviceDatabaseRow | null> {
+  const rows = await databasePool.query(
+    `
+      ${attendanceDeviceSelect}
+      WHERE ad.serial_number = ?
+        AND ad.is_active = 1
+        AND ad.deleted_at IS NULL
+      ORDER BY ad.device_id ASC
+      LIMIT 2
+    `,
+    [serialNumber],
+  );
+
+  if (rows.length > 1) {
+    throw new Error("ATTENDANCE_DEVICE_SERIAL_NUMBER_AMBIGUOUS");
+  }
+
+  return (rows[0] as AttendanceDeviceDatabaseRow | undefined) ?? null;
+}
+
+export async function touchAttendanceDeviceAfterPush(deviceId: string): Promise<void> {
+  await databasePool.query(
+    `
+      UPDATE attendance_devices
+      SET last_sync_at = UTC_TIMESTAMP(),
+          sync_status = 'ONLINE'
+      WHERE device_id = ?
+        AND is_active = 1
+        AND deleted_at IS NULL
+    `,
+    [deviceId],
+  );
 }
 
 async function selectAttendanceDeviceUsingConnection(
@@ -6559,6 +6777,27 @@ export async function createBiometricLogRecord(
   }
 
   return created;
+}
+
+export async function findBiometricLogByDevicePunch(
+  deviceId: string,
+  externalEmployeeCode: string,
+  punchTime: string
+): Promise<string | null> {
+  const rows = await databasePool.query(
+    `
+      SELECT biometric_log_id
+      FROM biometric_logs
+      WHERE device_id = ?
+        AND external_employee_code = ?
+        AND punch_time = ?
+      ORDER BY biometric_log_id ASC
+      LIMIT 1
+    `,
+    [deviceId, externalEmployeeCode, toDatabaseDateTime(punchTime)],
+  );
+  const row = rows[0] as { biometric_log_id: string | number | bigint } | undefined;
+  return row ? String(row.biometric_log_id) : null;
 }
 
 export async function findBiometricLogById(

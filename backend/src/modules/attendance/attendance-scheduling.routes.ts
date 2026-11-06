@@ -32,6 +32,7 @@ import {
   getEffectiveEmployeeShiftController,
   getShiftController,
   getWorkScheduleController,
+  listAllShiftAssignmentsController,
   listEmployeeShiftAssignmentsController,
   listShiftsController,
   listWorkScheduleDaysController,
@@ -52,6 +53,7 @@ import {
   getEffectiveEmployeeShiftRequestSchema,
   getShiftRequestSchema,
   getWorkScheduleRequestSchema,
+  listAllShiftAssignmentsRequestSchema,
   listEmployeeShiftAssignmentsRequestSchema,
   listShiftsRequestSchema,
   listWorkScheduleDaysRequestSchema,
@@ -273,6 +275,23 @@ attendanceSchedulingRouter.put(
  * Employee scheduling routes
  * =========================================================
  */
+
+// added by wali: Expose all employee assignments together so admins can review mappings without selecting each employee first.
+attendanceSchedulingRouter.get(
+  "/employee-shift-assignments",
+  requireAnyPermission(
+    "attendance.scheduling.view",
+    "attendance.scheduling.manage",
+    "attendance.scheduling.assign",
+    "attendance.manage"
+  ),
+  validateRequest(
+    listAllShiftAssignmentsRequestSchema
+  ),
+  asyncHandler(
+    listAllShiftAssignmentsController
+  )
+);
 
 employeeSchedulingRouter.get(
   "/:employeeId/effective-shift",

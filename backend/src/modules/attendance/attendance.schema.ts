@@ -1227,6 +1227,11 @@ export const attendanceRecordListQuerySchema =
         databaseIdSchema
           .optional(),
 
+      // added by wali: Allow attendance lists to filter records by the employee's current department.
+      departmentId:
+        databaseIdSchema
+          .optional(),
+
       dateFrom:
         dateOnlySchema
           .optional(),

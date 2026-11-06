@@ -16,6 +16,7 @@ import {
   endAttendanceBreakRecord,
   finalizeAttendanceRecord as finalizeAttendanceRecordRepository,
   findAttendanceDeviceById,
+  findAttendanceDeviceBySerialNumber,
   findAttendanceEmployeeByCode,
   findAttendanceEmployeeById,
   findAttendancePolicyById,
@@ -39,9 +40,11 @@ import {
   listShiftRecords,
   listWorkScheduleDayRecords,
   listWorkScheduleRecords,
+  findBiometricLogByDevicePunch,
   markBiometricLogFailed,
   processBiometricPunchRecord,
   startAttendanceBreakRecord,
+  touchAttendanceDeviceAfterPush,
   updateAttendanceDeviceRecord,
   updateAttendanceRecordRecord
 } from "./attendance.repository.js";
@@ -169,9 +172,12 @@ function dateOnly(
     return value.slice(0, 10);
   }
 
-  return new Date(value)
-    .toISOString()
-    .slice(0, 10);
+  // added by wali: Preserve the database calendar day for DATE values materialized at local midnight.
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function requiredDateOnly(
@@ -230,6 +236,85 @@ function requiredDateTimeIso(
   }
 
   return result;
+}
+
+function getDateTimePartsInZone(value: Date, timeZone: string): Record<string, string> {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(value);
+
+  return Object.fromEntries(
+    parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]),
+  );
+}
+
+function dateInTimeZone(value: string, timeZone: string): string {
+  const parts = getDateTimePartsInZone(new Date(value), timeZone);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+// added by wali: Convert the device's wall-clock punch time with its branch/company timezone before saving UTC.
+function deviceLocalDateTimeToIso(value: string, timeZone: string): string {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) {
+    throw new Error("INVALID_BIOMETRIC_PUNCH_TIME");
+  }
+
+  const [, year, month, day, hour, minute, second] = match;
+  const wallClockUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+  const localParts = getDateTimePartsInZone(new Date(wallClockUtc), timeZone);
+  const zonedWallClockUtc = Date.UTC(
+    Number(localParts.year),
+    Number(localParts.month) - 1,
+    Number(localParts.day),
+    Number(localParts.hour),
+    Number(localParts.minute),
+    Number(localParts.second),
+  );
+  const offsetMilliseconds = zonedWallClockUtc - wallClockUtc;
+  return new Date(wallClockUtc - offsetMilliseconds).toISOString();
+}
+
+interface ParsedDevicePunch {
+  externalEmployeeCode: string;
+  localPunchTime: string;
+  punchType: string | null;
+  verificationMethod: string | null;
+  rawPayload: string;
+}
+
+function parseDeviceAttendanceLine(line: string): ParsedDevicePunch {
+  const match = line.trim().match(/^(\S+)[\t ]+(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:[\t ]+(.+))?$/);
+  if (!match) {
+    throw new Error("INVALID_BIOMETRIC_ATTLOG_ROW");
+  }
+
+  const [, machineUserId, date, time, remaining = ""] = match;
+  if (!machineUserId || !date || !time) {
+    throw new Error("INVALID_BIOMETRIC_ATTLOG_ROW");
+  }
+  const fields = remaining.trim().split(/\t+| {2,}/).filter(Boolean);
+  const rawStatus = fields[0]?.trim() ?? "";
+  const punchType = rawStatus === "0"
+    ? "CHECK_IN"
+    : rawStatus === "1"
+      ? "CHECK_OUT"
+      : null;
+
+  return {
+    externalEmployeeCode: machineUserId,
+    localPunchTime: `${date} ${time}`,
+    punchType,
+    verificationMethod: fields[1]?.trim() || null,
+    rawPayload: line.trim(),
+  };
 }
 
 function timeOnly(
@@ -339,8 +424,22 @@ function hasPermission(
   auth: AuthContext,
   permissionCode: string
 ): boolean {
+  const isTenantCompanyAdmin = Boolean(
+    auth.companyId &&
+    (
+      auth.roleCodes.some(
+        (roleCode) => roleCode.trim().toUpperCase() === "COMPANY_ADMIN"
+      ) ||
+      getPermissions(auth).some(
+        (permission) => permission.trim().toUpperCase() === "COMPANY_ADMIN"
+      )
+    )
+  );
+
   return (
     auth.isPlatformAdmin ||
+    // added by wali: Match the Company Admin attendance access granted by route authorization.
+    (isTenantCompanyAdmin && ["attendance.view", "biometric.manage"].includes(permissionCode)) ||
     getPermissions(
       auth
     ).includes(
@@ -1030,7 +1129,7 @@ function mapShiftAssignment(
       String(row.company_id),
 
     shiftId:
-      String(row.shift_id),
+      nullableId(row.shift_id),
 
     shiftCode:
       row.shift_code,
@@ -1716,14 +1815,12 @@ async function resolveAttendanceSetup(
       attendanceDate
     );
 
-  const shiftId =
+  let shiftId =
     requested.shiftId !==
     undefined
       ? requested.shiftId
-      : shiftAssignment
-        ? String(
-            shiftAssignment.shift_id
-          )
+      : shiftAssignment?.shift_id != null
+        ? String(shiftAssignment.shift_id)
         : null;
 
   const scheduleId =
@@ -1740,7 +1837,7 @@ async function resolveAttendanceSetup(
     ShiftDatabaseRow | null =
       null;
 
-  if (shiftId !== null) {
+  if (shiftId !== null && scheduleId === null) {
     shift =
       await findShiftById(
         companyId,
@@ -1840,24 +1937,28 @@ async function resolveAttendanceSetup(
     if (scheduleDay) {
       scheduleDayFound = true;
 
+      // added by wali: Resolve this weekday's assigned shift from the schedule, instead of reusing one shift for every day.
+      if (scheduleDay.shift_id !== null && scheduleDay.shift_id !== undefined) {
+        shiftId = String(scheduleDay.shift_id);
+      } else if (!databaseBoolean(scheduleDay.is_working_day)) {
+        shiftId = null;
+      }
+
       if (
         databaseBoolean(
           scheduleDay.is_working_day
         ) &&
-        scheduleDay.planned_start_time &&
-        scheduleDay.planned_end_time
+        (scheduleDay.assigned_shift_start_time || scheduleDay.planned_start_time) &&
+        (scheduleDay.assigned_shift_end_time || scheduleDay.planned_end_time)
       ) {
         generatedStartAt =
           combineDateAndTime(
             attendanceDate,
-            scheduleDay
-              .planned_start_time
+            scheduleDay.assigned_shift_start_time ?? scheduleDay.planned_start_time!
           );
 
         const endDate =
-          databaseBoolean(
-            scheduleDay.crosses_midnight
-          )
+          databaseBoolean(scheduleDay.assigned_shift_crosses_midnight ?? scheduleDay.crosses_midnight)
             ? addDateDays(
                 attendanceDate,
                 1
@@ -1867,10 +1968,20 @@ async function resolveAttendanceSetup(
         generatedEndAt =
           combineDateAndTime(
             endDate,
-            scheduleDay
-              .planned_end_time
+            scheduleDay.assigned_shift_end_time ?? scheduleDay.planned_end_time!
           );
       }
+    }
+  }
+
+  // added by wali: Validate the shift chosen for this specific schedule day, rather than requiring the assignment's legacy base shift to remain active.
+  if (shiftId !== null && (!shift || String(shift.shift_id) !== shiftId)) {
+    shift = await findShiftById(companyId, shiftId);
+    if (!shift || !databaseBoolean(shift.is_active)) {
+      throw new AppError({ message: "Shift was not found or is inactive", statusCode: 422, code: "ATTENDANCE_SHIFT_NOT_FOUND" });
+    }
+    if (shift.branch_id !== null && employee.branch_id !== null && String(shift.branch_id) !== String(employee.branch_id)) {
+      throw new AppError({ message: "The selected shift belongs to another branch", statusCode: 422, code: "ATTENDANCE_SHIFT_BRANCH_MISMATCH" });
     }
   }
 
@@ -2970,6 +3081,135 @@ export async function createBiometricLog(
   );
 }
 
+// added by wali: Accept ZKTeco ADMS ATTLOG rows, store raw events, and update attendance records immediately.
+// added by wali: Refresh registered device presence whenever its ADMS heartbeat arrives.
+export async function recordAttendanceDeviceHeartbeat(
+  serialNumber: string,
+): Promise<boolean> {
+  const normalizedSerialNumber = serialNumber.trim();
+  if (!normalizedSerialNumber) return false;
+
+  const device = await findAttendanceDeviceBySerialNumber(normalizedSerialNumber);
+  if (!device) return false;
+
+  await touchAttendanceDeviceAfterPush(String(device.device_id));
+  return true;
+}
+
+export async function receiveAttendanceDevicePush(
+  serialNumber: string,
+  rawBody: string
+): Promise<{
+  acceptedCount: number;
+  duplicateCount: number;
+  processedCount: number;
+  // added by wali: Count stored device pushes intentionally ignored as duplicate attendance punches.
+  discardedCount: number;
+  failedCount: number;
+  failureReasons: string[];
+}> {
+  const normalizedSerialNumber = serialNumber.trim();
+  if (!normalizedSerialNumber) {
+    throw new AppError({
+      message: "Device serial number is required",
+      statusCode: 400,
+      code: "ATTENDANCE_DEVICE_SERIAL_REQUIRED",
+    });
+  }
+
+  const device = await findAttendanceDeviceBySerialNumber(normalizedSerialNumber);
+  if (!device) {
+    throw new AppError({
+      message: "No active attendance device is registered with this serial number",
+      statusCode: 404,
+      code: "ATTENDANCE_DEVICE_NOT_REGISTERED",
+    });
+  }
+
+  const lines = rawBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length > 1000) {
+    throw new AppError({
+      message: "A device push cannot contain more than 1000 attendance rows",
+      statusCode: 413,
+      code: "ATTENDANCE_DEVICE_PUSH_TOO_LARGE",
+    });
+  }
+
+  const punches = lines.map(parseDeviceAttendanceLine);
+  const companyId = String(device.company_id);
+  const deviceId = String(device.device_id);
+  let duplicateCount = 0;
+  let processedCount = 0;
+  let discardedCount = 0;
+  let failedCount = 0;
+  const failureReasons: string[] = [];
+
+  for (const punch of punches) {
+    const punchTime = deviceLocalDateTimeToIso(punch.localPunchTime, device.time_zone);
+    const existingLogId = await findBiometricLogByDevicePunch(
+      deviceId,
+      punch.externalEmployeeCode,
+      punchTime,
+    );
+    if (existingLogId) {
+      duplicateCount += 1;
+      // added by wali: Retry a previously stored punch if an earlier processing attempt failed.
+      const retryResult = await processBiometricLogsForCompany(companyId, {
+        biometricLogIds: [existingLogId],
+        maximumRecords: 1,
+        retryFailed: true,
+      });
+      processedCount += retryResult.processedCount;
+      discardedCount += retryResult.discardedCount;
+      failedCount += retryResult.failedCount;
+      failureReasons.push(
+        ...retryResult.results.flatMap((result) =>
+          result.status === "FAILED" && result.errorCode ? [result.errorCode] : []
+        ),
+      );
+      continue;
+    }
+
+    const record: CreateBiometricLogRecord = {
+      companyId,
+      deviceId,
+      employeeId: null,
+      externalEmployeeCode: punch.externalEmployeeCode,
+      punchTime,
+      punchType: punch.punchType,
+      verificationMethod: punch.verificationMethod,
+      latitude: null,
+      longitude: null,
+      sourceType: "BIOMETRIC",
+      rawPayload: serializeRawPayload(punch.rawPayload),
+    };
+    const created = await createBiometricLogRecord(record);
+    const result = await processBiometricLogsForCompany(companyId, {
+      biometricLogIds: [String(created.biometric_log_id)],
+      maximumRecords: 1,
+      retryFailed: false,
+    });
+    processedCount += result.processedCount;
+    discardedCount += result.discardedCount;
+    failedCount += result.failedCount;
+    failureReasons.push(
+      ...result.results.flatMap((item) =>
+        item.status === "FAILED" && item.errorCode ? [item.errorCode] : []
+      ),
+    );
+  }
+
+  await touchAttendanceDeviceAfterPush(deviceId);
+  return {
+    acceptedCount: punches.length - duplicateCount,
+    duplicateCount,
+    processedCount,
+    discardedCount,
+    failedCount,
+    failureReasons,
+  };
+}
+
 export async function listBiometricLogs(
   query:
     BiometricLogListQuery,
@@ -3066,6 +3306,16 @@ export async function processBiometricLogs(
   const companyId =
     requireCompanyId(auth);
 
+  return processBiometricLogsForCompany(
+    companyId,
+    input
+  );
+}
+
+async function processBiometricLogsForCompany(
+  companyId: string,
+  input: ProcessBiometricLogsInput
+) {
   const logs =
     await listBiometricLogsForProcessing(
       companyId,
@@ -3079,6 +3329,7 @@ export async function processBiometricLogs(
 
     status:
       | "PROCESSED"
+      | "DISCARDED"
       | "FAILED";
 
     attendanceId?: string;
@@ -3171,18 +3422,18 @@ export async function processBiometricLogs(
               punchAt
             );
 
-      const attendanceDate =
+      let attendanceDate =
         openRecord
           ? requiredDateOnly(
               openRecord
                 .attendance_date
             )
-          : punchAt.slice(
-              0,
-              10
+          : dateInTimeZone(
+              punchAt,
+              log.time_zone
             );
 
-      const setup =
+      let setup =
         openRecord
           ? {
               policyId:
@@ -3219,6 +3470,55 @@ export async function processBiometricLogs(
               {}
             );
 
+      // added by wali: Load the assigned shift windows and local wall-clock punch time for duplicate checks.
+      const punchPartsInDeviceZone = getDateTimePartsInZone(
+        new Date(punchAt),
+        log.time_zone
+      );
+      const punchMinuteOfDay =
+        Number(punchPartsInDeviceZone.hour) * 60 + Number(punchPartsInDeviceZone.minute);
+      let assignedShift = setup.shiftId
+        ? await findShiftById(companyId, setup.shiftId)
+        : null;
+
+      // added by wali: Attach after-midnight punches to the prior date when they fall in the tail of an overnight shift.
+      if (!openRecord) {
+        const currentShiftCrossesMidnight = assignedShift
+          ? databaseBoolean(assignedShift.crosses_midnight)
+          : false;
+        const currentShiftEndMinute = assignedShift
+          ? Number(String(assignedShift.end_time).slice(0, 2)) * 60 + Number(String(assignedShift.end_time).slice(3, 5))
+          : -1;
+        const shouldCheckPreviousShiftDate =
+          !assignedShift || (currentShiftCrossesMidnight && punchMinuteOfDay <= currentShiftEndMinute);
+
+        if (shouldCheckPreviousShiftDate) {
+          const previousDate = addDateDays(attendanceDate, -1);
+          const previousSetup = await resolveAttendanceSetup(companyId, employee, previousDate, {});
+          const previousShift = previousSetup.shiftId
+            ? await findShiftById(companyId, previousSetup.shiftId)
+            : null;
+          const previousShiftCrossesMidnight = previousShift
+            ? databaseBoolean(previousShift.crosses_midnight)
+            : false;
+          const previousShiftEndMinute = previousShift
+            ? Number(String(previousShift.end_time).slice(0, 2)) * 60 + Number(String(previousShift.end_time).slice(3, 5))
+            : -1;
+          const sameAssignedShift = !assignedShift || String(previousShift?.shift_id ?? "") === String(assignedShift.shift_id);
+
+          if (
+            previousShift &&
+            previousShiftCrossesMidnight &&
+            punchMinuteOfDay <= previousShiftEndMinute &&
+            sameAssignedShift
+          ) {
+            attendanceDate = previousDate;
+            setup = previousSetup;
+            assignedShift = previousShift;
+          }
+        }
+      }
+
       const processed =
         await processBiometricPunchRecord(
           {
@@ -3230,6 +3530,16 @@ export async function processBiometricLogs(
 
             punchType:
               log.punch_type,
+
+            punchMinuteOfDay,
+            checkInStartTime:
+              assignedShift ? timeOnly(assignedShift.check_in_start_time) : null,
+            checkInEndTime:
+              assignedShift ? timeOnly(assignedShift.check_in_end_time) : null,
+            checkOutStartTime:
+              assignedShift ? timeOnly(assignedShift.check_out_start_time) : null,
+            checkOutEndTime:
+              assignedShift ? timeOnly(assignedShift.check_out_end_time) : null,
 
             shiftId:
               setup.shiftId,
@@ -3266,8 +3576,9 @@ export async function processBiometricLogs(
       results.push({
         biometricLogId,
 
-        status:
-          "PROCESSED",
+        status: processed.processingStatus === "DUPLICATE_DISCARDED"
+          ? "DISCARDED"
+          : "PROCESSED",
 
         attendanceId:
           String(
@@ -3278,7 +3589,11 @@ export async function processBiometricLogs(
 
         resolvedPunchType:
           processed
-            .resolvedPunchType
+            .resolvedPunchType,
+
+        ...(processed.processingStatus === "DUPLICATE_DISCARDED"
+          ? { errorCode: "DUPLICATE_PUNCH_DISCARDED" }
+          : {})
       });
     } catch (error) {
       const errorCode =
@@ -3312,6 +3627,11 @@ export async function processBiometricLogs(
         (result) =>
           result.status ===
           "PROCESSED"
+      ).length,
+
+    discardedCount:
+      results.filter(
+        (result) => result.status === "DISCARDED"
       ).length,
 
     failedCount:
@@ -3359,6 +3679,14 @@ export async function listAttendanceRecords(
           ? {
               branchId:
                 query.branchId
+            }
+          : {}),
+
+        // added by wali: Pass department filter through to the attendance record repository.
+        ...(query.departmentId !== undefined
+          ? {
+              departmentId:
+                query.departmentId
             }
           : {}),
 

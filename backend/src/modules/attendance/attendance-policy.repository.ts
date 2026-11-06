@@ -717,7 +717,7 @@ const attendancePolicyAssignmentSelect = `
       assigned_user.username
           AS assigned_by_username,
 
-      assigned_user.full_name
+      assigned_user.username
           AS assigned_by_full_name,
 
       eapa.created_at,

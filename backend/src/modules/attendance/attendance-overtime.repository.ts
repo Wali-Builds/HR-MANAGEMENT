@@ -500,7 +500,7 @@ const overtimeRequestSelect = `
       requested_user.username
           AS requested_by_username,
 
-      requested_user.full_name
+      requested_user.username
           AS requested_by_full_name,
 
       otr.approved_by_user_id,
@@ -508,7 +508,7 @@ const overtimeRequestSelect = `
       approved_user.username
           AS approved_by_username,
 
-      approved_user.full_name
+      approved_user.username
           AS approved_by_full_name,
 
       otr.approved_at,

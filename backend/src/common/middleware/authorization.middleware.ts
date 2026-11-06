@@ -144,6 +144,12 @@ function hasEffectivePermission(
     normalizedPermission === "designation.manage" ||
     normalizedPermission === "position.view" ||
     normalizedPermission === "position.manage" ||
+    // added by wali: Let tenant Company Admins view attendance and configure biometric devices.
+    normalizedPermission === "attendance.view" ||
+    // added by wali: Keep shift setup available to linked Company Admins for their own tenant.
+    normalizedPermission === "attendance.scheduling.view" ||
+    normalizedPermission === "attendance.scheduling.manage" ||
+    normalizedPermission === "biometric.manage" ||
     normalizedPermission.startsWith("payroll.") ||
     // edited by wali: Grant company administrators access to their tenant leave periods.
     normalizedPermission.startsWith("leave.period.") ||

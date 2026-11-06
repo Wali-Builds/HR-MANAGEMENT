@@ -6,6 +6,8 @@ interface Props {
   description: string;
   error?: string | undefined;
   canCreate: boolean;
+  // added by wali: Let pages name the action clearly for their first record.
+  createLabel?: string | undefined;
   onCreate: () => void;
   onRetry: () => void;
   // edited by wali: Reuse the global refresh animation while a retry is fetching records.
@@ -17,6 +19,7 @@ export function OrganisationEmptyState({
   description,
   error,
   canCreate,
+  createLabel = "Create first record",
   onCreate,
   onRetry,
   isRetrying = false,
@@ -33,7 +36,7 @@ export function OrganisationEmptyState({
         </button>
       ) : canCreate ? (
         <button type="button" className="wf-org-button wf-org-button--primary" onClick={(event) => { dialogMotion?.capture(event); onCreate(); }}>
-          <Plus size={15} /> Create first record
+          <Plus size={15} /> {createLabel}
         </button>
       ) : null}
     </div>
