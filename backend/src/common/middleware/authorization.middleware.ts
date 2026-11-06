@@ -63,7 +63,18 @@ const BRANCH_ADMIN_PERMISSIONS = new Set([
   "leave.request.view",
   "leave.request.approve",
   "leave.balance.view",
-  "leave.balance.initialize"
+  "leave.balance.initialize",
+  // added by wali: Let Branch Admins access Attendance workflows within assigned branches.
+  "attendance.view",
+  // added by wali: Allow branch-scoped attendance month finalization.
+  "attendance.finalize",
+  "attendance.adjustment.view",
+  "attendance.adjustment.manage",
+  "attendance.adjustment.approve",
+  "attendance.scheduling.view",
+  "attendance.scheduling.manage",
+  "attendance.scheduling.assign",
+  "biometric.manage"
 ]);
 
 function hasEffectivePermission(
@@ -144,8 +155,9 @@ function hasEffectivePermission(
     normalizedPermission === "designation.manage" ||
     normalizedPermission === "position.view" ||
     normalizedPermission === "position.manage" ||
-    // added by wali: Let tenant Company Admins view attendance and configure biometric devices.
+    // added by wali: Let tenant Company Admins view, finalize attendance, and configure biometric devices.
     normalizedPermission === "attendance.view" ||
+    normalizedPermission === "attendance.finalize" ||
     // added by wali: Keep shift setup available to linked Company Admins for their own tenant.
     normalizedPermission === "attendance.scheduling.view" ||
     normalizedPermission === "attendance.scheduling.manage" ||

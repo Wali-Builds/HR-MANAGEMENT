@@ -12,6 +12,7 @@ import type {
   AttendanceDeviceDatabaseRow,
   AttendanceEmployeeDatabaseRow,
   AttendancePolicyDatabaseRow,
+  AttendanceMonthFinalizationResponse,
   AttendanceRecordDatabaseRow,
   AttendanceStatusDatabaseRow,
   BiometricLogDatabaseRow,
@@ -81,6 +82,8 @@ interface LookupFilters {
 interface AttendanceDeviceListFilters {
   search?: string | undefined;
   branchId?: string | undefined;
+  // added by wali: Enforce Branch Admin scope regardless of the selected device branch filter.
+  branchIds?: string[] | undefined;
   deviceType?: string | undefined;
   syncStatus?: string | undefined;
 
@@ -143,6 +146,8 @@ interface BranchOwnershipRow {
 interface AttendanceRecordListFilters {
   employeeId?: string | undefined;
   branchId?: string | undefined;
+  // added by wali: Enforce Branch Admin scope on daily and historical attendance records.
+  branchIds?: string[] | undefined;
   // added by wali: Department is read from the employee's current assignment.
   departmentId?: string | undefined;
 
@@ -764,6 +769,28 @@ async function lockEmployeeRecord(
       | LockedEmployeeRow
       | undefined
   ) ?? null;
+}
+
+// added by wali: Stop late punches or new manual rows from reopening a closed employee-month.
+async function assertAttendanceMonthNotFinalized(
+  connection: PoolConnection,
+  companyId: string,
+  employeeId: string,
+  attendanceDate: string
+): Promise<void> {
+  const rows = await connection.query(
+    `
+      SELECT month_finalization_id
+      FROM attendance_month_finalizations
+      WHERE company_id = ?
+        AND employee_id = ?
+        AND attendance_month = ?
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [companyId, employeeId, attendanceDate.slice(0, 7)]
+  );
+  if (rows.length > 0) throw new Error("ATTENDANCE_MONTH_CLOSED");
 }
 
 async function insertActivityLog(
@@ -2319,6 +2346,16 @@ export async function listAttendanceRecordRecords(
     );
   }
 
+  // added by wali: Restrict all attendance history to the employee's current assignment in allowed branches.
+  if (filters.branchIds !== undefined) {
+    if (filters.branchIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`ea.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`);
+      parameters.push(...filters.branchIds);
+    }
+  }
+
   // added by wali: Apply department filter against the current employee assignment used by branch filtering.
   if (filters.departmentId) {
     conditions.push(
@@ -2549,6 +2586,14 @@ export async function createAttendanceRecordRecord(
         "EMPLOYEE_COMPANY_MISMATCH"
       );
     }
+
+    // added by wali: Respect the month close before adding a late manual attendance row.
+    await assertAttendanceMonthNotFinalized(
+      connection,
+      input.companyId,
+      input.employeeId,
+      input.attendanceDate
+    );
 
     const insertResult =
       await connection.query(
@@ -4157,6 +4202,226 @@ export async function finalizeAttendanceRecord(
     connection.release();
   }
 }
+
+// added by wali: Finalize every eligible daily record for one employee-month atomically.
+export async function finalizeAttendanceMonthRecord(
+  input: {
+    companyId: string;
+    employeeId: string;
+    yearMonth: string;
+    dateFrom: string;
+    dateTo: string;
+    finalizedByUserId: string;
+    notes: string | null;
+    actor: AttendanceActor;
+    metadata: RequestMetadata;
+  }
+): Promise<AttendanceMonthFinalizationResponse> {
+  const connection = await databasePool.getConnection();
+  let transactionStarted = false;
+
+  try {
+    await connection.beginTransaction();
+    transactionStarted = true;
+
+    // added by wali: Serialize close attempts per employee and ensure the employee belongs to this company.
+    const employee = await lockEmployeeRecord(connection, input.employeeId);
+    if (!employee) throw new Error("EMPLOYEE_NOT_FOUND");
+    if (String(employee.company_id) !== input.companyId) throw new Error("EMPLOYEE_COMPANY_MISMATCH");
+
+    const currentMonthRows = await connection.query(
+      "SELECT DATE_FORMAT(CURRENT_DATE(), '%Y-%m') AS current_year_month"
+    ) as Array<{ current_year_month: string }>;
+    const currentYearMonth = currentMonthRows[0]?.current_year_month;
+    if (!currentYearMonth || input.yearMonth >= currentYearMonth) {
+      throw new Error("ATTENDANCE_MONTH_NOT_COMPLETE");
+    }
+
+    const existingFinalizationRows = await connection.query(
+      `
+        SELECT month_finalization_id
+        FROM attendance_month_finalizations
+        WHERE company_id = ?
+          AND employee_id = ?
+          AND attendance_month = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [input.companyId, input.employeeId, input.yearMonth]
+    );
+    if (existingFinalizationRows.length > 0) {
+      throw new Error("ATTENDANCE_MONTH_ALREADY_FINALIZED");
+    }
+
+    const attendanceIdRows = await connection.query(
+      `
+        SELECT attendance_id
+        FROM attendance_records
+        WHERE company_id = ?
+          AND employee_id = ?
+          AND attendance_date >= ?
+          AND attendance_date <= ?
+        ORDER BY attendance_date, attendance_id
+        FOR UPDATE
+      `,
+      [input.companyId, input.employeeId, input.dateFrom, input.dateTo]
+    ) as Array<{ attendance_id: string | number | bigint }>;
+    if (attendanceIdRows.length === 0) {
+      throw new Error("ATTENDANCE_MONTH_HAS_NO_RECORDS");
+    }
+
+    // added by wali: Keep punch corrections reviewable before allowing an entire month to be closed.
+    const pendingAdjustmentRows = await connection.query(
+      `
+        SELECT adjustment_request_id
+        FROM attendance_adjustment_requests
+        WHERE company_id = ?
+          AND employee_id = ?
+          AND attendance_date >= ?
+          AND attendance_date <= ?
+          AND request_status = 'PENDING'
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [input.companyId, input.employeeId, input.dateFrom, input.dateTo]
+    );
+    if (pendingAdjustmentRows.length > 0) {
+      throw new Error("PENDING_ATTENDANCE_ADJUSTMENT_EXISTS");
+    }
+
+    let changedRecordCount = 0;
+    for (const idRow of attendanceIdRows) {
+      const attendanceId = String(idRow.attendance_id);
+      const existing = await lockAttendanceRecord(connection, input.companyId, attendanceId);
+      if (!existing) throw new Error("ATTENDANCE_RECORD_NOT_FOUND");
+      if (databaseBooleanValue(existing.is_finalized)) continue;
+
+      const openBreakRows = await connection.query(
+        `
+          SELECT break_id
+          FROM attendance_breaks
+          WHERE attendance_id = ?
+            AND break_end_at IS NULL
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [attendanceId]
+      );
+      if (openBreakRows.length > 0) throw new Error("OPEN_ATTENDANCE_BREAK_EXISTS");
+
+      const policyRows = await connection.query(
+        `
+          SELECT ap.require_checkout
+          FROM attendance_records ar
+          LEFT JOIN attendance_policies ap ON ap.policy_id = ar.policy_id
+          WHERE ar.attendance_id = ?
+          LIMIT 1
+        `,
+        [attendanceId]
+      ) as Array<{ require_checkout: number | boolean | null }>;
+      if (
+        existing.check_in_at !== null &&
+        existing.check_out_at === null &&
+        databaseBooleanValue(policyRows[0]?.require_checkout ?? true)
+      ) {
+        throw new Error("CHECK_OUT_REQUIRED_BEFORE_FINALIZATION");
+      }
+
+      await recalculateAttendanceRecord(connection, attendanceId);
+      await connection.query(
+        `
+          UPDATE attendance_records
+          SET is_finalized = 1,
+              finalized_by_user_id = ?,
+              finalized_at = CURRENT_TIMESTAMP
+          WHERE attendance_id = ?
+            AND company_id = ?
+            AND is_finalized = 0
+        `,
+        [input.finalizedByUserId, attendanceId, input.companyId]
+      );
+
+      const finalized = await selectAttendanceRecordUsingConnection(connection, input.companyId, attendanceId);
+      if (!finalized) throw new Error("FINALIZED_ATTENDANCE_NOT_FOUND");
+
+      await insertActivityLog(connection, {
+        companyId: input.companyId,
+        actor: input.actor,
+        actionName: "attendance_record_finalized",
+        tableName: "attendance_records",
+        recordId: attendanceId,
+        oldValues: attendanceLogSummary(existing),
+        newValues: attendanceLogSummary(finalized),
+        requestMethod: "POST",
+        requestPath: `/api/v1/attendance/employees/${input.employeeId}/months/${input.yearMonth}/finalize`,
+        metadata: input.metadata
+      });
+
+      changedRecordCount += 1;
+    }
+
+    const insertResult = await connection.query(
+      `
+        INSERT INTO attendance_month_finalizations (
+            company_id,
+            employee_id,
+            attendance_month,
+            records_finalized_count,
+            finalized_by_user_id,
+            notes
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [input.companyId, input.employeeId, input.yearMonth, attendanceIdRows.length, input.finalizedByUserId, input.notes]
+    );
+    const monthFinalizationId = String(insertResult.insertId);
+
+    const finalizedAtRows = await connection.query(
+      `
+        SELECT finalized_at
+        FROM attendance_month_finalizations
+        WHERE month_finalization_id = ?
+        LIMIT 1
+      `,
+      [monthFinalizationId]
+    ) as Array<{ finalized_at: Date | string }>;
+
+    await insertActivityLog(connection, {
+      companyId: input.companyId,
+      actor: input.actor,
+      actionName: "attendance_month_finalized",
+      tableName: "attendance_month_finalizations",
+      recordId: monthFinalizationId,
+      oldValues: { employeeId: input.employeeId, yearMonth: input.yearMonth },
+      newValues: { employeeId: input.employeeId, yearMonth: input.yearMonth, recordsFinalizedCount: attendanceIdRows.length, changedRecordCount },
+      requestMethod: "POST",
+      requestPath: `/api/v1/attendance/employees/${input.employeeId}/months/${input.yearMonth}/finalize`,
+      metadata: input.metadata
+    });
+
+    await connection.commit();
+    transactionStarted = false;
+
+    return {
+      monthFinalizationId,
+      companyId: input.companyId,
+      employeeId: input.employeeId,
+      yearMonth: input.yearMonth,
+      recordsFinalizedCount: attendanceIdRows.length,
+      finalizedByUserId: input.finalizedByUserId,
+      finalizedAt: finalizedAtRows[0]?.finalized_at instanceof Date
+        ? finalizedAtRows[0].finalized_at.toISOString()
+        : String(finalizedAtRows[0]?.finalized_at ?? ""),
+      notes: input.notes
+    };
+  } catch (error) {
+    if (transactionStarted) await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export async function findAttendanceEmployeeByCode(
   companyId: string,
   employeeCode: string
@@ -4465,6 +4730,14 @@ export async function processBiometricPunchRecord(
         "BIOMETRIC_EMPLOYEE_NOT_FOUND"
       );
     }
+
+    // added by wali: Keep delayed device uploads from creating a new row inside a finalized month.
+    await assertAttendanceMonthNotFinalized(
+      connection,
+      input.companyId,
+      input.employeeId,
+      input.attendanceDate
+    );
 
     if (
       biometricLog.employee_id !==
@@ -5960,6 +6233,17 @@ export async function listAttendanceDeviceRecords(
       filters.branchId
     );
   }
+
+  // added by wali: Restrict device results to assigned branches and return none for an empty scope.
+  if (filters.branchIds !== undefined) {
+    if (filters.branchIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`ad.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`);
+      parameters.push(...filters.branchIds);
+    }
+  }
+
 
   if (filters.deviceType) {
     conditions.push(

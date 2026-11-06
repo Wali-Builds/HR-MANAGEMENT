@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlarmClock, Building2, CalendarDays, Clock3, Edit3, Plus, RefreshCw, Search } from "lucide-react";
+import { AlarmClock, Building2, CalendarDays, Check, Clock3, Edit3, Plus, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { useCurrentCompanyIdentity } from "../../companies/hooks/useCompanies";
 import { listBranchesRequest } from "../../branches/api/branch.api";
 // added by wali: Load departments for the branch-aware shift filters.
 import { listDepartmentsRequest } from "../../organisation/api/organisation.api";
@@ -80,8 +81,10 @@ function getShiftWorkCapacity(form: ShiftForm) {
 
 export function AttendanceShiftsPage() {
   const user = useAuthStore((state) => state.user);
-  const { hasPermission, hasAnyPermission } = usePermissions();
+  const { hasPermission, hasAnyPermission, isBranchAdmin } = usePermissions();
   const companyId = user?.companyId ?? undefined;
+  const companyIdentityQuery = useCurrentCompanyIdentity(companyId ?? null);
+  const companyName = companyIdentityQuery.data?.displayName ?? (companyIdentityQuery.isLoading ? "Loading company…" : "Your company");
   const canView = hasAnyPermission(["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"]);
   const canManage = hasAnyPermission(["attendance.scheduling.manage", "attendance.manage"]);
   const [search, setSearch] = useState("");
@@ -179,7 +182,8 @@ export function AttendanceShiftsPage() {
     <section className="wf-org-page wf-projects-page wf-attendance-page wf-attendance-shifts">
       <header className="wf-org-hero wf-org-hero--center-company">
         <div className="wf-org-hero__identity"><span className="wf-org-hero__identity-icon"><AlarmClock size={19} /></span><div className="wf-org-hero__copy"><span className="wf-org-hero__eyebrow">People operations · attendance setup</span><h1>Shifts</h1><p>Define scheduled hours, punch windows and attendance grace periods.</p></div></div>
-        <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Building2 size={20} /></div><div><span>Company shifts</span><strong>{shifts.length} configured</strong></div></div>
+        {/* added by wali: Match the working-company identity card used by the other Attendance pages. */}
+        <div className="wf-org-hero__scope"><div className="wf-org-hero__scope-icon"><Building2 size={20} /></div><div><span>Working company</span><strong>{companyName}</strong></div></div>
       </header>
 
       <div className="wf-org-health-strip wf-attendance-health wf-attendance-shifts__metrics">
@@ -195,12 +199,13 @@ export function AttendanceShiftsPage() {
           <div className="wf-org-resource-toolbar__heading"><div><span>Attendance setup</span><h2>Shift definitions</h2><p>Manage shift timing, check-in/out windows and late arrival rules.</p></div>{canManage && <button className="wf-org-button wf-org-button--primary" onClick={openCreate}><Plus size={16} />Add shift</button>}</div>
           <div className="wf-org-resource-toolbar__tools"><label className="wf-org-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shifts" /></label>
             {/* added by wali: Let users narrow shifts by their configured branch and department coverage. */}
-            {branchQuery.data?.branches && branchQuery.data.branches.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={branchFilter} placeholder="All branches" ariaLabel="Filter shifts by branch" options={[{ value: "ALL", label: "All branches" }, ...branchQuery.data.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchFilter(value); setDepartmentFilter("ALL"); }} allowClear={false} />}
+            {/* added by wali: Branch Admin shift results already use their assigned branch scope. */}
+            {!isBranchAdmin && branchQuery.data?.branches && branchQuery.data.branches.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={branchFilter} placeholder="All branches" ariaLabel="Filter shifts by branch" options={[{ value: "ALL", label: "All branches" }, ...branchQuery.data.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchFilter(value); setDepartmentFilter("ALL"); }} allowClear={false} />}
             {departmentQuery.data?.departments && departmentQuery.data.departments.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={departmentFilter} placeholder="All departments" ariaLabel="Filter shifts by department" options={[{ value: "ALL", label: "All departments" }, ...departmentQuery.data.departments.map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={setDepartmentFilter} allowClear={false} />}
             <div className="wf-org-resource-toolbar__pager"><span>{query.isLoading ? "Loading shifts…" : `${shifts.length} shifts`}</span><button type="button" title="Refresh shifts" aria-label="Refresh shifts" onClick={() => void query.refetch()}><RefreshCw className={query.isFetching ? "spin" : ""} size={15} /></button></div></div>
         </div>
         {query.isLoading ? <div className="wf-org-table-skeleton">Loading shifts…</div> : query.isError ? <div className="wf-org-empty-state"><p>Shifts could not be loaded. Check your attendance scheduling access and try refreshing.</p><button type="button" className="wf-org-button wf-org-button--secondary" onClick={() => void query.refetch()}><RefreshCw className={query.isFetching ? "spin" : ""} size={15} /> Try again</button></div> : shifts.length === 0 ? <OrganisationEmptyState title={search.trim() ? "No matching shifts" : "No shifts configured"} description={search.trim() ? "Try a different search, or clear the search to see all shifts." : "Add a shift to set scheduled hours, grace periods, and branch coverage."} canCreate={canManage} createLabel="Add first shift" onCreate={openCreate} onRetry={() => void query.refetch()} isRetrying={query.isFetching} /> : (
-          <div className="wf-org-table-wrap"><table className="wf-org-table"><thead><tr><th>Shift</th><th>Branch</th><th>Scheduled hours</th><th>Punch windows</th><th>Work / break</th><th>Grace</th><th>Assignments</th><th>Status</th>{canManage && <th>Actions</th>}</tr></thead><tbody>
+          <div className="wf-org-table-wrap"><table className="wf-org-table"><thead><tr><th>Shift</th><th>Branch</th><th>Scheduled hours</th><th>Punch windows</th><th>Work / break</th><th>Grace</th><th>Assignments</th><th className="wf-attendance-status-column">Status</th>{canManage && <th className="wf-attendance-action-column">Actions</th>}</tr></thead><tbody>
             {shifts.map((shift) => <tr key={shift.shiftId}>
               <td><div className="wf-org-record-title"><span className="wf-org-record-icon"><AlarmClock size={16} /></span><div><strong>{shift.shiftName}</strong><small>{shift.shiftCode}{shift.crossesMidnight ? " · Overnight" : ""}{shift.isFlexible ? " · Flexible" : ""}</small></div></div></td>
               <td>{shift.branchName ?? "All branches"}</td>
@@ -209,8 +214,8 @@ export function AttendanceShiftsPage() {
               <td>{durationLabel(shift.expectedWorkMinutes)}<small className="wf-attendance-shifts__subline">{shift.breakMinutes}m break</small></td>
               <td>{shift.lateGraceMinutes}m late<small className="wf-attendance-shifts__subline">{shift.earlyDepartureGraceMinutes}m early</small></td>
               <td>{shift.currentAssignmentCount}<small className="wf-attendance-shifts__subline">of {shift.assignmentCount} total</small></td>
-              <td><span className={`wf-attendance-shifts__status ${shift.isActive ? "is-active" : ""}`}><i />{shift.isActive ? "Active" : "Inactive"}</span></td>
-              {canManage && <td><div className="wf-attendance-shifts__actions"><button className="wf-org-button wf-org-button--secondary" onClick={() => openEdit(shift)}><Edit3 size={14} />Edit</button><button className="wf-attendance-shifts__toggle" disabled={saving} onClick={() => void toggleActive(shift)}>{shift.isActive ? "Deactivate" : "Activate"}</button></div></td>}
+              <td className="wf-attendance-status-column"><span className={`wf-attendance-shifts__status ${shift.isActive ? "is-active" : ""}`}><i />{shift.isActive ? "Active" : "Inactive"}</span></td>
+              {canManage && <td className="wf-attendance-action-column"><div className="wf-attendance-shifts__actions"><button className="wf-org-button wf-org-button--secondary" onClick={() => openEdit(shift)}><Edit3 size={14} />Edit</button><button type="button" className={`wf-attendance-shifts__toggle ${shift.isActive ? "is-deactivate" : "is-activate"}`} disabled={saving} onClick={() => void toggleActive(shift)} title={shift.isActive ? "Deactivate shift" : "Activate shift"} aria-label={shift.isActive ? "Deactivate shift" : "Activate shift"}>{shift.isActive ? <X size={16} /> : <Check size={16} />}</button></div></td>}
             </tr>)}
           </tbody></table></div>
         )}

@@ -30,6 +30,7 @@ import type {
   EmployeeAttendanceListQuery,
   EndAttendanceBreakInput,
   FinalizeAttendanceInput,
+  FinalizeAttendanceMonthInput,
   ProcessBiometricLogsInput,
   StartAttendanceBreakInput,
   UpdateAttendanceDeviceInput,
@@ -45,6 +46,7 @@ import {
   createBiometricLog,
   endAttendanceBreak,
   finalizeAttendance,
+  finalizeAttendanceMonth,
   getAttendanceDevice,
   getAttendanceLookups,
   getAttendanceRecord,
@@ -663,6 +665,41 @@ export async function finalizeAttendanceController(
 
     data: {
       attendanceRecord
+    }
+  });
+}
+
+// added by wali: Finalize an employee's selected month through the atomic month-close workflow.
+export async function finalizeAttendanceMonthController(
+  request: Request,
+  response: Response
+): Promise<void> {
+  const validated =
+    response.locals.validated as {
+      params: {
+        employeeId: string;
+        yearMonth: string;
+      };
+
+      body:
+        FinalizeAttendanceMonthInput;
+    };
+
+  const monthFinalization =
+    await finalizeAttendanceMonth(
+      validated.params.employeeId,
+      validated.params.yearMonth,
+      validated.body,
+      getAuthContext(response),
+      getRequestMetadata(request)
+    );
+
+  sendSuccess(response, {
+    message:
+      "Employee attendance month finalized successfully",
+
+    data: {
+      monthFinalization
     }
   });
 }

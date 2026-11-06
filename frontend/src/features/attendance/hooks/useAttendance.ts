@@ -62,10 +62,10 @@ export function useUpdateAttendanceShift() {
   });
 }
 
-export function useAttendanceDevices(search = "", enabled = true) {
+export function useAttendanceDevices(search = "", enabled = true, branchId = "") {
   return useQuery({
-    queryKey: [...attendanceQueryKeys.all, "devices", search],
-    queryFn: () => listAttendanceDevicesRequest(search.trim() || undefined),
+    queryKey: [...attendanceQueryKeys.all, "devices", search, branchId],
+    queryFn: () => listAttendanceDevicesRequest(search.trim() || undefined, branchId || undefined),
     enabled,
     // added by wali: Refresh device presence so the UI reflects the five-minute offline threshold automatically.
     refetchInterval: 30_000,

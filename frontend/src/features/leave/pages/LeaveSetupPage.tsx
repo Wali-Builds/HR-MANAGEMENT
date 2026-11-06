@@ -259,6 +259,8 @@ function policyRuleDraftFromRule(rule: LeavePolicyRule): PolicyRuleDraft {
 // edited by wali: Keep first-step setup focused on the Company Admin's policy configuration workflow.
 export function LeaveSetupPage() {
   const queryClient = useQueryClient();
+  // added by wali: Separate the growing leave setup into focused, switchable configuration panels.
+  const [configurationTab, setConfigurationTab] = useState<"types" | "policies" | "periods">("types");
   const [typeCode, setTypeCode] = useState("");
   const [typeName, setTypeName] = useState("");
   const [unitType, setUnitType] = useState<"DAYS" | "HOURS">("DAYS");
@@ -491,7 +493,13 @@ export function LeaveSetupPage() {
     {notice && <div className="leave-setup__notice leave-setup__notice--success"><Check size={17} />{notice}</div>}
     {errors.map((error, index) => <div className="leave-setup__notice leave-setup__notice--error" key={index}><CircleAlert size={17} />{normalizeApiError(error).message}</div>)}
 
-    <section className="leave-setup__step">
+    <nav className="leave-setup__configuration-tabs" role="tablist" aria-label="Leave configuration sections">
+      <button type="button" role="tab" aria-selected={configurationTab === "types"} className={configurationTab === "types" ? "is-active" : ""} onClick={() => setConfigurationTab("types")}>Leave types</button>
+      <button type="button" role="tab" aria-selected={configurationTab === "policies"} className={configurationTab === "policies" ? "is-active" : ""} onClick={() => setConfigurationTab("policies")}>Policies &amp; rules</button>
+      <button type="button" role="tab" aria-selected={configurationTab === "periods"} className={configurationTab === "periods" ? "is-active" : ""} onClick={() => setConfigurationTab("periods")}>Leave periods</button>
+    </nav>
+
+    {configurationTab === "types" && <section className="leave-setup__step">
       <div className="leave-setup__step-heading leave-setup__step-heading--actions">
         <span>1</span>
         <div><h2>Manage leave types</h2><p>Create categories employees can request, or edit an existing type.</p></div>
@@ -515,8 +523,9 @@ export function LeaveSetupPage() {
         </>}
       </form>
       {typesQuery.isLoading ? <Loading label="Loading leave types..." /> : types.length === 0 ? <p className="leave-setup__empty">No leave types yet.</p> : <div className="leave-setup__catalog">{types.map((item) => <div className="leave-setup__catalog-row" key={item.leaveTypeId}><span className="leave-setup__type-dot" style={{ backgroundColor: item.displayColor ?? "#127783" }} /><div><strong>{item.leaveTypeName}</strong><small>{item.leaveTypeCode} / {item.unitType.toLowerCase()} / {item.isPaid ? "paid" : "unpaid"}</small></div><span className={`leave-setup__badge ${item.isActive ? "is-active" : "is-inactive"}`}>{item.isActive ? "Active" : "Inactive"}</span><button className="leave-setup__text-button" type="button" onClick={() => editLeaveType(item)} disabled={typeMutation.isPending || typeStatusMutation.isPending}>Edit</button><button className="leave-setup__text-button" type="button" onClick={() => typeStatusMutation.mutate(item)} disabled={typeStatusMutation.isPending || typeMutation.isPending}>{item.isActive ? "Deactivate" : "Activate"}</button></div>)}</div>}
-    </section>
+    </section>}
 
+    {configurationTab === "policies" && <>
     <section className={`leave-setup__step ${!activeTypes.length ? "is-locked" : ""}`}>
       <div className="leave-setup__step-heading leave-setup__step-heading--actions">
         <span>2</span>
@@ -616,8 +625,9 @@ export function LeaveSetupPage() {
         </div>)}</div>}
       </>}
     </section>
+    </>}
     {/* added by wali: Let the Company Admin create an initial period or manually generate its successor. */}
-    <section className="leave-setup__step">
+    {configurationTab === "periods" && <section className="leave-setup__step">
       <div className="leave-setup__step-heading leave-setup__step-heading--actions"><span>4</span><div><h2>Set up leave periods</h2><p>Create an initial annual or quarterly period, then generate the next one from the latest period. Each request must fit within one open period.</p></div>
         <button className="leave-setup__button leave-setup__button--primary" type="button" disabled={periodMutation.isPending || !periods.length || !nextPeriod || Boolean(nextPeriodConflict)} onClick={() => { if (!nextPeriod) return; setNotice(""); periodMutation.mutate({ periodCode: nextPeriod.periodCode, periodName: nextPeriod.periodName, startDate: nextPeriod.startDate, endDate: nextPeriod.endDate }); }}><Plus size={16} />{periodMutation.isPending ? "Generating..." : "Generate next period"}</button>
       </div>
@@ -634,7 +644,7 @@ export function LeaveSetupPage() {
       </form>
       {periodsOverlappingSelectedRange.length > 0 && <div className="leave-setup__hint"><CircleAlert size={16} />These dates overlap an existing leave period ({periodsOverlappingSelectedRange.map((item) => item.periodName).join(", ")}). Existing periods and balances are kept; choose a different quarter or year.</div>}
       {periodsQuery.isLoading ? <Loading label="Loading leave periods..." /> : periods.length === 0 ? <p className="leave-setup__empty">No leave periods have been created yet.</p> : <div className="leave-setup__periods">{periods.map((item) => <div className="leave-setup__period-row" key={item.leavePeriodId}><div><strong>{item.periodName}</strong><small>{item.periodCode} / {item.startDate} to {item.endDate}</small></div><span className={`leave-setup__badge ${item.isOpen ? "is-active" : "is-inactive"}`}>{item.periodStatus}</span></div>)}</div>}
-    </section>
+    </section>}
   </main>;
 }
 

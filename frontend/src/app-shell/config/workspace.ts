@@ -390,15 +390,15 @@ const moduleNavigation: Partial<
     // added by wali: Keep daily attendance and previous-day history together under one Records destination.
     { label: "Records", to: "/attendance/records" },
     // added by wali: Link attendance navigation to the configured shift definitions page.
-    { label: "Shifts", to: "/attendance/shifts", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    { label: "Shifts", to: "/attendance/shifts", permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
     // added by wali: Let scheduling admins configure weekly workday templates in Attendance.
-    { label: "Work schedules", to: "/attendance/schedules", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    { label: "Work schedules", to: "/attendance/schedules", permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
     // added by wali: Provide a dedicated module page for assigning shifts and schedules to employees.
-    { label: "Assignments", to: "/attendance/assignments", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    { label: "Assignments", to: "/attendance/assignments", permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
     // added by wali: Give authorized reviewers a dedicated inbox for attendance records and punch changes.
     { label: "Approvals", to: "/attendance/approvals", permissions: ["attendance.view", "attendance.finalize", "attendance.manage", "attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"] },
     // added by wali: Keep device and employee mapping configuration at the end of Attendance navigation.
-    { label: "Configuration", to: "/attendance/configuration", companyAdminOnly: true, permissions: ["employee.view_all"] },
+    { label: "Configuration", to: "/attendance/configuration", permissions: ["employee.view_all", "biometric.manage"] },
   ],
 
   roles: [

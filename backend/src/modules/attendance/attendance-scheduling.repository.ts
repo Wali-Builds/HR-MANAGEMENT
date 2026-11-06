@@ -273,6 +273,8 @@ interface WorkScheduleListFilters {
 }
 
 interface EmployeeShiftAssignmentListFilters {
+  // added by wali: Limit assignment lists to employees in the caller's permitted branches.
+  branchIds?: string[] | undefined;
   shiftId?: string | undefined;
   scheduleId?: string | undefined;
   assignmentType?: string | undefined;
@@ -1450,11 +1452,15 @@ export async function listShiftRecords(
   }
 
   // added by wali: Apply the caller's branch access scope to shift queries.
-  if (filters.branchIds?.length) {
-    conditions.push(
-      `s.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`
-    );
-    parameters.push(...filters.branchIds);
+  if (filters.branchIds !== undefined) {
+    if (filters.branchIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(
+        `s.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`
+      );
+      parameters.push(...filters.branchIds);
+    }
   }
 
   // added by wali: A shift belongs to a department through an active weekly schedule assigned to that department's employees.
@@ -2271,7 +2277,9 @@ export async function listWorkScheduleRecords(
   ];
 
   // added by wali: Match schedules to current employee branch and department assignments.
-  if (filters.branchId || filters.departmentId || filters.branchIds?.length) {
+  if (filters.branchIds !== undefined && filters.branchIds.length === 0) {
+    conditions.push("1 = 0");
+  } else if (filters.branchId || filters.departmentId || filters.branchIds !== undefined) {
     const assignmentConditions = [
       "esa_scope.schedule_id = ws.schedule_id",
       "esa_scope.is_current = 1",
@@ -3260,6 +3268,21 @@ export async function listEmployeeShiftAssignmentRecords(
   if (employeeId !== null) {
     conditions.push("esa.employee_id = ?");
     parameters.push(employeeId);
+  }
+
+  // added by wali: Keep cross-employee assignment listings inside the Branch Admin's current branch scope.
+  if (filters.branchIds !== undefined) {
+    if (filters.branchIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM employee_assignments ea_scope
+        WHERE ea_scope.employee_id = e.employee_id
+          AND ea_scope.is_current = 1
+          AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})
+      )`);
+      parameters.push(...filters.branchIds);
+    }
   }
 
   if (filters.shiftId) {

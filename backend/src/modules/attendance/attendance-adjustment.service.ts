@@ -229,8 +229,14 @@ function hasPermission(
   auth: AuthContext,
   permissionCode: string
 ): boolean {
+  // added by wali: Resolve the scoped attendance-adjustment permissions granted to Branch Admins.
+  const isBranchAdmin = Boolean(
+    auth.companyId && auth.branchIds.length > 0 &&
+    [...auth.roleCodes, ...getPermissions(auth)].some((value) => value.trim().toUpperCase() === "BRANCH_ADMIN")
+  );
   return (
     auth.isPlatformAdmin ||
+    (isBranchAdmin && ["attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"].includes(permissionCode)) ||
     getPermissions(
       auth
     ).includes(
@@ -310,6 +316,39 @@ function assertCompanyAccess(
         "ATTENDANCE_ADJUSTMENT_COMPANY_ACCESS_DENIED"
     });
   }
+}
+
+// added by wali: Identify Branch Admins the same way as the attendance scheduling service.
+function isBranchAdmin(auth: AuthContext): boolean {
+  return [...auth.roleCodes, ...auth.permissions].some(
+    (value) => value.trim().toUpperCase() === "BRANCH_ADMIN"
+  );
+}
+
+// added by wali: Keep every direct adjustment action inside the Branch Admin's assigned branch scope.
+function assertEmployeeBranchAccess(
+  auth: AuthContext,
+  employee: AttendanceEmployeeDatabaseRow
+): void {
+  if (!isBranchAdmin(auth)) return;
+
+  const branchId = employee.branch_id === null ? null : String(employee.branch_id);
+  if (!branchId || !auth.branchIds.includes(branchId)) {
+    throw new AppError({
+      message: "You can only manage attendance adjustments for employees in your assigned branches",
+      statusCode: 403,
+      code: "ATTENDANCE_ADJUSTMENT_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
+// added by wali: Resolve the request's employee branch before allowing direct reads, edits, decisions, or cancellation.
+async function assertRequestBranchAccess(
+  auth: AuthContext,
+  request: AttendanceAdjustmentRequestDatabaseRow
+): Promise<void> {
+  const employee = await getEmployeeOrThrow(String(request.employee_id));
+  assertEmployeeBranchAccess(auth, employee);
 }
 
 function assertAdjustmentViewAccess(
@@ -1069,10 +1108,14 @@ export async function listAttendanceAdjustmentRequests(
   const companyId =
     requireCompanyId(auth);
 
+  const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
+
   const result =
     await listAttendanceAdjustmentRequestRecords(
       companyId,
       {
+        ...(branchIds !== undefined ? { branchIds } : {}),
+
         ...(query.employeeId !== undefined
           ? {
               employeeId:
@@ -1175,6 +1218,8 @@ export async function listEmployeeAttendanceAdjustments(
     employee
   );
 
+  assertEmployeeBranchAccess(auth, employee);
+
   assertAdjustmentViewAccess(
     auth,
     employeeId
@@ -1258,6 +1303,8 @@ export async function getAttendanceAdjustmentRequest(
     )
   );
 
+  await assertRequestBranchAccess(auth, request);
+
   return mapAdjustmentRequest(
     request
   );
@@ -1282,6 +1329,8 @@ export async function listAttendanceAdjustmentApprovals(
       request.employee_id
     )
   );
+
+  await assertRequestBranchAccess(auth, request);
 
   const approvals =
     await listAttendanceAdjustmentApprovalRecords(
@@ -1315,6 +1364,8 @@ export async function createAttendanceAdjustmentRequest(
     auth,
     employee
   );
+
+  assertEmployeeBranchAccess(auth, employee);
 
   assertAdjustmentCreateAccess(
     auth,
@@ -1545,6 +1596,8 @@ export async function updateAttendanceAdjustmentRequest(
     existing
   );
 
+  await assertRequestBranchAccess(auth, existing);
+
   await validateRequestedStatus(
     input.requestedStatusCode
   );
@@ -1722,6 +1775,8 @@ export async function cancelAttendanceAdjustmentRequest(
     existing
   );
 
+  await assertRequestBranchAccess(auth, existing);
+
   try {
     const cancelled =
       await cancelAttendanceAdjustmentRequestRecord(
@@ -1770,6 +1825,9 @@ export async function approveAttendanceAdjustmentRequest(
 
   const companyId =
     requireCompanyId(auth);
+
+  const existing = await getRequestOrThrow(companyId, adjustmentRequestId);
+  await assertRequestBranchAccess(auth, existing);
 
   const decision:
     AttendanceAdjustmentDecisionRecord = {
@@ -1836,6 +1894,9 @@ export async function rejectAttendanceAdjustmentRequest(
 
   const companyId =
     requireCompanyId(auth);
+
+  const existing = await getRequestOrThrow(companyId, adjustmentRequestId);
+  await assertRequestBranchAccess(auth, existing);
 
   const decision:
     AttendanceAdjustmentDecisionRecord = {
