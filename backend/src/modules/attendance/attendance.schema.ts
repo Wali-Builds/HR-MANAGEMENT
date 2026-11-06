@@ -1422,6 +1422,24 @@ export const finalizeAttendanceBodySchema =
     })
     .strict();
 
+// added by wali: Validate an employee-month finalization request without changing the daily record API.
+const finalizeAttendanceMonthParamsSchema =
+  z.object({
+    employeeId:
+      databaseIdSchema,
+
+    yearMonth: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Month must use YYYY-MM format")
+  });
+
+const finalizeAttendanceMonthBodySchema =
+  z.object({
+    notes:
+      nullableText(2000)
+        .optional()
+  }).strict();
+
 /*
  * =========================================================
  * Break schemas
@@ -1721,6 +1739,19 @@ export const finalizeAttendanceRequestSchema =
       z.object({}).passthrough()
   });
 
+// added by wali: Expose request validation for finalizing all eligible attendance rows in one employee-month.
+export const finalizeAttendanceMonthRequestSchema =
+  z.object({
+    body:
+      finalizeAttendanceMonthBodySchema,
+
+    params:
+      finalizeAttendanceMonthParamsSchema,
+
+    query:
+      z.object({}).passthrough()
+  });
+
 export const listAttendanceBreaksRequestSchema =
   z.object({
     body:
@@ -1841,6 +1872,17 @@ export type AttendanceCheckOutInput =
 export type FinalizeAttendanceInput =
   z.infer<
     typeof finalizeAttendanceBodySchema
+  >;
+
+// added by wali: Type the inputs for the new employee-month finalization workflow.
+export type FinalizeAttendanceMonthInput =
+  z.infer<
+    typeof finalizeAttendanceMonthBodySchema
+  >;
+
+export type FinalizeAttendanceMonthParams =
+  z.infer<
+    typeof finalizeAttendanceMonthParamsSchema
   >;
 
 export type StartAttendanceBreakInput =

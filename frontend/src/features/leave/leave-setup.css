@@ -343,6 +343,10 @@
 /* Keep the longer Configuration page sections distinct; preserve the compact Requests inbox rhythm. */
 .page-stack.leave-setup--configuration { gap: 16px; padding-top: 16px; }
 .page-stack.leave-setup--requests { gap: 12px; padding-top: 14px; }
+/* added by wali: Keep leave setup panels compact and show one configuration workflow at a time. */
+.leave-setup__configuration-tabs { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; border-bottom: 1px solid #dce5ed; }
+.leave-setup__configuration-tabs button { min-height: 40px; padding: 0 15px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #60768b; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.leave-setup__configuration-tabs button.is-active { border-bottom-color: #078b91; color: #0b5562; }
 .leave-setup--configuration .leave-setup__header,
 .leave-setup--requests .leave-setup__header { margin-bottom: 0; }
 .leave-setup--configuration > .leave-setup__step,

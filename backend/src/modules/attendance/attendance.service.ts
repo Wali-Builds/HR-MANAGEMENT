@@ -15,6 +15,7 @@ import {
   createBiometricLogRecord,
   endAttendanceBreakRecord,
   finalizeAttendanceRecord as finalizeAttendanceRecordRepository,
+  finalizeAttendanceMonthRecord,
   findAttendanceDeviceById,
   findAttendanceDeviceBySerialNumber,
   findAttendanceEmployeeByCode,
@@ -64,6 +65,7 @@ import type {
   EmployeeAttendanceListQuery,
   EndAttendanceBreakInput,
   FinalizeAttendanceInput,
+  FinalizeAttendanceMonthInput,
   ProcessBiometricLogsInput,
   StartAttendanceBreakInput,
   UpdateAttendanceDeviceInput,
@@ -424,6 +426,15 @@ function hasPermission(
   auth: AuthContext,
   permissionCode: string
 ): boolean {
+  // added by wali: Synthesize branch-scoped Attendance permissions for Branch Admin accounts only.
+  const isBranchAdmin = Boolean(
+    auth.companyId &&
+    auth.branchIds.length > 0 &&
+    [...auth.roleCodes, ...getPermissions(auth)].some(
+      (value) => value.trim().toUpperCase() === "BRANCH_ADMIN"
+    )
+  );
+
   const isTenantCompanyAdmin = Boolean(
     auth.companyId &&
     (
@@ -438,8 +449,9 @@ function hasPermission(
 
   return (
     auth.isPlatformAdmin ||
+    (isBranchAdmin && ["attendance.view", "attendance.finalize", "biometric.manage"].includes(permissionCode)) ||
     // added by wali: Match the Company Admin attendance access granted by route authorization.
-    (isTenantCompanyAdmin && ["attendance.view", "biometric.manage"].includes(permissionCode)) ||
+    (isTenantCompanyAdmin && ["attendance.view", "attendance.finalize", "biometric.manage"].includes(permissionCode)) ||
     getPermissions(
       auth
     ).includes(
@@ -464,6 +476,37 @@ function requireCompanyId(
   }
 
   return auth.companyId;
+}
+
+// added by wali: Detect Branch Admin accounts consistently for Attendance branch scoping.
+function isBranchAdmin(auth: AuthContext): boolean {
+  return Boolean(
+    auth.companyId &&
+    [...auth.roleCodes, ...getPermissions(auth)].some(
+      (value) => value.trim().toUpperCase() === "BRANCH_ADMIN"
+    )
+  );
+}
+
+// added by wali: Require every Branch Admin device operation to target one of their assigned branches.
+function assertAttendanceBranchAccess(auth: AuthContext, branchId: string | null): void {
+  if (!isBranchAdmin(auth)) return;
+  if (!branchId || !auth.branchIds.includes(String(branchId))) {
+    throw new AppError({
+      message: "You can only manage attendance devices in your assigned branches",
+      statusCode: 403,
+      code: "ATTENDANCE_BRANCH_ACCESS_DENIED"
+    });
+  }
+}
+
+// added by wali: Apply branch scope when an endpoint reads one employee or attendance record directly.
+function assertAttendanceEmployeeBranchAccess(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
+  if (!isBranchAdmin(auth)) return;
+  const branchId = employee.branch_id === null || employee.branch_id === undefined ? null : String(employee.branch_id);
+  if (!branchId || !auth.branchIds.includes(branchId)) {
+    throw new AppError({ message: "You can only view attendance for employees in your assigned branches", statusCode: 403, code: "ATTENDANCE_BRANCH_ACCESS_DENIED" });
+  }
 }
 
 function createActor(
@@ -2197,6 +2240,36 @@ function translateRepositoryError(
         statusCode: 404
       },
 
+      ATTENDANCE_MONTH_NOT_COMPLETE: {
+        message:
+          "Only a completed calendar month can be finalized",
+        statusCode: 422
+      },
+
+      ATTENDANCE_MONTH_HAS_NO_RECORDS: {
+        message:
+          "No attendance records were found for this employee and month",
+        statusCode: 404
+      },
+
+      ATTENDANCE_MONTH_ALREADY_FINALIZED: {
+        message:
+          "This employee's attendance month is already finalized",
+        statusCode: 409
+      },
+
+      ATTENDANCE_MONTH_CLOSED: {
+        message:
+          "This attendance month is finalized, so new attendance rows cannot be added",
+        statusCode: 409
+      },
+
+      PENDING_ATTENDANCE_ADJUSTMENT_EXISTS: {
+        message:
+          "Resolve pending attendance adjustment requests before finalizing this month",
+        statusCode: 409
+      },
+
       FINALIZED_ATTENDANCE_IMMUTABLE: {
         message:
           "A finalized attendance record cannot be modified",
@@ -2659,6 +2732,8 @@ export async function listAttendanceDevices(
 
   const companyId =
     requireCompanyId(auth);
+  // added by wali: Force Branch Admin device listings to their assigned branches, even when no branch filter is selected.
+  const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
 
   const result =
     await listAttendanceDeviceRecords(
@@ -2677,6 +2752,8 @@ export async function listAttendanceDevices(
                 query.branchId
             }
           : {}),
+
+        ...(branchIds !== undefined ? { branchIds } : {}),
 
         ...(query.deviceType !== undefined
           ? {
@@ -2747,6 +2824,8 @@ export async function getAttendanceDevice(
     });
   }
 
+  assertAttendanceBranchAccess(auth, device.branch_id === null ? null : String(device.branch_id));
+
   return mapAttendanceDevice(
     device
   );
@@ -2764,6 +2843,9 @@ export async function createAttendanceDevice(
 
   const companyId =
     requireCompanyId(auth);
+
+  // added by wali: Branch Admins must register a device to one of their assigned branches.
+  assertAttendanceBranchAccess(auth, input.branchId ?? null);
 
   const record:
     CreateAttendanceDeviceRecord = {
@@ -2844,6 +2926,14 @@ export async function updateAttendanceDevice(
 
   const companyId =
     requireCompanyId(auth);
+
+  // added by wali: Check both the existing and requested device branch before allowing edits.
+  const existingDevice = await findAttendanceDeviceById(companyId, deviceId);
+  if (!existingDevice) {
+    throw new AppError({ message: "Attendance device was not found", statusCode: 404, code: "ATTENDANCE_DEVICE_NOT_FOUND" });
+  }
+  assertAttendanceBranchAccess(auth, existingDevice.branch_id === null ? null : String(existingDevice.branch_id));
+  if (input.branchId !== undefined) assertAttendanceBranchAccess(auth, input.branchId);
 
   const record:
     UpdateAttendanceDeviceRecord = {
@@ -3663,6 +3753,8 @@ export async function listAttendanceRecords(
     auth,
     query.employeeId
   );
+  // added by wali: Keep attendance records inside the Branch Admin's assigned branches, independent of UI filters.
+  const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
 
   const result =
     await listAttendanceRecordRecords(
@@ -3681,6 +3773,8 @@ export async function listAttendanceRecords(
                 query.branchId
             }
           : {}),
+
+        ...(branchIds !== undefined ? { branchIds } : {}),
 
         // added by wali: Pass department filter through to the attendance record repository.
         ...(query.departmentId !== undefined
@@ -3789,6 +3883,8 @@ export async function listEmployeeAttendance(
     employee
   );
 
+  assertAttendanceEmployeeBranchAccess(auth, employee);
+
   assertAttendanceViewAccess(
     auth,
     employeeId
@@ -3852,6 +3948,9 @@ export async function getAttendanceRecord(
       companyId,
       attendanceId
     );
+
+  const employee = await getEmployeeOrThrow(String(record.employee_id));
+  assertAttendanceEmployeeBranchAccess(auth, employee);
 
   assertAttendanceViewAccess(
     auth,
@@ -4522,6 +4621,13 @@ export async function finalizeAttendance(
   const companyId =
     requireCompanyId(auth);
 
+  // added by wali: Keep direct record finalization inside the Branch Admin's assigned branch scope.
+  if (isBranchAdmin(auth)) {
+    const record = await getRecordOrThrow(companyId, attendanceId);
+    const employee = await getEmployeeOrThrow(String(record.employee_id));
+    assertAttendanceEmployeeBranchAccess(auth, employee);
+  }
+
   try {
     const finalized =
       await finalizeAttendanceRecordRepository(
@@ -4555,6 +4661,45 @@ export async function finalizeAttendance(
   }
 }
 
+// added by wali: Validate and finalize one employee's complete calendar month through the repository transaction.
+export async function finalizeAttendanceMonth(
+  employeeId: string,
+  yearMonth: string,
+  input: FinalizeAttendanceMonthInput,
+  auth: AuthContext,
+  metadata: RequestMetadata
+) {
+  assertAttendanceFinalizeAccess(auth);
+  const companyId = requireCompanyId(auth);
+  // added by wali: Allow Branch Admins to finalize a month only for an employee currently assigned to their branch.
+  if (isBranchAdmin(auth)) {
+    const employee = await getEmployeeOrThrow(employeeId);
+    assertEmployeeCompany(auth, employee);
+    assertAttendanceEmployeeBranchAccess(auth, employee);
+  }
+  const [yearText, monthText] = yearMonth.split("-");
+  const year = Number(yearText ?? 0);
+  const month = Number(monthText ?? 0);
+  const dateFrom = `${yearMonth}-01`;
+  const dateTo = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+
+  try {
+    return await finalizeAttendanceMonthRecord({
+      companyId,
+      employeeId,
+      yearMonth,
+      dateFrom,
+      dateTo,
+      finalizedByUserId: auth.userId,
+      notes: input.notes ?? null,
+      actor: createActor(auth),
+      metadata
+    });
+  } catch (error) {
+    return translateRepositoryError(error);
+  }
+}
+
 /*
  * =========================================================
  * Attendance breaks
@@ -4573,6 +4718,9 @@ export async function listAttendanceBreaks(
       companyId,
       attendanceId
     );
+
+  const employee = await getEmployeeOrThrow(String(attendance.employee_id));
+  assertAttendanceEmployeeBranchAccess(auth, employee);
 
   assertAttendanceViewAccess(
     auth,

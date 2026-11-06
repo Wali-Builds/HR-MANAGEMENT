@@ -817,6 +817,18 @@ export interface AttendanceRecordResponse {
   updatedAt: string;
 }
 
+// added by wali: Return the persisted close status for one employee and calendar month.
+export interface AttendanceMonthFinalizationResponse {
+  monthFinalizationId: string;
+  companyId: string;
+  employeeId: string;
+  yearMonth: string;
+  recordsFinalizedCount: number;
+  finalizedByUserId: string;
+  finalizedAt: string;
+  notes: string | null;
+}
+
 export interface CreateAttendanceRecordRecord {
   companyId: string;
   employeeId: string;

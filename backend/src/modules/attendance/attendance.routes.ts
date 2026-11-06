@@ -31,6 +31,7 @@ import {
   createBiometricLogController,
   endAttendanceBreakController,
   finalizeAttendanceController,
+  finalizeAttendanceMonthController,
   getAttendanceDeviceController,
   getAttendanceLookupsController,
   getAttendanceRecordController,
@@ -55,6 +56,7 @@ import {
   createBiometricLogRequestSchema,
   endAttendanceBreakRequestSchema,
   finalizeAttendanceRequestSchema,
+  finalizeAttendanceMonthRequestSchema,
   getAttendanceDeviceRequestSchema,
   getAttendanceLookupsRequestSchema,
   getAttendanceRecordRequestSchema,
@@ -300,6 +302,21 @@ attendanceRouter.post(
   ),
   asyncHandler(
     finalizeAttendanceController
+  )
+);
+
+// added by wali: Close one employee's complete month in a single backend transaction.
+attendanceRouter.post(
+  "/employees/:employeeId/months/:yearMonth/finalize",
+  requireAnyPermission(
+    "attendance.finalize",
+    "attendance.manage"
+  ),
+  validateRequest(
+    finalizeAttendanceMonthRequestSchema
+  ),
+  asyncHandler(
+    finalizeAttendanceMonthController
   )
 );
 

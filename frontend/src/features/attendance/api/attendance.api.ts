@@ -2,6 +2,18 @@ import { apiClient } from "../../../api/api-client";
 import type { ApiSuccessResponse } from "../../../types/api.types";
 import type { AttendanceDailySummary, AttendanceDevice, AttendanceDeviceInput, AttendanceListParams, AttendanceRecord, AttendanceRecordListResult, AttendanceShift, AttendanceShiftInput, AttendanceShiftOption, AttendanceStatus } from "../types/attendance.types";
 
+// added by wali: Persist monthly review metadata returned by the employee-month finalization endpoint.
+export interface AttendanceMonthFinalization {
+  monthFinalizationId: string;
+  companyId: string;
+  employeeId: string;
+  yearMonth: string;
+  recordsFinalizedCount: number;
+  finalizedByUserId: string;
+  finalizedAt: string;
+  notes: string | null;
+}
+
 // added by wali: Model work schedules and weekday rules returned by the attendance scheduling API.
 export interface WorkScheduleDay {
   scheduleDayId?: string;
@@ -105,10 +117,30 @@ export async function listAttendanceRecordsRequest(params: AttendanceListParams 
   return response.data.data;
 }
 
+// added by wali: Load filtered attendance history across pages so Approvals can show month rows from the earliest records onward.
+export async function listAttendanceHistoryRecordsRequest(params: AttendanceListParams = {}): Promise<AttendanceRecord[]> {
+  const firstPage = await listAttendanceRecordsRequest({ ...params, page: 1, pageSize: 100 });
+  const remainingPages = await Promise.all(
+    Array.from({ length: Math.max(0, firstPage.pagination.totalPages - 1) }, (_, index) =>
+      listAttendanceRecordsRequest({ ...params, page: index + 2, pageSize: 100 }),
+    ),
+  );
+  return [firstPage, ...remainingPages].flatMap((result) => result.attendanceRecords);
+}
+
 // added by wali: Finalize reviewed attendance records through the backend's immutable-record workflow.
 export async function finalizeAttendanceRecordRequest(attendanceId: string, notes?: string): Promise<AttendanceRecord> {
   const response = await apiClient.post<ApiSuccessResponse<{ attendanceRecord: AttendanceRecord }>>(`/attendance/records/${attendanceId}/finalize`, { ...(notes ? { notes } : {}) });
   return response.data.data.attendanceRecord;
+}
+
+// added by wali: Finalize all eligible daily attendance rows for one employee and calendar month at once.
+export async function finalizeAttendanceMonthRequest(employeeId: string, yearMonth: string, notes?: string): Promise<AttendanceMonthFinalization> {
+  const response = await apiClient.post<ApiSuccessResponse<{ monthFinalization: AttendanceMonthFinalization }>>(
+    `/attendance/employees/${employeeId}/months/${yearMonth}/finalize`,
+    { ...(notes ? { notes } : {}) },
+  );
+  return response.data.data.monthFinalization;
 }
 
 // added by wali: Load pending attendance corrections for the adjustment approval queue.
@@ -231,16 +263,16 @@ export async function updateEmployeeShiftAssignmentRequest(employeeId: string, a
   return response.data.data.shiftAssignment;
 }
 
-export async function listAttendanceDevicesRequest(search?: string): Promise<AttendanceDevice[]> {
+export async function listAttendanceDevicesRequest(search?: string, branchId?: string): Promise<AttendanceDevice[]> {
   // added by wali: Load every matching device so configuration totals do not stop at the first 100 rows.
   const firstResponse = await apiClient.get<ApiSuccessResponse<{ attendanceDevices: AttendanceDevice[]; pagination: { totalPages: number } }>>("/attendance/devices", {
-    params: { page: 1, pageSize: 100, includeInactive: true, ...(search ? { search } : {}) },
+    params: { page: 1, pageSize: 100, includeInactive: true, ...(search ? { search } : {}), ...(branchId ? { branchId } : {}) },
   });
   const devices = [...firstResponse.data.data.attendanceDevices];
   const totalPages = firstResponse.data.data.pagination.totalPages;
   for (let page = 2; page <= totalPages; page += 1) {
     const response = await apiClient.get<ApiSuccessResponse<{ attendanceDevices: AttendanceDevice[] }>>("/attendance/devices", {
-      params: { page, pageSize: 100, includeInactive: true, ...(search ? { search } : {}) },
+      params: { page, pageSize: 100, includeInactive: true, ...(search ? { search } : {}), ...(branchId ? { branchId } : {}) },
     });
     devices.push(...response.data.data.attendanceDevices);
   }

@@ -28,6 +28,17 @@ export function usePermissions() {
       "leave.request.approve",
       "leave.balance.view",
       "leave.balance.initialize",
+      // added by wali: Let Branch Admins operate Attendance for employees and devices in their assigned branches.
+      "attendance.view",
+      // added by wali: Let Branch Admins finalize monthly attendance for employees in their assigned branches.
+      "attendance.finalize",
+      "attendance.adjustment.view",
+      "attendance.adjustment.manage",
+      "attendance.adjustment.approve",
+      "attendance.scheduling.view",
+      "attendance.scheduling.manage",
+      "attendance.scheduling.assign",
+      "biometric.manage",
     ]);
     const isBranchAdmin = Boolean(
       user?.companyId &&
@@ -49,6 +60,8 @@ export function usePermissions() {
       permission === "position.manage" ||
       // added by wali: Let tenant Company Admins view attendance and configure biometric devices.
       permission === "attendance.view" ||
+      // added by wali: Match the backend rule so Company Admins can finalize reviewed attendance months.
+      permission === "attendance.finalize" ||
       // added by wali: Let linked Company Admins access shift scheduling in their tenant.
       permission === "attendance.scheduling.view" ||
       permission === "attendance.scheduling.manage" ||
@@ -84,6 +97,8 @@ export function usePermissions() {
         permission === "designation.manage" ||
         permission === "position.view" ||
         permission === "position.manage" ||
+        // added by wali: Keep tenant Company Admin finalization access consistent with the backend.
+        permission === "attendance.finalize" ||
         permission === "attendance.scheduling.view" ||
         permission === "attendance.scheduling.manage" ||
         permission === "payroll.view" ||

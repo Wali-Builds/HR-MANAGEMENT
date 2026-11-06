@@ -41,7 +41,7 @@ function displayHours(minutes: number) {
 
 export function AttendancePage() {
   const user = useAuthStore((state) => state.user);
-  const { hasAnyPermission, hasPermission } = usePermissions();
+  const { hasAnyPermission, hasPermission, isBranchAdmin } = usePermissions();
   const companyId = user?.companyId ?? undefined;
   const employeeId = user?.employeeId ?? undefined;
   const today = localDate();
@@ -199,9 +199,10 @@ export function AttendancePage() {
       <section className="wf-org-resource wf-attendance-resource">
         <header className="wf-org-resource-toolbar">
           <div className="wf-org-resource-toolbar__heading"><div><span>{isOverview ? `Today's records · ${displayDate(today)}` : "Previous records"}</span><h2>{personalView ? "My attendance" : isOverview ? "Today's attendance" : "Previous attendance records"}</h2><p>{personalView ? "Your check-in, check-out and attendance status." : isOverview ? "See today's check-ins, check-outs, late arrivals and absences." : "Filter and review check-ins and check-outs from earlier days."}</p></div><div className="wf-attendance-record-actions"><button type="button" className="wf-org-button wf-org-button--secondary" disabled={isDownloading || query.isLoading} onClick={confirmDownloadRecords}><Download size={15} />{isDownloading ? "Downloading…" : "Download"}</button><button type="button" className="wf-org-button wf-org-button--secondary wf-attendance-period-toggle" onClick={toggleRecordPeriod}>{showPreviousRecords ? <CalendarCheck2 size={15} /> : <History size={15} />}{showPreviousRecords ? "Today's records" : "Previous records"}</button></div></div>
-          <div className="wf-org-resource-toolbar__tools">
+          <div className={`wf-org-resource-toolbar__tools${showPreviousRecords ? " wf-attendance-record-tools--previous" : ""}`}>
             <label className="wf-org-search"><Search size={15} /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder={personalView ? "Search records" : "Search employees"} /></label>
-            {!personalView && branchQuery.data?.branches && branchQuery.data.branches.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={branchId} placeholder="All branches" options={[{ value: "ALL", label: "All branches" }, ...branchQuery.data.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchId(value); setDepartmentId("ALL"); setPage(1); }} allowClear={false} />}
+            {/* added by wali: Hide the branch filter for Branch Admins because backend records are already branch-scoped. */}
+            {!personalView && !isBranchAdmin && branchQuery.data?.branches && branchQuery.data.branches.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={branchId} placeholder="All branches" options={[{ value: "ALL", label: "All branches" }, ...branchQuery.data.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchId(value); setDepartmentId("ALL"); setPage(1); }} allowClear={false} />}
             {!personalView && departmentQuery.data?.departments && departmentQuery.data.departments.length > 0 && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={departmentId} placeholder="All departments" options={[{ value: "ALL", label: "All departments" }, ...departmentQuery.data.departments.map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={(value) => { setDepartmentId(value); setPage(1); }} allowClear={false} />}
             {!personalView && shiftQuery.data && <EmployeeMenuSelect className="wf-org-menu-select wf-attendance-branch-select" value={shiftId} placeholder="All shifts" options={[{ value: "ALL", label: "All shifts" }, ...shiftQuery.data.map((shift) => ({ value: shift.shiftId, label: `${shift.shiftName} · ${shift.shiftCode}` }))]} onChange={(value) => { setShiftId(value); setPage(1); }} allowClear={false} />}
             {showPreviousRecords && !personalView && <span aria-hidden="true" className="wf-attendance-record-filter-break" />}

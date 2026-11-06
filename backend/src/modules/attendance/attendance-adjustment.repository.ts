@@ -176,6 +176,8 @@ interface LockedAttendanceRow {
 interface AttendanceAdjustmentRequestListFilters {
   employeeId?: string | undefined;
   attendanceId?: string | undefined;
+  // added by wali: Restrict adjustment inbox rows to branches assigned to a Branch Admin.
+  branchIds?: string[] | undefined;
 
   dateFrom?: string | undefined;
   dateTo?: string | undefined;
@@ -1030,6 +1032,22 @@ export async function listAttendanceAdjustmentRequestRecords(
     parameters.push(
       filters.attendanceId
     );
+  }
+
+  // added by wali: Scope both request rows and their count using each employee's current branch assignment.
+  if (filters.branchIds !== undefined) {
+    if (filters.branchIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM employee_assignments ea_scope
+        WHERE ea_scope.employee_id = e.employee_id
+          AND ea_scope.is_current = 1
+          AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})
+      )`);
+      parameters.push(...filters.branchIds);
+    }
   }
 
   if (filters.dateFrom) {

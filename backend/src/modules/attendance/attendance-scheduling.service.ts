@@ -325,8 +325,15 @@ function hasPermission(
       auth.permissions.some((permission) => permission.trim().toLowerCase() === "company_admin"))
   );
 
+  // added by wali: Grant Branch Admin scheduling permissions only when their account has branch assignments.
+  const isBranchAdmin = Boolean(
+    auth.companyId && auth.branchIds.length > 0 &&
+    [...auth.roleCodes, ...getPermissions(auth)].some((value) => value.trim().toUpperCase() === "BRANCH_ADMIN")
+  );
+
   return (
     auth.isPlatformAdmin ||
+    (isBranchAdmin && ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign"].includes(permissionCode)) ||
     (isTenantCompanyAdmin && ["attendance.scheduling.view", "attendance.scheduling.manage"].includes(permissionCode)) ||
     getPermissions(auth).includes(
       permissionCode
@@ -1009,6 +1016,25 @@ function assertEmployeeActive(
   }
 }
 
+// added by wali: Prevent Branch Admins from creating assignments for employees outside their assigned branches.
+function assertSchedulingEmployeeBranchAccess(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
+  const isBranchAdmin = [...auth.roleCodes, ...getPermissions(auth)].some((value) => value.trim().toUpperCase() === "BRANCH_ADMIN");
+  if (!isBranchAdmin) return;
+  const branchId = employee.branch_id === null || employee.branch_id === undefined ? null : String(employee.branch_id);
+  if (!branchId || !auth.branchIds.includes(branchId)) {
+    throw new AppError({ message: "You can only manage schedules for employees in your assigned branches", statusCode: 403, code: "SCHEDULING_BRANCH_ACCESS_DENIED" });
+  }
+}
+
+// added by wali: Require Branch Admin shift operations to stay on a branch assigned to their account.
+function assertSchedulingBranchAccess(auth: AuthContext, branchId: string | null | undefined): void {
+  const isBranchAdmin = [...auth.roleCodes, ...getPermissions(auth)].some((value) => value.trim().toUpperCase() === "BRANCH_ADMIN");
+  if (!isBranchAdmin) return;
+  if (!branchId || !auth.branchIds.includes(String(branchId))) {
+    throw new AppError({ message: "You can only manage shifts in your assigned branches", statusCode: 403, code: "SCHEDULING_BRANCH_ACCESS_DENIED" });
+  }
+}
+
 function assertShiftBranchCompatibility(
   employee:
     AttendanceEmployeeDatabaseRow,
@@ -1452,7 +1478,7 @@ export async function listShifts(
     requireCompanyId(auth);
 
   // added by wali: Restrict Branch Admin shift results to branches assigned to their account.
-  const assignedBranchIds = auth.permissions.some(
+  const assignedBranchIds = [...auth.roleCodes, ...auth.permissions].some(
     (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
   ) ? auth.branchIds : [];
 
@@ -1460,7 +1486,7 @@ export async function listShifts(
     await listShiftRecords(
       companyId,
       {
-        ...(assignedBranchIds.length > 0
+        ...([...auth.roleCodes, ...auth.permissions].some((permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN")
           ? { branchIds: assignedBranchIds }
           : {}),
 
@@ -1546,6 +1572,8 @@ export async function getShift(
     });
   }
 
+  assertSchedulingBranchAccess(auth, shift.branch_id === null ? null : String(shift.branch_id));
+
   return mapShift(shift);
 }
 
@@ -1558,6 +1586,8 @@ export async function createShift(
 
   const companyId =
     requireCompanyId(auth);
+
+  assertSchedulingBranchAccess(auth, input.branchId ?? null);
 
   const record:
     CreateShiftRecord = {
@@ -1673,6 +1703,9 @@ export async function updateShift(
         "SHIFT_NOT_FOUND"
     });
   }
+
+  assertSchedulingBranchAccess(auth, existing.branch_id === null ? null : String(existing.branch_id));
+  if (input.branchId !== undefined) assertSchedulingBranchAccess(auth, input.branchId);
 
   const finalConfiguration = {
     startTime:
@@ -1932,6 +1965,10 @@ export async function deleteShift(
   const companyId =
     requireCompanyId(auth);
 
+  const existing = await findShiftRecordById(companyId, shiftId);
+  if (!existing) throw new AppError({ message: "Shift was not found", statusCode: 404, code: "SHIFT_NOT_FOUND" });
+  assertSchedulingBranchAccess(auth, existing.branch_id === null ? null : String(existing.branch_id));
+
   try {
     const deleted =
       await softDeleteShiftRecord(
@@ -1977,7 +2014,7 @@ export async function listWorkSchedules(
     requireCompanyId(auth);
 
   // added by wali: Restrict Branch Admin schedule results to employees in their assigned branches.
-  const assignedBranchIds = auth.permissions.some(
+  const assignedBranchIds = [...auth.roleCodes, ...auth.permissions].some(
     (permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN"
   ) ? auth.branchIds : [];
 
@@ -1985,7 +2022,7 @@ export async function listWorkSchedules(
     await listWorkScheduleRecords(
       companyId,
       {
-        ...(assignedBranchIds.length > 0
+        ...([...auth.roleCodes, ...auth.permissions].some((permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN")
           ? { branchIds: assignedBranchIds }
           : {}),
 
@@ -2496,6 +2533,8 @@ export async function listEmployeeShiftAssignments(
     employee
   );
 
+  assertSchedulingEmployeeBranchAccess(auth, employee);
+
   assertAssignmentViewAccess(
     auth,
     employeeId
@@ -2511,6 +2550,10 @@ export async function listEmployeeShiftAssignments(
       companyId,
       employeeId,
       {
+        // added by wali: Apply branch scope even to employee-specific assignment history requests.
+        ...([...auth.roleCodes, ...auth.permissions].some((permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN")
+          ? { branchIds: auth.branchIds }
+          : {}),
         ...(query.shiftId !== undefined
           ? {
               shiftId:
@@ -2588,6 +2631,10 @@ export async function listAllShiftAssignments(
     companyId,
     null,
     {
+      // added by wali: Restrict the assignment page to employees in a Branch Admin's assigned branches.
+      ...([...auth.roleCodes, ...auth.permissions].some((permission) => permission.trim().toUpperCase() === "BRANCH_ADMIN")
+        ? { branchIds: auth.branchIds }
+        : {}),
       ...(query.shiftId !== undefined ? { shiftId: query.shiftId } : {}),
       ...(query.scheduleId !== undefined ? { scheduleId: query.scheduleId } : {}),
       ...(query.assignmentType !== undefined ? { assignmentType: query.assignmentType } : {}),
@@ -2645,6 +2692,8 @@ export async function createEmployeeShiftAssignment(
     auth,
     employee
   );
+
+  assertSchedulingEmployeeBranchAccess(auth, employee);
 
   assertEmployeeActive(
     employee
@@ -2782,6 +2831,8 @@ export async function updateEmployeeShiftAssignment(
     auth,
     employee
   );
+
+  assertSchedulingEmployeeBranchAccess(auth, employee);
 
   const companyId =
     String(
@@ -2991,6 +3042,8 @@ export async function deleteEmployeeShiftAssignment(
     auth,
     employee
   );
+
+  assertSchedulingEmployeeBranchAccess(auth, employee);
 
   const companyId =
     String(

@@ -21,6 +21,29 @@
 .wf-attendance-configuration .wf-attendance-devices-resource { margin-top: 18px; }
 .wf-attendance-configuration .wf-org-resource-toolbar__heading { align-items: center; }
 .wf-attendance-configuration .wf-attendance-machine-id { display: inline-block; max-width: 220px; overflow: hidden; color: #285c50; text-overflow: ellipsis; vertical-align: middle; }
+/* added by wali: Keep both Configuration searches at the same compact width used on Projects. */
+.wf-attendance-configuration .wf-org-resource-toolbar__tools > .wf-org-search { width: 300px; max-width: 300px; min-width: 0; flex: 0 1 300px; }
+/* added by wali: Keep Configuration filters together and anchor the employee/device count with Refresh at the far right. */
+.wf-attendance-configuration .wf-org-resource-toolbar__tools { justify-content: flex-start; gap: 10px; }
+.wf-attendance-configuration .wf-org-resource-toolbar__tools > .wf-org-resource-toolbar__pager { margin-left: auto; }
+/* added by wali: Match Configuration table column dividers to Projects and Attendance Records. */
+.wf-attendance-configuration .wf-org-table { border-collapse: separate; border-spacing: 0; }
+.wf-attendance-configuration .wf-org-table th + th,
+.wf-attendance-configuration .wf-org-table td + td { border-left: 1px solid #edf1f4; }
+/* added by wali: Label and center the Configuration action column and its row controls. */
+.wf-attendance-configuration .wf-attendance-action-column { text-align: center !important; }
+.wf-attendance-configuration .wf-attendance-action-column .wf-org-row-actions { justify-content: center; }
+/* added by wali: Use the same labeled Edit action treatment as the other Attendance tables. */
+.wf-attendance-configuration .wf-org-row-actions button.wf-attendance-config-edit { width: auto; min-width: 70px; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; color: #17334c; border: 1px solid #d7e1e9; background: #fff; font: inherit; font-size: 12px; font-weight: 650; }
+/* added by wali: Give the device activation control the same visible outline as the Edit action. */
+.wf-attendance-configuration .wf-org-row-actions button.wf-attendance-device-toggle { width: 32px; height: 32px; border: 1px solid #d7e1e9; background: #fff; }
+.wf-attendance-configuration .wf-org-row-actions button.wf-attendance-device-toggle.is-deactivate { color: #c43b3b; border-color: #efcaca; background: #fffafa; }
+.wf-attendance-configuration .wf-org-row-actions button.wf-attendance-device-toggle.is-activate { color: #078363; border-color: #c5e8dc; background: #f8fffc; }
+.wf-attendance-device-tools .wf-org-menu-select.wf-attendance-branch-select { width: 150px; min-width: 0; flex: 0 0 150px; }
+/* added by wali: Use compact tabs to switch between employee mapping and device management panels. */
+.wf-attendance-configuration-tabs { display: flex; align-items: center; gap: 6px; margin: 18px 0 12px; border-bottom: 1px solid #dce5ed; }
+.wf-attendance-configuration-tabs button { min-height: 40px; padding: 0 15px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #60768b; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.wf-attendance-configuration-tabs button.is-active { border-bottom-color: #078b91; color: #0b5562; }
 .wf-attendance-mapping-state { display: inline-flex; align-items: center; gap: 5px; color: #9b6708; font-size: 11px; font-weight: 650; }
 .wf-attendance-mapping-state.is-mapped { color: #087449; }
 .wf-attendance-date-filter { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 10px; border: 1px solid var(--border-subtle, #dfe7e4); border-radius: 9px; background: var(--surface, #fff); color: var(--text-muted, #71817c); font-size: 11px; }
@@ -58,7 +81,10 @@
 .wf-attendance-approvals__metrics > button.is-selected { border-color: #dce4eb; box-shadow: none; }
 .wf-attendance-approvals .wf-org-resource-toolbar__heading { align-items: flex-start; justify-content: space-between; gap: 10px; }
 .wf-attendance-approvals .wf-org-resource-toolbar__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; padding: 0; }
-.wf-attendance-approvals .wf-org-search { width: auto; min-width: 0; height: 36px; flex: 1 1 360px; }
+.wf-attendance-approvals .wf-org-search { width: 250px; max-width: 250px; min-width: 0; height: 36px; flex: 0 1 250px; }
+.wf-attendance-month-filter { display: flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 10px; border: 1px solid #dce4eb; border-radius: 9px; background: #fff; color: #60768b; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.wf-attendance-month-filter input { width: 132px; border: 0; outline: 0; background: transparent; color: #142b3f; font: inherit; font-size: 12px; }
+.wf-attendance-approvals .wf-org-menu-select.wf-attendance-branch-select { width: 150px; min-width: 0; flex: 0 0 150px; }
 .wf-attendance-approvals .wf-org-resource-toolbar__pager { margin-left: auto; }
 .wf-attendance-approvals .wf-org-table-wrap { margin: 0; border: 0; border-radius: 0; background: transparent; }
 .wf-attendance-approvals .wf-org-table { min-width: 980px; }
@@ -66,6 +92,43 @@
 .wf-attendance-approvals .wf-org-table td { height: 58px; padding-top: 10px; padding-bottom: 10px; }
 .wf-attendance-approvals .wf-org-table tbody tr:last-child td { border-bottom: 0; }
 .wf-attendance-approvals .wf-org-table th + th, .wf-attendance-approvals .wf-org-table td + td { border-left: 1px solid #edf1f4; }
+/* added by wali: Center the month-level finalize action in its table column. */
+.wf-attendance-month-finalize-cell { text-align: center !important; vertical-align: middle; }
+.wf-attendance-month-toggle { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid #dce4eb; border-radius: 7px; background: #fff; color: #087b83; cursor: pointer; }
+.wf-attendance-month-row { background: #fff; }
+.wf-attendance-month-details > td { padding: 0 !important; background: #f8fafb; }
+.wf-attendance-month-details__inner { padding: 16px 20px 18px; }
+.wf-attendance-month-details__heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; color: #142b3f; font-size: 13px; }
+.wf-attendance-month-details__heading > span { color: #60768b; font-size: 12px; font-weight: 500; }
+/* added by wali: Lay each expanded month out as a horizontally scrollable employee-by-day attendance spreadsheet. */
+.wf-attendance-spreadsheet-wrap { max-width: 100%; overflow: auto; border: 1px solid #e2eaf0; border-radius: 10px; background: #fff; }
+.wf-attendance-spreadsheet { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+.wf-attendance-spreadsheet th, .wf-attendance-spreadsheet td { min-width: 126px; height: auto !important; padding: 9px 10px !important; border-right: 1px solid #edf1f4; border-bottom: 1px solid #e7edf2; vertical-align: top; }
+.wf-attendance-spreadsheet th { position: sticky; top: 0; z-index: 2; background: #f3f7f9 !important; color: #60768b; font-size: 11px !important; }
+.wf-attendance-spreadsheet .wf-attendance-spreadsheet__employee { position: sticky; left: 0; z-index: 3; min-width: 200px; width: 200px; background: #fff; }
+.wf-attendance-spreadsheet thead .wf-attendance-spreadsheet__employee { z-index: 4; background: #f3f7f9 !important; }
+.wf-attendance-spreadsheet__employee > div { display: grid; gap: 4px; }
+.wf-attendance-spreadsheet__employee strong { color: #142b3f; font-size: 12px; }
+.wf-attendance-spreadsheet__employee small { color: #60768b; font-size: 11px; font-weight: 500; }
+.wf-attendance-spreadsheet__day { background: #fff; }
+.wf-attendance-spreadsheet__day.is-recorded { background: #fbfdfd; }
+.wf-attendance-spreadsheet__cell { display: grid; gap: 4px; min-width: 104px; color: #60768b; font-size: 10px; line-height: 1.25; }
+.wf-attendance-spreadsheet__cell b { color: #203c51; font-size: 10px; font-weight: 650; }
+.wf-attendance-spreadsheet__cell .is-late, .wf-attendance-spreadsheet__cell .is-late b { color: #a35d00; }
+.wf-attendance-spreadsheet__empty { display: block; padding: 3px 0; color: #a4b0b8; text-align: center; }
+.wf-attendance-spreadsheet .wf-attendance-spreadsheet__action { position: sticky; right: 0; z-index: 3; min-width: 164px; background: #fff; }
+.wf-attendance-spreadsheet thead .wf-attendance-spreadsheet__action { z-index: 4; background: #f3f7f9 !important; }
+.wf-attendance-spreadsheet__action .wf-org-button { white-space: nowrap; }
+/* added by wali: Show the month spreadsheet in a focused popup instead of expanding it inside the month list. */
+.wf-attendance-month-dialog-backdrop { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; padding: 22px; background: rgba(12, 31, 47, .58); backdrop-filter: blur(3px); }
+.wf-attendance-month-dialog { display: flex; flex-direction: column; width: min(96vw, 1660px); height: min(88vh, 940px); max-height: 94vh; overflow: hidden; border: 1px solid #d6e1e9; border-radius: 18px; background: #fff; box-shadow: 0 28px 90px rgba(5, 23, 39, .32); }
+.wf-attendance-month-dialog__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 20px 24px 17px; border-bottom: 1px solid #e4ebf0; background: linear-gradient(110deg, #fff, #f4fafb); }
+.wf-attendance-month-dialog__header > div > span { color: #087b83; font-size: 11px; font-weight: 750; letter-spacing: .11em; }
+.wf-attendance-month-dialog__header h2 { margin: 5px 0; color: #142b3f; font-size: 23px; }
+.wf-attendance-month-dialog__header p { margin: 0; color: #60768b; font-size: 13px; }
+.wf-attendance-month-dialog__header > button { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid #dce4eb; border-radius: 10px; background: #fff; color: #39556b; cursor: pointer; }
+.wf-attendance-month-dialog__body { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; padding: 16px 20px 20px; }
+.wf-attendance-month-dialog__body .wf-attendance-spreadsheet-wrap { flex: 1; min-width: 0; min-height: 0; max-height: 100%; }
 .wf-attendance-approval-actions { display: flex; align-items: center; gap: 7px; }
 .wf-attendance-approval-actions .wf-org-button { min-height: 32px; padding: 6px 9px; font-size: 11px; }
 .wf-attendance-approval-reason { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
@@ -75,7 +138,8 @@
 @media (max-width: 1100px) { .wf-attendance-approvals .wf-org-search { flex: 1 1 100%; } }
 @media (max-width: 900px) { .wf-attendance-approvals__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .wf-attendance-approvals .wf-org-resource-toolbar { padding: 19px 16px; } .wf-attendance-approvals .wf-org-resource-toolbar__tools { gap: 9px; } .wf-attendance-approval-actions { flex-wrap: wrap; } }
-@media (max-width: 460px) { .wf-attendance-approvals__metrics { grid-template-columns: 1fr; } .wf-attendance-approvals .wf-org-resource-toolbar__tools { flex-direction: column; } .wf-attendance-approvals .wf-org-search, .wf-attendance-approvals .wf-org-resource-toolbar__pager { width: 100%; flex: 1 1 auto; } }
+@media (max-width: 460px) { .wf-attendance-approvals__metrics { grid-template-columns: 1fr; } .wf-attendance-approvals .wf-org-resource-toolbar__tools { flex-direction: column; } .wf-attendance-approvals .wf-org-search, .wf-attendance-approvals .wf-org-resource-toolbar__pager, .wf-attendance-month-filter { width: 100%; flex: 1 1 auto; } .wf-attendance-month-filter input { width: auto; flex: 1; } .wf-attendance-month-details__heading { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 700px) { .wf-attendance-month-dialog-backdrop { padding: 0; } .wf-attendance-month-dialog { width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; } .wf-attendance-month-dialog__header { padding: 16px; } .wf-attendance-month-dialog__header h2 { font-size: 20px; } .wf-attendance-month-dialog__body { padding: 10px; } }
 
 /* added by wali: Keep shift management aligned with the Projects-style attendance workspaces. */
 .wf-attendance-shifts > .wf-attendance-resource { margin-top: 20px; }
@@ -91,8 +155,16 @@
 .wf-attendance-shifts__subline { display: block; margin-top: 4px; color: #758496; font-size: 11px; }
 .wf-attendance-shifts__windows { display: grid; gap: 5px; color: #465b6d; font-size: 12px; }
 .wf-attendance-shifts__actions { display: flex; align-items: center; gap: 8px; }
+/* added by wali: Center Action headers and controls in the Shifts and Work schedules tables. */
+.wf-attendance-action-column { text-align: center !important; }
+/* added by wali: Center Status headers and badges with the requested Action column alignment. */
+.wf-attendance-status-column { text-align: center !important; }
+.wf-attendance-shifts__actions { justify-content: center; }
 .wf-attendance-shifts__actions .wf-org-button { min-height: 31px; padding-inline: 9px; font-size: 11px; }
-.wf-attendance-shifts__toggle { padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: #0f6d7a; font-size: 11px; font-weight: 700; cursor: pointer; }
+/* added by wali: Give shift activation actions the same outlined button treatment as device actions. */
+.wf-attendance-shifts__toggle { width: 32px; min-width: 32px; height: 31px; min-height: 31px; box-sizing: border-box; display: inline-grid; place-items: center; padding: 0; border: 1px solid #d7e1e9; border-radius: 7px; background: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
+.wf-attendance-shifts__toggle.is-deactivate { color: #c43b3b; border-color: #efcaca; background: #fffafa; }
+.wf-attendance-shifts__toggle.is-activate { color: #078363; border-color: #c5e8dc; background: #f8fffc; }
 .wf-attendance-shifts__toggle:disabled { opacity: .5; cursor: wait; }
 .wf-attendance-shifts__status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 99px; background: #f1f3f5; color: #657587; font-size: 11px; font-weight: 700; }
 .wf-attendance-shifts__status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -102,7 +174,7 @@
 .wf-attendance-shifts__checks input { accent-color: #0f6d7a; }
 @media (max-width: 760px) {
   .wf-attendance-shifts__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .wf-attendance-shifts__actions { align-items: flex-start; flex-direction: column; }
+  .wf-attendance-shifts__actions { align-items: center; flex-direction: column; }
 }
 
 /* added by wali: Give the records view a dedicated filter area and a calmer, wider table surface. */
@@ -164,10 +236,12 @@
 }
 
 .wf-attendance-page--records .wf-org-search {
-  width: auto;
+  /* added by wali: Match the compact Projects search instead of stretching across the filter row. */
+  width: 300px;
+  max-width: 300px;
   min-width: 0;
   height: 36px;
-  flex: 1 1 360px;
+  flex: 0 1 300px;
   border-color: #dce5e9;
   background: #fbfcfc;
 }
@@ -273,6 +347,8 @@
 
 @media (max-width: 1100px) {
   .wf-attendance-page--records .wf-org-search {
+    width: 100%;
+    max-width: none;
     flex: 1 1 100%;
   }
 
@@ -322,7 +398,10 @@
 /* added by wali: Match the Records page's natural document flow and card separation on scheduling pages. */
 .wf-attendance-scheduling .wf-projects-resource { margin-top: 20px; }
 /* added by wali: Keep the Work schedules search width aligned with the compact Shifts toolbar. */
-.wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 360px) 150px 150px auto; }
+.wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 300px) 150px 150px auto; }
+/* added by wali: Reflow schedule filters cleanly when Branch Admins do not see a branch selector. */
+.wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--branchless { grid-template-columns: minmax(220px, 300px) minmax(150px, 190px) minmax(0, 1fr); }
+.wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--branchless .wf-org-resource-toolbar__pager { justify-self: end; }
 .wf-attendance-schedule-week { margin-top: 22px; border: 1px solid #dce5ed; border-radius: 14px; overflow: hidden; }
 .wf-attendance-schedule-week__heading { padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #f7fafb; border-bottom: 1px solid #e3ebf1; }
 .wf-attendance-schedule-week__heading div { display: grid; gap: 4px; }
@@ -340,7 +419,15 @@
 .wf-attendance-schedule-day__overnight { display: flex; align-items: center; gap: 6px; color: #62788d; font-size: 11px; }
 .wf-attendance-schedule-day__off { grid-column: span 1; color: #8293a3; font-size: 13px; }
 .wf-attendance-assignment-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: center; margin-top: 10px; padding: 0; border-top: 0; }
-.wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(160px, 190px) auto auto; }
+/* added by wali: Keep assignment employee search aligned with compact project and attendance filters. */
+.wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 300px) minmax(150px, 190px) minmax(160px, 190px) auto auto; }
+/* added by wali: Keep employee assignment filters and refresh button compact instead of stretching across the toolbar. */
+.wf-attendance-assignment-toolbar--employee-filters { grid-template-columns: minmax(220px, 300px) 150px 170px minmax(0, 1fr) max-content; justify-content: stretch; }
+/* added by wali: Keep assignment search, department, employee count, and refresh aligned after hiding branch filters. */
+.wf-attendance-assignment-toolbar--employee-filters.wf-attendance-assignment-toolbar--branchless { grid-template-columns: minmax(220px, 300px) 170px minmax(0, 1fr) max-content; }
+.wf-attendance-assignment-toolbar--employee-filters .wf-org-search { width: 100%; min-width: 0; }
+.wf-attendance-assignment-toolbar--employee-filters .wf-org-button { width: max-content; justify-self: start; }
+.wf-attendance-assignment-toolbar--employee-filters .wf-attendance-assignment-toolbar__current { justify-self: end; white-space: nowrap; }
 .wf-attendance-assignment-toolbar__current { color: #60768b; font-size: 13px; font-weight: 600; }
 /* added by wali: Give the employee cell a stable width and prevent long names from colliding with adjacent columns. */
 .wf-attendance-assignment-employee { min-width: 230px; max-width: 300px; }
@@ -352,4 +439,17 @@
 .wf-attendance-scheduling .wf-org-table td small { display: block; margin-top: 4px; color: #71869b; }
 @media (max-width: 1000px) { .wf-attendance-schedule-day { grid-template-columns: minmax(120px, .55fr) minmax(220px, 1fr); } }
 @media (max-width: 980px) { .wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr); } }
+@media (max-width: 980px) { .wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--branchless { grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr); } .wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--branchless .wf-org-resource-toolbar__pager { justify-self: start; } }
 @media (max-width: 680px) { .wf-attendance-assignment-toolbar, .wf-attendance-assignment-toolbar--filters { grid-template-columns: 1fr; } .wf-attendance-schedule-week__heading { align-items: flex-start; flex-direction: column; } .wf-attendance-schedule-day { grid-template-columns: 1fr; } }
+@media (max-width: 980px) { .wf-attendance-assignment-toolbar--employee-filters.wf-attendance-assignment-toolbar--branchless { grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr); } }
+@media (max-width: 980px) { .wf-attendance-assignment-toolbar--employee-filters { grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr); } .wf-attendance-assignment-toolbar--employee-filters .wf-attendance-assignment-toolbar__current { justify-self: start; } }
+@media (max-width: 680px) { .wf-attendance-assignment-toolbar--employee-filters { grid-template-columns: 1fr; } .wf-attendance-assignment-toolbar--employee-filters .wf-org-button { justify-self: stretch; width: 100%; } }
+@media (max-width: 680px) { .wf-attendance-assignment-toolbar--employee-filters.wf-attendance-assignment-toolbar--branchless { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .wf-attendance-configuration .wf-org-resource-toolbar__tools > .wf-org-search { width: 100%; max-width: none; flex-basis: auto; } .wf-attendance-device-tools .wf-org-menu-select.wf-attendance-branch-select { width: 100%; flex: 1 1 auto; } .wf-attendance-configuration .wf-org-resource-toolbar__tools > .wf-org-resource-toolbar__pager { margin-left: 0; } }
+/* added by wali: Keep previous-record filters in a compact left-aligned group while the count stays at the right. */
+.wf-attendance-page--records .wf-attendance-record-tools--previous { justify-content: flex-start; gap: 8px; }
+.wf-attendance-page--records .wf-attendance-record-tools--previous .wf-org-search { width: 300px; max-width: 300px; flex: 0 1 300px; }
+.wf-attendance-page--records .wf-attendance-record-tools--previous .wf-attendance-date-filter { width: 190px; flex: 0 0 190px; }
+.wf-attendance-page--records .wf-attendance-record-tools--previous .wf-org-resource-toolbar__pager { width: auto; margin-left: auto; flex: 0 0 auto; }
+@media (max-width: 760px) { .wf-attendance-page--records .wf-attendance-record-tools--previous { flex-direction: row; } .wf-attendance-page--records .wf-attendance-record-tools--previous .wf-org-search { width: 100%; max-width: none; flex: 1 1 100%; } .wf-attendance-page--records .wf-attendance-record-tools--previous .wf-attendance-date-filter { flex: 1 1 190px; } .wf-attendance-page--records .wf-attendance-record-tools--previous .wf-org-resource-toolbar__pager { flex: 1 1 100%; justify-content: flex-start; } }
+@media (max-width: 460px) { .wf-attendance-page--records .wf-attendance-record-tools--previous { flex-direction: column; } .wf-attendance-page--records .wf-attendance-record-tools--previous .wf-attendance-date-filter, .wf-attendance-page--records .wf-attendance-record-tools--previous .wf-org-resource-toolbar__pager { width: 100%; flex: 1 1 auto; } }
