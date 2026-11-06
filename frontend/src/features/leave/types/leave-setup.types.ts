@@ -90,11 +90,43 @@ export interface LeavePolicyRule {
   leavePolicyRuleId: string;
   leavePolicyId: string;
   leaveTypeId: string;
+  companyId: string;
+  policyCode: string;
+  policyName: string;
   leaveTypeCode: string;
   leaveTypeName: string;
   unitType: LeaveUnitType;
+  leaveTypeIsPaid: boolean;
   annualEntitlementUnits: number;
+  accrualMethod: string;
+  accrualUnitsPerPeriod: number;
+  accrualStartAfterDays: number;
+  prorateEntitlement: boolean;
+  allowDuringProbation: boolean;
+  eligibleGender: string;
+  minimumRequestUnits: number;
+  maximumRequestUnits: number | null;
+  minimumNoticeDays: number;
+  maximumAdvanceDays: number | null;
+  maximumBackdateDays: number;
+  allowHalfDay: boolean;
+  allowHourlyLeave: boolean;
+  includeWeekends: boolean;
+  includeHolidays: boolean;
+  sandwichRuleEnabled: boolean;
+  carryForwardEnabled: boolean;
+  maximumCarryForwardUnits: number | null;
+  carryForwardExpiryMonths: number | null;
+  maximumBalanceUnits: number | null;
+  allowNegativeBalance: boolean;
+  negativeBalanceLimit: number;
+  attachmentRequiredAfterUnits: number | null;
+  encashmentAllowed: boolean;
+  maximumEncashmentUnits: number | null;
+  approvalLevelsRequired: number;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LeavePolicyRulesResult {
@@ -105,5 +137,31 @@ export interface LeavePolicyRulesResult {
 export interface SaveLeavePolicyRuleInput {
   leaveTypeId: string;
   annualEntitlementUnits: number;
+  accrualMethod: string;
+  accrualUnitsPerPeriod: number;
+  accrualStartAfterDays: number;
+  prorateEntitlement: boolean;
+  allowDuringProbation: boolean;
+  eligibleGender: string;
+  minimumRequestUnits: number;
+  maximumRequestUnits: number | null;
+  minimumNoticeDays: number;
+  maximumAdvanceDays: number | null;
+  maximumBackdateDays: number;
+  allowHalfDay: boolean;
+  allowHourlyLeave: boolean;
+  includeWeekends: boolean;
+  includeHolidays: boolean;
+  sandwichRuleEnabled: boolean;
+  carryForwardEnabled: boolean;
+  maximumCarryForwardUnits: number | null;
+  carryForwardExpiryMonths: number | null;
+  maximumBalanceUnits: number | null;
+  allowNegativeBalance: boolean;
+  negativeBalanceLimit: number;
+  attachmentRequiredAfterUnits: number | null;
+  encashmentAllowed: boolean;
+  maximumEncashmentUnits: number | null;
+  approvalLevelsRequired: number;
   isActive: boolean;
 }

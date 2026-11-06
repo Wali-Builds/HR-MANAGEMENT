@@ -197,9 +197,14 @@ export const workspaceModules: WorkspaceModule[] = [
     permissions: [
       "attendance.view",
       "attendance.manage",
-      "attendance.records.view",
+      "attendance.finalize",
+      "employee.view_self",
+      // added by wali: Make the Attendance module available to scheduling-only admins.
+      "attendance.scheduling.view",
+      "attendance.scheduling.manage",
+      "attendance.scheduling.assign",
     ],
-    available: false,
+    available: true,
     section: "People operations",
   },
   // edited by wali: Show access control to Company Admins with scoped role management.
@@ -382,11 +387,18 @@ const moduleNavigation: Partial<
     { label: "Configuration", to: "/leave/configuration", companyAdminOnly: true },
   ],
   attendance: [
-    { label: "Overview", to: "/attendance" },
-    { label: "Time records", disabled: true },
-    { label: "Shifts", disabled: true },
-    { label: "Approvals", disabled: true },
-    { label: "Configuration", disabled: true },
+    // added by wali: Keep daily attendance and previous-day history together under one Records destination.
+    { label: "Records", to: "/attendance/records" },
+    // added by wali: Link attendance navigation to the configured shift definitions page.
+    { label: "Shifts", to: "/attendance/shifts", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    // added by wali: Let scheduling admins configure weekly workday templates in Attendance.
+    { label: "Work schedules", to: "/attendance/schedules", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    // added by wali: Provide a dedicated module page for assigning shifts and schedules to employees.
+    { label: "Assignments", to: "/attendance/assignments", companyAdminOnly: true, permissions: ["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"] },
+    // added by wali: Give authorized reviewers a dedicated inbox for attendance records and punch changes.
+    { label: "Approvals", to: "/attendance/approvals", permissions: ["attendance.view", "attendance.finalize", "attendance.manage", "attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"] },
+    // added by wali: Keep device and employee mapping configuration at the end of Attendance navigation.
+    { label: "Configuration", to: "/attendance/configuration", companyAdminOnly: true, permissions: ["employee.view_all"] },
   ],
 
   roles: [

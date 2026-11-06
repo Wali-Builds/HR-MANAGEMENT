@@ -679,7 +679,7 @@ const adjustmentRequestSelect = `
       requested_user.username
           AS requested_by_username,
 
-      requested_user.full_name
+      requested_user.username
           AS requested_by_full_name,
 
       aar.final_decision_by,
@@ -687,7 +687,7 @@ const adjustmentRequestSelect = `
       final_user.username
           AS final_decision_username,
 
-      final_user.full_name
+      final_user.username
           AS final_decision_full_name,
 
       aar.final_decision_at,
@@ -749,7 +749,7 @@ const adjustmentApprovalSelect = `
       approver.username
           AS approver_username,
 
-      approver.full_name
+      approver.username
           AS approver_full_name,
 
       aaa.decision,
@@ -1952,7 +1952,7 @@ async function recalculateAdjustedAttendance(
             s.overtime_after_minutes
                 AS shift_overtime_after_minutes,
 
-            wsd.expected_work_minutes
+            COALESCE(NULLIF(wsd.expected_work_minutes, 0), s.expected_work_minutes)
                 AS schedule_expected_work_minutes,
 
             CASE

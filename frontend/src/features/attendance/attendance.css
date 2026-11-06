@@ -1,0 +1,355 @@
+.wf-attendance-page { --attendance-accent: #168567; }
+.wf-org-page.wf-attendance-page { padding-inline: 8px; }
+.wf-attendance-page .wf-attendance-resource { border: 1px solid #dce4eb; border-radius: 16px; background: #fff; box-shadow: 0 6px 20px rgba(15, 31, 51, 0.045); }
+.wf-attendance-page .wf-org-resource-toolbar { border-bottom-color: #dce4eb; }
+.wf-attendance-page .wf-org-resource-toolbar__heading > div > span { font-size: 12px; }
+.wf-attendance-page .wf-org-resource-toolbar h2 { font-size: 24px; font-weight: 750; }
+.wf-attendance-page .wf-org-resource-toolbar p { font-size: 14px; font-weight: 500; }
+.wf-attendance-page .wf-org-search input { font-size: 14px; font-weight: 600; }
+.wf-attendance-page .wf-org-menu-select .emp-menu-select__trigger { font-size: 12px; font-weight: 600; }
+.wf-attendance-page .wf-org-resource-toolbar__pager > span { font-size: 13px; font-weight: 600; }
+.wf-attendance-page .wf-org-table th { font-size: 12px; }
+.wf-attendance-page .wf-org-table td { font-size: 14px; font-weight: 500; }
+.wf-attendance-page .wf-org-record-title strong { font-size: 14px; font-weight: 700; }
+.wf-attendance-page .wf-org-record-title small { font-size: 12px; font-weight: 500; }
+.wf-attendance-page .wf-org-empty p,
+.wf-attendance-page .wf-org-table-skeleton { font-size: 14px; font-weight: 500; }
+.wf-attendance-health > div > span { color: var(--attendance-accent); }
+.wf-attendance-resource { overflow: hidden; }
+.wf-attendance-resource .wf-org-resource-toolbar__tools { flex-wrap: wrap; }
+.wf-attendance-resource .wf-attendance-branch-select { width: 150px; flex: 0 0 150px; }
+.wf-attendance-configuration .wf-attendance-devices-resource { margin-top: 18px; }
+.wf-attendance-configuration .wf-org-resource-toolbar__heading { align-items: center; }
+.wf-attendance-configuration .wf-attendance-machine-id { display: inline-block; max-width: 220px; overflow: hidden; color: #285c50; text-overflow: ellipsis; vertical-align: middle; }
+.wf-attendance-mapping-state { display: inline-flex; align-items: center; gap: 5px; color: #9b6708; font-size: 11px; font-weight: 650; }
+.wf-attendance-mapping-state.is-mapped { color: #087449; }
+.wf-attendance-date-filter { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 10px; border: 1px solid var(--border-subtle, #dfe7e4); border-radius: 9px; background: var(--surface, #fff); color: var(--text-muted, #71817c); font-size: 11px; }
+.wf-attendance-date-filter input { min-width: 120px; border: 0; outline: 0; background: transparent; color: var(--text-primary, #23352f); font: inherit; font-size: 12px; }
+.wf-attendance-table th { white-space: nowrap; }
+.wf-attendance-table td { white-space: nowrap; }
+.wf-attendance-status, .wf-attendance-review, .wf-attendance-complete { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.wf-attendance-status { padding: 5px 9px; border-radius: 99px; background: #eef2f0; color: #56635e; font-size: 11px; font-weight: 650; }
+.wf-attendance-status > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.wf-attendance-status.is-present, .wf-attendance-status.is-on-time { background: #e5f6ee; color: #087449; }
+.wf-attendance-status.is-late, .wf-attendance-status.is-half-day { background: #fff3db; color: #9a6500; }
+.wf-attendance-status.is-absent { background: #fcebea; color: #b53e35; }
+.wf-attendance-status.is-leave { background: #edf0ff; color: #5260b9; }
+.wf-attendance-review { color: #65726c; font-size: 11px; }
+.wf-attendance-review.is-finalized { color: #087449; }
+.wf-attendance-punch-card { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin: 0 0 18px; padding: 22px 25px; border: 1px solid #d4eee4; border-radius: 16px; background: linear-gradient(110deg, #f0fbf6, #fff 72%); }
+.wf-attendance-punch-card__copy h2 { margin: 5px 0; color: var(--text-primary, #23352f); font-size: 19px; }
+.wf-attendance-punch-card__copy p { margin: 0; color: var(--text-muted, #71817c); font-size: 13px; }
+.wf-attendance-punch-card__action { flex: 0 0 auto; }
+.wf-attendance-complete { color: #087449; font-size: 13px; font-weight: 650; }
+.wf-attendance-pagination { display: flex; justify-content: space-between; align-items: center; padding: 13px 18px; border-top: 1px solid var(--border-subtle, #e6ece9); color: var(--text-muted, #71817c); font-size: 12px; }
+.wf-attendance-pagination div { display: flex; gap: 7px; }
+.wf-attendance-pagination button { padding: 7px 11px; border: 1px solid var(--border-subtle, #dfe7e4); border-radius: 8px; background: #fff; color: var(--text-primary, #23352f); font: inherit; cursor: pointer; }
+.wf-attendance-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* added by wali: Reuse the Records page header, compact toolbar, card border, and table proportions for Approvals. */
+/* added by wali: Use the Records page's normal flow so the summary-to-table spacing does not stack. */
+.wf-attendance-approvals { display: block; }
+.wf-attendance-approvals__metrics { margin: 14px 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wf-attendance-approvals__metrics > button { box-sizing: border-box; display: grid; grid-template-columns: 32px 1fr; grid-template-rows: auto auto; gap: 2px 9px; align-items: center; min-height: 64px; height: 64px; padding: 9px 11px; border: 1px solid #dce4eb; border-radius: 14px; background: #fff; color: #142b3f; text-align: left; cursor: pointer; }
+.wf-attendance-approvals__metrics > button > span { grid-row: 1 / span 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; background: #e8f4f3; color: #087b83; }
+.wf-attendance-approvals__metrics > button > strong { align-self: end; font-size: 18px; line-height: 1; }
+.wf-attendance-approvals__metrics > button > small { align-self: start; margin-top: 4px; color: #60768b; font-size: 12px; font-weight: 600; }
+/* added by wali: Keep the selected approval queue card on the same neutral border style as Records summary cards. */
+.wf-attendance-approvals__metrics > button.is-selected { border-color: #dce4eb; box-shadow: none; }
+.wf-attendance-approvals .wf-org-resource-toolbar__heading { align-items: flex-start; justify-content: space-between; gap: 10px; }
+.wf-attendance-approvals .wf-org-resource-toolbar__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; padding: 0; }
+.wf-attendance-approvals .wf-org-search { width: auto; min-width: 0; height: 36px; flex: 1 1 360px; }
+.wf-attendance-approvals .wf-org-resource-toolbar__pager { margin-left: auto; }
+.wf-attendance-approvals .wf-org-table-wrap { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.wf-attendance-approvals .wf-org-table { min-width: 980px; }
+.wf-attendance-approvals .wf-org-table th { background: #f8fafb; }
+.wf-attendance-approvals .wf-org-table td { height: 58px; padding-top: 10px; padding-bottom: 10px; }
+.wf-attendance-approvals .wf-org-table tbody tr:last-child td { border-bottom: 0; }
+.wf-attendance-approvals .wf-org-table th + th, .wf-attendance-approvals .wf-org-table td + td { border-left: 1px solid #edf1f4; }
+.wf-attendance-approval-actions { display: flex; align-items: center; gap: 7px; }
+.wf-attendance-approval-actions .wf-org-button { min-height: 32px; padding: 6px 9px; font-size: 11px; }
+.wf-attendance-approval-reason { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.wf-attendance-approval-dialog-summary { display: grid; gap: 9px; margin-bottom: 18px; padding: 14px; border: 1px solid #e2eaf0; border-radius: 10px; background: #f8fafb; color: #29465d; }
+.wf-attendance-approval-dialog-summary p { margin: 0; color: #60768b; font-size: 13px; }
+.wf-attendance-approval-dialog-summary > div { display: grid; gap: 5px; font-size: 12px; }
+@media (max-width: 1100px) { .wf-attendance-approvals .wf-org-search { flex: 1 1 100%; } }
+@media (max-width: 900px) { .wf-attendance-approvals__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .wf-attendance-approvals .wf-org-resource-toolbar { padding: 19px 16px; } .wf-attendance-approvals .wf-org-resource-toolbar__tools { gap: 9px; } .wf-attendance-approval-actions { flex-wrap: wrap; } }
+@media (max-width: 460px) { .wf-attendance-approvals__metrics { grid-template-columns: 1fr; } .wf-attendance-approvals .wf-org-resource-toolbar__tools { flex-direction: column; } .wf-attendance-approvals .wf-org-search, .wf-attendance-approvals .wf-org-resource-toolbar__pager { width: 100%; flex: 1 1 auto; } }
+
+/* added by wali: Keep shift management aligned with the Projects-style attendance workspaces. */
+.wf-attendance-shifts > .wf-attendance-resource { margin-top: 20px; }
+.wf-attendance-shifts__metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wf-attendance-shifts-resource { margin-top: 0; }
+/* added by wali: Keep shift filters in one compact toolbar row like the attendance Records filters. */
+.wf-attendance-shifts-resource .wf-org-resource-toolbar__tools { flex-wrap: wrap; }
+.wf-attendance-shifts-resource .wf-org-menu-select.wf-attendance-branch-select { width: 150px; min-width: 0; flex: 0 0 150px; }
+.wf-attendance-shifts .wf-org-table { border-collapse: separate; border-spacing: 0; }
+.wf-attendance-shifts .wf-org-table { min-width: 1120px; }
+.wf-attendance-shifts .wf-org-table th { white-space: nowrap; }
+.wf-attendance-shifts .wf-org-table td { height: 62px; vertical-align: middle; }
+.wf-attendance-shifts__subline { display: block; margin-top: 4px; color: #758496; font-size: 11px; }
+.wf-attendance-shifts__windows { display: grid; gap: 5px; color: #465b6d; font-size: 12px; }
+.wf-attendance-shifts__actions { display: flex; align-items: center; gap: 8px; }
+.wf-attendance-shifts__actions .wf-org-button { min-height: 31px; padding-inline: 9px; font-size: 11px; }
+.wf-attendance-shifts__toggle { padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: #0f6d7a; font-size: 11px; font-weight: 700; cursor: pointer; }
+.wf-attendance-shifts__toggle:disabled { opacity: .5; cursor: wait; }
+.wf-attendance-shifts__status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 99px; background: #f1f3f5; color: #657587; font-size: 11px; font-weight: 700; }
+.wf-attendance-shifts__status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.wf-attendance-shifts__status.is-active { background: #e5f6ee; color: #087449; }
+.wf-attendance-shifts__checks { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 14px 22px; padding-top: 5px; }
+.wf-attendance-shifts__checks label { display: flex; align-items: center; gap: 7px; color: #405365; font-size: 12px; font-weight: 600; }
+.wf-attendance-shifts__checks input { accent-color: #0f6d7a; }
+@media (max-width: 760px) {
+  .wf-attendance-shifts__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wf-attendance-shifts__actions { align-items: flex-start; flex-direction: column; }
+}
+
+/* added by wali: Give the records view a dedicated filter area and a calmer, wider table surface. */
+.wf-attendance-page--records .wf-attendance-resource {
+  margin-top: 20px;
+  overflow: hidden;
+  border: 1px solid #dce4eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 31, 51, 0.045);
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px 20px 16px;
+  border-bottom-color: #dce4eb;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar__heading {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* added by wali: Keep the previous-records action visible beside the daily records heading. */
+.wf-attendance-period-toggle { flex: 0 0 auto; white-space: nowrap; }
+.wf-attendance-record-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+
+.wf-attendance-page--records .wf-org-resource-toolbar__heading > div > span {
+  color: #0f6d7a;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar h2 {
+  margin-top: 5px;
+  color: #172b3b;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar p {
+  margin-top: 5px;
+  color: #6d7c8d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar__tools {
+  /* added by wali: Match Overview's flexible toolbar so filters wrap naturally instead of leaving empty grid cells. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.wf-attendance-page--records .wf-org-search {
+  width: auto;
+  min-width: 0;
+  height: 36px;
+  flex: 1 1 360px;
+  border-color: #dce5e9;
+  background: #fbfcfc;
+}
+
+.wf-attendance-page--records .wf-org-menu-select {
+  width: 100%;
+  min-width: 0;
+  flex: initial;
+}
+
+/* added by wali: Keep branch, shift, and department dropdowns compact on the Records filter grid too. */
+.wf-attendance-page--records .wf-org-menu-select.wf-attendance-branch-select {
+  width: 150px;
+  min-width: 0;
+  flex: 0 0 150px;
+  justify-self: start;
+}
+
+/* added by wali: Give status dropdowns a deliberate compact width instead of inheriting width: 100%. */
+.wf-attendance-page--records .wf-org-menu-select.wf-attendance-record-filter-select {
+  width: 205px;
+  flex: 0 0 205px;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar__pager {
+  margin-left: auto;
+}
+
+/* added by wali: Start the date and review controls on a clear second filter line. */
+.wf-attendance-page--records .wf-attendance-record-filter-break {
+  flex: 0 0 100%;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.wf-attendance-page--records .wf-org-menu-select .emp-menu-select__trigger {
+  min-height: 36px;
+  border-color: #d8e1e8;
+  border-radius: 9px;
+  background: #fbfcfc;
+}
+
+.wf-attendance-page--records .wf-attendance-date-filter {
+  min-width: 0;
+  height: 36px;
+  box-sizing: border-box;
+  border-color: #d8e1e8;
+  background: #fbfcfc;
+}
+
+.wf-attendance-page--records .wf-attendance-date-filter input {
+  width: 100%;
+  min-width: 0;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar__pager {
+  justify-content: flex-end;
+  min-height: 36px;
+  padding-left: 8px;
+}
+
+.wf-attendance-page--records .wf-org-resource-toolbar__pager > span {
+  color: #657587;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wf-attendance-page--records .wf-org-table-wrap {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.wf-attendance-page--records .wf-org-table {
+  min-width: 1020px;
+}
+
+.wf-attendance-page--records .wf-org-table th {
+  background: #f8fafb;
+}
+
+.wf-attendance-page--records .wf-org-table td {
+  height: 58px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.wf-attendance-page--records .wf-org-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.wf-attendance-page--records .wf-org-table th + th,
+.wf-attendance-page--records .wf-org-table td + td {
+  border-left: 1px solid #edf1f4;
+}
+
+.wf-attendance-page--records .wf-org-table-skeleton,
+.wf-attendance-page--records > .wf-org-resource > .wf-org-empty-state {
+  margin: 18px;
+}
+
+@media (max-width: 1100px) {
+  .wf-attendance-page--records .wf-org-search {
+    flex: 1 1 100%;
+  }
+
+  .wf-attendance-page--records .wf-attendance-date-filter,
+  .wf-attendance-page--records .wf-org-menu-select:not(.wf-attendance-branch-select):not(.wf-attendance-record-filter-select) {
+    flex: 1 1 190px;
+  }
+
+}
+
+@media (max-width: 760px) {
+  .wf-attendance-record-actions { flex-wrap: wrap; }
+  .wf-attendance-page--records .wf-org-resource-toolbar {
+    padding: 19px 16px;
+  }
+
+  .wf-attendance-page--records .wf-org-resource-toolbar__tools {
+    gap: 9px;
+  }
+
+  .wf-attendance-page--records .wf-org-search {
+    flex: 1 1 100%;
+  }
+
+  .wf-attendance-page--records .wf-org-resource-toolbar__pager {
+    justify-content: space-between;
+    margin-left: 0;
+    flex: 1 1 100%;
+    padding: 0;
+  }
+
+}
+
+@media (max-width: 460px) {
+  .wf-attendance-page--records .wf-org-resource-toolbar__tools {
+    flex-direction: column;
+  }
+
+  .wf-attendance-page--records .wf-org-search,
+  .wf-attendance-page--records .wf-org-resource-toolbar__pager {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}
+@media (max-width: 900px) { .wf-attendance-resource .wf-org-resource-toolbar__tools { align-items: stretch; } .wf-attendance-date-filter { flex: 1 1 160px; justify-content: space-between; } }
+@media (max-width: 600px) { .wf-attendance-punch-card { align-items: flex-start; flex-direction: column; padding: 18px; } .wf-attendance-resource .wf-org-resource-toolbar__tools > * { width: 100%; } .wf-attendance-date-filter { box-sizing: border-box; } .wf-attendance-date-filter input { flex: 1; } }
+/* added by wali: Match the Records page's natural document flow and card separation on scheduling pages. */
+.wf-attendance-scheduling .wf-projects-resource { margin-top: 20px; }
+/* added by wali: Keep the Work schedules search width aligned with the compact Shifts toolbar. */
+.wf-attendance-work-schedules-resource .wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 360px) 150px 150px auto; }
+.wf-attendance-schedule-week { margin-top: 22px; border: 1px solid #dce5ed; border-radius: 14px; overflow: hidden; }
+.wf-attendance-schedule-week__heading { padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #f7fafb; border-bottom: 1px solid #e3ebf1; }
+.wf-attendance-schedule-week__heading div { display: grid; gap: 4px; }
+.wf-attendance-schedule-week__heading strong { color: #102a43; font-size: 15px; }
+.wf-attendance-schedule-week__heading small, .wf-attendance-schedule-week__heading > span { color: #647b91; font-size: 12px; }
+.wf-attendance-schedule-week__list { display: grid; }
+.wf-attendance-schedule-day { min-height: 70px; padding: 10px 16px; display: grid; grid-template-columns: minmax(140px, .55fr) minmax(260px, 1.4fr); gap: 14px; align-items: center; border-bottom: 1px solid #edf1f4; }
+.wf-attendance-schedule-day:last-child { border-bottom: 0; }
+.wf-attendance-schedule-day__toggle { display: flex; align-items: center; gap: 9px; color: #183b56; font-weight: 650; }
+.wf-attendance-schedule-day__toggle input, .wf-attendance-schedule-day__overnight input { accent-color: #008b8b; }
+.wf-attendance-schedule-day__shift { display: grid; gap: 5px; }
+.wf-attendance-schedule-day__shift select { width: 100%; min-height: 37px; padding: 0 10px; border: 1px solid #d7e1e9; border-radius: 8px; color: #17334c; background: #fff; font: inherit; font-size: 13px; }
+.wf-attendance-schedule-day__shift small { color: #71869b; font-size: 11px; }
+.wf-attendance-schedule-day input[type="time"], .wf-attendance-schedule-day input[type="number"] { width: 100%; min-width: 0; height: 34px; padding: 5px 8px; border: 1px solid #d7e1e9; border-radius: 7px; color: #17334c; background: #fff; font: inherit; font-size: 12px; }
+.wf-attendance-schedule-day__overnight { display: flex; align-items: center; gap: 6px; color: #62788d; font-size: 11px; }
+.wf-attendance-schedule-day__off { grid-column: span 1; color: #8293a3; font-size: 13px; }
+.wf-attendance-assignment-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: center; margin-top: 10px; padding: 0; border-top: 0; }
+.wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(160px, 190px) auto auto; }
+.wf-attendance-assignment-toolbar__current { color: #60768b; font-size: 13px; font-weight: 600; }
+/* added by wali: Give the employee cell a stable width and prevent long names from colliding with adjacent columns. */
+.wf-attendance-assignment-employee { min-width: 230px; max-width: 300px; }
+.wf-attendance-assignment-employee__details { min-width: 0; }
+.wf-attendance-assignment-employee__details strong { display: block; overflow: hidden; color: #102a43; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.wf-attendance-assignment-employee__details small { display: block; margin-top: 3px; color: #71869b; font-size: 12px; font-weight: 500; letter-spacing: .02em; }
+.wf-attendance-assignment-toolbar__employee { display: grid; gap: 5px; color: #60768b; font-size: 12px; font-weight: 600; }
+.wf-attendance-assignment-toolbar__employee select { min-height: 42px; padding: 0 12px; border: 1px solid #d7e1e9; border-radius: 9px; color: #17334c; background: #fff; }
+.wf-attendance-scheduling .wf-org-table td small { display: block; margin-top: 4px; color: #71869b; }
+@media (max-width: 1000px) { .wf-attendance-schedule-day { grid-template-columns: minmax(120px, .55fr) minmax(220px, 1fr); } }
+@media (max-width: 980px) { .wf-attendance-assignment-toolbar--filters { grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr); } }
+@media (max-width: 680px) { .wf-attendance-assignment-toolbar, .wf-attendance-assignment-toolbar--filters { grid-template-columns: 1fr; } .wf-attendance-schedule-week__heading { align-items: flex-start; flex-direction: column; } .wf-attendance-schedule-day { grid-template-columns: 1fr; } }

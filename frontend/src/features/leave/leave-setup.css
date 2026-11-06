@@ -37,6 +37,10 @@
 }
 .leave-setup__step.is-locked { background: #fbfcfd; }
 .leave-setup__step-heading { gap: 14px; margin-bottom: 20px; }
+.leave-setup__step-heading--actions > div:first-of-type { flex: 1; }
+.leave-setup__step-heading--actions > .leave-setup__button { flex: 0 0 auto; }
+.leave-setup__policy-default-action { display: grid; flex: 0 0 auto; justify-items: end; gap: 4px; }
+.leave-setup__policy-default-action small { color: #71869a; font-size: 11px; text-align: right; }
 .leave-setup__step-heading > span {
   display: grid;
   width: 36px;
@@ -49,19 +53,29 @@
   font-weight: 700;
 }
 .leave-setup__step-heading h2 { margin: 0 0 4px; font-size: 19px; }
-/* edited by wali: Match Configuration sections to the employee profile's clean, compact section cards. */
-.leave-setup--configuration .leave-setup__step { padding: 20px; border-color: #dce6eb; border-radius: 14px; box-shadow: 0 2px 8px rgb(32 55 71 / 4%); }
-.leave-setup--configuration .leave-setup__step-heading { gap: 12px; margin-bottom: 16px; }
-.leave-setup--configuration .leave-setup__step-heading h2 { color: #102a43; font-size: 17px; font-weight: 900; letter-spacing: -0.01em; -webkit-text-stroke: .25px currentColor; }
-.leave-setup--configuration .leave-setup__step-heading p { color: #71828d; font-size: 12px; }
-/* edited by wali: Tighten Configuration form spacing and field height while keeping labels easy to read. */
-.leave-setup--configuration .leave-setup__form { gap: 10px; }
-.leave-setup--configuration .leave-setup__form label { gap: 5px; font-size: 11.5px; }
+/* Keep Configuration cards calm and readable while retaining the shared setup layout. */
+.leave-setup--configuration .leave-setup__step { padding: 22px; border-color: #dce6eb; border-radius: 14px; box-shadow: 0 2px 8px rgb(32 55 71 / 4%); }
+.leave-setup--configuration .leave-setup__step-heading { gap: 13px; margin-bottom: 19px; }
+.leave-setup--configuration .leave-setup__step-heading h2 { color: #17364a; font-size: 18px; font-weight: 700; letter-spacing: normal; }
+.leave-setup--configuration .leave-setup__step-heading p { color: #71828d; font-size: 13px; }
+/* Restore comfortable spacing and readable field sizing on the multi-part configuration form. */
+.leave-setup--configuration .leave-setup__form { gap: 14px; }
+.leave-setup--configuration .leave-setup__form label { gap: 7px; font-size: 13px; font-weight: 600; }
 .leave-setup--configuration .leave-setup__form input:not([type="checkbox"]),
 .leave-setup--configuration .leave-setup__form select,
-.leave-setup--configuration .leave-setup__form .leave-setup__select .emp-menu-select__trigger { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; }
-.leave-setup--configuration .leave-setup__form .leave-setup__check { min-height: 36px; gap: 6px; }
-.leave-setup--configuration .leave-setup__rule-edit input { min-height: 34px; padding: 6px 9px; font-size: 12.5px; }
+.leave-setup--configuration .leave-setup__form .leave-setup__select .emp-menu-select__trigger { min-height: 40px; padding: 8px 11px; border-radius: 8px; font-size: 13px; }
+.leave-setup--configuration .leave-setup__form .leave-setup__check { min-height: 40px; gap: 8px; }
+.leave-setup--configuration .leave-setup__rule-edit input { min-height: 38px; padding: 8px 10px; font-size: 13px; }
+.leave-setup--configuration .leave-setup__rule-config { gap: 16px; margin-top: 12px; }
+.leave-setup--configuration .leave-setup__rule-config-heading strong { font-weight: 700; }
+.leave-setup--configuration .leave-setup__rule-group { padding: 18px; }
+.leave-setup--configuration .leave-setup__rule-group legend { font-weight: 700; }
+.leave-setup--configuration .leave-setup__rule-fields { gap: 14px; }
+.leave-setup--configuration .leave-setup__rule-fields > label:not(.leave-setup__check) { font-size: 13px; font-weight: 600; }
+.leave-setup--configuration .leave-setup__rule-fields input:not([type="checkbox"]) { min-height: 40px; font-size: 13px; }
+.leave-setup--configuration .leave-setup__rule-fields input[readonly] { font-weight: 600; }
+.leave-setup--configuration .leave-setup__rule-fields .leave-setup__select .emp-menu-select__trigger { min-height: 40px; font-size: 13px; }
+.leave-setup--configuration .leave-setup__rule-check { font-weight: 600; }
 .leave-setup__form {
   display: grid;
   grid-template-columns: repeat(3, minmax(150px, 1fr)) auto auto auto;
@@ -70,6 +84,7 @@
 }
 .leave-setup__form--rule { grid-template-columns: minmax(220px, 1fr) minmax(180px, .7fr) auto; }
 .leave-setup__form--policy { grid-template-columns: repeat(4, minmax(130px, 1fr)) auto auto; }
+.leave-setup__policy-description { grid-column: span 2; }
 /* edited by wali: Align annual and quarterly selectors, dates, and create action in the setup form. */
 .leave-setup__form--period { grid-template-columns: repeat(5, minmax(100px, 1fr)) auto; }
 .leave-setup__form label { display: grid; gap: 7px; color: #27465f; font-size: 13px; font-weight: 650; }
@@ -154,6 +169,25 @@
 .leave-setup__rule-edit input:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
 .leave-setup__rule-edit-actions { display: flex; gap: 7px; }
 .leave-setup__rule-edit-actions .leave-setup__button { min-height: 38px; padding: 0 11px; }
+.leave-setup__rule-config { display: grid; gap: 14px; margin-top: 8px; }
+.leave-setup__rule-config-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.leave-setup__rule-config-heading > div { display: grid; gap: 4px; }
+.leave-setup__rule-config-heading strong { color: #173b54; font-size: 16px; font-weight: 800; }
+.leave-setup__rule-config-heading small,
+.leave-setup__rule-group label small { color: #71869a; font-size: 11px; font-weight: 500; }
+.leave-setup__rule-group { min-width: 0; margin: 0; padding: 16px; border: 1px solid #e1e9ef; border-radius: 11px; }
+.leave-setup__rule-group legend { padding: 0 7px; color: #173b54; font-size: 14px; font-weight: 800; }
+.leave-setup__rule-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); align-items: end; gap: 12px; }
+.leave-setup__rule-fields > label:not(.leave-setup__check) { display: grid; min-width: 0; gap: 6px; color: #27465f; font-size: 12px; font-weight: 700; }
+.leave-setup__rule-fields input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #ccd9e3; border-radius: 8px; background: #fff; color: #173b54; font: inherit; }
+.leave-setup__rule-fields input[readonly] { background: #f2f6f8; font-weight: 750; }
+.leave-setup__rule-fields input:focus { outline: 2px solid #73c3c9; outline-offset: 1px; }
+.leave-setup__rule-fields .leave-setup__select { width: 100%; }
+.leave-setup__rule-fields .leave-setup__select .emp-menu-select__trigger { min-height: 38px; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+.leave-setup__rule-check { display: flex; min-height: 38px; align-items: center; gap: 10px; color: #27465f; font-size: 13px; font-weight: 700; white-space: normal !important; }
+/* Make rule toggles easier to see and hit while keeping the browser's accessible checkbox behavior. */
+.leave-setup__rule-check input[type="checkbox"] { width: 19px; height: 19px; flex: 0 0 19px; margin: 0; accent-color: #117b86; cursor: pointer; }
+.leave-setup__rule-actions { display: flex; justify-content: flex-end; gap: 8px; }
 /* edited by wali: Keep the policy edit action beside its selectable policy card. */
 .leave-setup__policy-row { display: flex; align-items: center; gap: 8px; }
 .leave-setup__policy-card { width: 100%; flex: 1; text-align: left; cursor: pointer; }
@@ -306,8 +340,8 @@
 .leave-balances__summary-card small { color: #647b91; }
 .leave-balances__summary-card strong { color: #102a43; font-size: 21px; }
 
-/* edited by wali: Bring Requests and Configuration closer to the Leave top bar and tighten their section rhythm. */
-.page-stack.leave-setup--configuration,
+/* Keep the longer Configuration page sections distinct; preserve the compact Requests inbox rhythm. */
+.page-stack.leave-setup--configuration { gap: 16px; padding-top: 16px; }
 .page-stack.leave-setup--requests { gap: 12px; padding-top: 14px; }
 .leave-setup--configuration .leave-setup__header,
 .leave-setup--requests .leave-setup__header { margin-bottom: 0; }
@@ -396,6 +430,9 @@
   .leave-setup { padding: 20px 14px 36px; }
   .leave-setup__step { padding: 18px 14px; }
   .leave-setup--configuration .leave-setup__step { padding: 18px 14px; }
+  /* added by wali: Keep the next-period action from crowding the Configuration heading on narrow screens. */
+  .leave-setup--configuration .leave-setup__step-heading--actions { flex-wrap: wrap; }
+  .leave-setup--configuration .leave-setup__step-heading--actions > .leave-setup__button { margin-left: auto; }
   .leave-setup__form,
   .leave-setup__form--rule,
   .leave-setup__form--policy,
@@ -404,6 +441,7 @@
   .leave-balances__toolbar,
   .leave-balances__summary { grid-template-columns: 1fr; }
   .leave-setup__balance-remarks { grid-column: auto; }
+  .leave-setup__policy-description { grid-column: auto; }
   .leave-employee__form { grid-template-columns: 1fr; }
   .leave-employee__request-form-card > .leave-setup__step-heading { align-items: flex-start; }
   .leave-employee__request-form-card > .leave-setup__step-heading > div { flex: 1; }

@@ -235,6 +235,7 @@ export interface AttendanceDeviceDatabaseRow {
 
   branch_code: string | null;
   branch_name: string | null;
+  time_zone: string;
 
   device_code: string;
   device_name: string;
@@ -465,6 +466,14 @@ export interface WorkScheduleResponse {
 export interface WorkScheduleDayDatabaseRow {
   schedule_day_id: DatabaseId;
   schedule_id: DatabaseId;
+  shift_id: DatabaseId | null;
+  shift_code: string | null;
+  shift_name: string | null;
+  assigned_shift_start_time: string | null;
+  assigned_shift_end_time: string | null;
+  assigned_shift_crosses_midnight: number | boolean | null;
+  assigned_shift_break_minutes: string | number | null;
+  assigned_shift_expected_work_minutes: string | number | null;
   company_id: DatabaseId;
 
   day_of_week: string | number;
@@ -510,9 +519,9 @@ export interface EmployeeShiftAssignmentDatabaseRow {
 
   company_id: DatabaseId;
 
-  shift_id: DatabaseId;
-  shift_code: string;
-  shift_name: string;
+  shift_id: DatabaseId | null;
+  shift_code: string | null;
+  shift_name: string | null;
 
   schedule_id: DatabaseId | null;
   schedule_code: string | null;
@@ -539,9 +548,9 @@ export interface EmployeeShiftAssignmentResponse {
   employeeId: string;
   companyId: string;
 
-  shiftId: string;
-  shiftCode: string;
-  shiftName: string;
+  shiftId: string | null;
+  shiftCode: string | null;
+  shiftName: string | null;
 
   scheduleId: string | null;
   scheduleCode: string | null;

@@ -921,6 +921,11 @@ export const shiftListQuerySchema =
         databaseIdSchema
           .optional(),
 
+      // added by wali: Filter shifts to those used by current schedules assigned to this department.
+      departmentId:
+        databaseIdSchema
+          .optional(),
+
       isActive:
         booleanSchema
           .optional(),
@@ -1028,6 +1033,15 @@ export const updateWorkScheduleBodySchema =
 export const workScheduleListQuerySchema =
   paginationQuerySchema
     .extend({
+      // added by wali: Filter schedules by the current branch and department of assigned employees.
+      branchId:
+        databaseIdSchema
+          .optional(),
+
+      departmentId:
+        databaseIdSchema
+          .optional(),
+
       isActive:
         booleanSchema
           .optional(),
@@ -1071,6 +1085,11 @@ const workScheduleDaySchema =
         booleanSchema
           .default(true),
 
+      // added by wali: Let each working weekday reference a reusable shift definition.
+      shiftId:
+        nullableDatabaseIdSchema
+          .optional(),
+
       plannedStartTime:
         nullableTimeOnlySchema,
 
@@ -1096,6 +1115,13 @@ const workScheduleDaySchema =
         context
       ) => {
         if (!input.isWorkingDay) {
+          if (input.shiftId != null) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["shiftId"],
+              message: "A non-working day cannot have a shift"
+            });
+          }
           if (
             input.plannedStartTime !==
               null ||
@@ -1160,6 +1186,11 @@ const workScheduleDaySchema =
             });
           }
 
+          return;
+        }
+
+        // added by wali: New schedules use a selected shift; legacy day-time payloads remain accepted for existing clients.
+        if (input.shiftId != null) {
           return;
         }
 
@@ -1364,7 +1395,8 @@ export const createEmployeeShiftAssignmentBodySchema =
   z
     .object({
       shiftId:
-        databaseIdSchema,
+        databaseIdSchema
+          .optional(),
 
       scheduleId:
         nullableDatabaseIdSchema
@@ -1395,6 +1427,13 @@ export const createEmployeeShiftAssignmentBodySchema =
         input,
         context
       ) => {
+        if (!input.shiftId && !input.scheduleId) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["scheduleId"],
+            message: "Choose a work schedule or a legacy standalone shift assignment"
+          });
+        }
         validateEffectiveDates(
           input,
           context
@@ -1709,6 +1748,19 @@ export const listEmployeeShiftAssignmentsRequestSchema =
 
     params:
       employeeParamsSchema,
+
+    query:
+      employeeShiftAssignmentListQuerySchema
+  });
+
+// added by wali: Validate company-wide assignment overview filters without requiring an employee path parameter.
+export const listAllShiftAssignmentsRequestSchema =
+  z.object({
+    body:
+      z.object({}).passthrough(),
+
+    params:
+      z.object({}).passthrough(),
 
     query:
       employeeShiftAssignmentListQuerySchema

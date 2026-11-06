@@ -11,7 +11,7 @@ export const globalRateLimiter = rateLimit({
   skip: (request) =>
     request.path.startsWith(
       "/api/v1/health"
-    ),
+    ) || request.path.startsWith("/iclock"),
 
   handler: (_request, response) => {
     const payload: Record<string, unknown> = {
@@ -32,4 +32,15 @@ export const globalRateLimiter = rateLimit({
 
     response.status(429).json(payload);
   }
+});
+
+// added by wali: Allow frequent device polling while retaining an IP-based ceiling for public ADMS endpoints.
+export const attendanceDeviceRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 1200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_request, response) => {
+    response.status(429).type("text/plain").send("ERROR\n");
+  },
 });

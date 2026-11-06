@@ -68,6 +68,7 @@ export interface EmployeeConflictResult {
   employeeCodeExists: boolean;
   cnicNumberExists: boolean;
   officialEmailExists: boolean;
+  biometricIdentifierExists: boolean;
 }
 
 const employeeSelectColumns = `
@@ -1231,6 +1232,7 @@ export async function findEmployeeConflicts(
     employeeCode: string;
     cnicNumber: string | null;
     officialEmail: string | null;
+    biometricIdentifier: string | null;
   },
   excludeEmployeeId?: string
 ): Promise<EmployeeConflictResult> {
@@ -1239,7 +1241,8 @@ export async function findEmployeeConflicts(
         employee_id,
         employee_code,
         cnic_number,
-        official_email
+        official_email,
+        biometric_identifier
     FROM employees
     WHERE company_id = ?
       AND (
@@ -1271,6 +1274,16 @@ export async function findEmployeeConflicts(
     );
   }
 
+  if (values.biometricIdentifier) {
+    sql += `
+      OR biometric_identifier = ?
+    `;
+
+    parameters.push(
+      values.biometricIdentifier
+    );
+  }
+
   sql += `
       )
   `;
@@ -1296,6 +1309,7 @@ export async function findEmployeeConflicts(
       employee_code: string;
       cnic_number: string | null;
       official_email: string | null;
+      biometric_identifier: string | null;
     }>;
 
   return {
@@ -1320,6 +1334,14 @@ export async function findEmployeeConflicts(
         (row) =>
           row.official_email ===
           values.officialEmail
+      ),
+
+    biometricIdentifierExists:
+      values.biometricIdentifier !== null &&
+      conflictRows.some(
+        (row) =>
+          row.biometric_identifier ===
+          values.biometricIdentifier
       )
   };
 }

@@ -11,7 +11,7 @@ import {
   notFoundHandler
 } from "./common/middleware/error.middleware.js";
 
-import { globalRateLimiter } from "./common/middleware/rate-limit.middleware.js";
+import { attendanceDeviceRateLimiter, globalRateLimiter } from "./common/middleware/rate-limit.middleware.js";
 import { requestIdMiddleware } from "./common/middleware/request-id.middleware.js";
 import { sendSuccess } from "./common/utils/api-response.js";
 import { env } from "./config/env.js";
@@ -66,6 +66,7 @@ import {
   attendanceRouter,
   employeeAttendanceRouter
 } from "./modules/attendance/attendance.routes.js";
+import { attendanceDevicePushRouter } from "./modules/attendance/attendance-device-push.routes.js";
 import {
   attendanceAdjustmentRouter,
   employeeAttendanceAdjustmentRouter
@@ -159,6 +160,14 @@ app.use(
 app.use(compression());
 
 app.use(globalRateLimiter);
+
+// added by wali: Capture device ATTLOG payloads as plain text before the normal API JSON body parser.
+app.use(
+  "/iclock",
+  attendanceDeviceRateLimiter,
+  express.text({ type: "*/*", limit: "1mb" }),
+  attendanceDevicePushRouter
+);
 
 app.use(
   express.json({

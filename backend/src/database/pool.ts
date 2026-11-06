@@ -27,6 +27,10 @@ export const databasePool: Pool = mariadb.createPool({
 
   charset: "utf8mb4",
 
+  // added by wali: Keep SQL timestamps in UTC and preserve date values so attendance times are not shifted by the host timezone.
+  dateStrings: true,
+  timezone: "Z",
+
   bigIntAsNumber: false,
   insertIdAsNumber: false
 });

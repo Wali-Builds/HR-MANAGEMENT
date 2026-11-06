@@ -102,13 +102,13 @@ export function ModuleNavigation({
         </div>
 
         <div className="ws-modulebar__links">
-          {navigation.map((item) => {
-            const active = activeNavigationItem?.label === item.label;
+          {navigation.map((item, index) => {
+            const active = activeNavigationItem === item;
 
             return (
               <button
                 type="button"
-                key={item.label}
+                key={item.to ?? `disabled-${item.label}-${index}`}
                 className={[
                   "ws-modulebar__link",
                   active ? "ws-modulebar__link--active" : "",

@@ -399,6 +399,14 @@ export interface UpdateWorkScheduleRecord {
 export interface WorkScheduleDayDatabaseRow {
   schedule_day_id: DatabaseId;
   schedule_id: DatabaseId;
+  shift_id: DatabaseId | null;
+  shift_code: string | null;
+  shift_name: string | null;
+  assigned_shift_start_time: string | null;
+  assigned_shift_end_time: string | null;
+  assigned_shift_crosses_midnight: number | boolean | null;
+  assigned_shift_break_minutes: string | number | null;
+  assigned_shift_expected_work_minutes: string | number | null;
 
   company_id: DatabaseId;
 
@@ -445,6 +453,11 @@ export interface WorkScheduleDayResponse {
 
   dayOfWeek: number;
   dayName: string;
+  shiftId: string | null;
+  shiftCode: string | null;
+  shiftName: string | null;
+  shiftStartTime: string | null;
+  shiftEndTime: string | null;
 
   isWorkingDay: boolean;
 
@@ -463,6 +476,7 @@ export interface WorkScheduleDayResponse {
 export interface ReplaceWorkScheduleDayRecord {
   dayOfWeek: number;
   isWorkingDay: boolean;
+  shiftId: string | null;
 
   plannedStartTime: string | null;
   plannedEndTime: string | null;
@@ -488,16 +502,17 @@ export interface EmployeeShiftAssignmentDatabaseRow {
   employee_code: string;
   employee_name: string;
 
-  shift_id: DatabaseId;
-  shift_code: string;
-  shift_name: string;
+  shift_id: DatabaseId | null;
+  shift_code: string | null;
+  shift_name: string | null;
 
-  shift_start_time: string;
-  shift_end_time: string;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
 
   shift_crosses_midnight:
     | number
-    | boolean;
+    | boolean
+    | null;
 
   schedule_id:
     | DatabaseId
@@ -553,13 +568,13 @@ export interface EmployeeShiftAssignmentResponse {
   employeeCode: string;
   employeeName: string;
 
-  shiftId: string;
-  shiftCode: string;
-  shiftName: string;
+  shiftId: string | null;
+  shiftCode: string | null;
+  shiftName: string | null;
 
-  shiftStartTime: string;
-  shiftEndTime: string;
-  shiftCrossesMidnight: boolean;
+  shiftStartTime: string | null;
+  shiftEndTime: string | null;
+  shiftCrossesMidnight: boolean | null;
 
   scheduleId: string | null;
   scheduleCode: string | null;
@@ -584,7 +599,7 @@ export interface EmployeeShiftAssignmentResponse {
 export interface CreateEmployeeShiftAssignmentRecord {
   employeeId: string;
 
-  shiftId: string;
+  shiftId: string | null;
   scheduleId: string | null;
 
   effectiveFrom: string;
@@ -600,6 +615,7 @@ export interface CreateEmployeeShiftAssignmentRecord {
 export interface UpdateEmployeeShiftAssignmentRecord {
   shiftId?:
     | string
+    | null
     | undefined;
 
   scheduleId?:

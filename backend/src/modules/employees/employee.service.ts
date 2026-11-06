@@ -134,6 +134,7 @@ interface EmployeeConflictFlags {
   employeeCodeExists: boolean;
   cnicNumberExists: boolean;
   officialEmailExists: boolean;
+  biometricIdentifierExists: boolean;
 }
 
 function databaseBoolean(
@@ -1201,6 +1202,18 @@ function throwConflictError(
         "EMPLOYEE_OFFICIAL_EMAIL_EXISTS"
     });
   }
+
+  if (conflicts.biometricIdentifierExists) {
+    throw new AppError({
+      message:
+        "This biometric identifier is already assigned to another employee",
+
+      statusCode: 409,
+
+      code:
+        "EMPLOYEE_BIOMETRIC_IDENTIFIER_EXISTS"
+    });
+  }
 }
 
 function isDuplicateEntryError(
@@ -1636,7 +1649,10 @@ export async function createEmployee(
             input.cnicNumber ?? null,
 
           officialEmail:
-            input.officialEmail ?? null
+            input.officialEmail ?? null,
+
+          biometricIdentifier:
+            input.biometricIdentifier ?? null
         }
       );
 
@@ -1645,7 +1661,8 @@ export async function createEmployee(
     );
   } else if (
     input.cnicNumber ||
-    input.officialEmail
+    input.officialEmail ||
+    input.biometricIdentifier
   ) {
     const temporaryCode =
       `__AUTO__${Date.now()}`;
@@ -1661,13 +1678,17 @@ export async function createEmployee(
             input.cnicNumber ?? null,
 
           officialEmail:
-            input.officialEmail ?? null
+            input.officialEmail ?? null,
+
+          biometricIdentifier:
+            input.biometricIdentifier ?? null
         }
       );
 
     if (
       conflicts.cnicNumberExists ||
-      conflicts.officialEmailExists
+      conflicts.officialEmailExists ||
+      conflicts.biometricIdentifierExists
     ) {
       throwConflictError(
         conflicts
@@ -1901,6 +1922,12 @@ export async function updateEmployee(
       ? input.officialEmail
       : existing.official_email;
 
+  const resultingBiometricIdentifier =
+    input.biometricIdentifier !== undefined
+      ? input.biometricIdentifier
+      : existing.biometric_identifier;
+
+  // added by wali: Prevent duplicate machine identifiers from resolving to the wrong employee during punch processing.
   const conflicts =
     await findEmployeeConflicts(
       companyId,
@@ -1912,7 +1939,10 @@ export async function updateEmployee(
           resultingCnic,
 
         officialEmail:
-          resultingOfficialEmail
+          resultingOfficialEmail,
+
+        biometricIdentifier:
+          resultingBiometricIdentifier
       },
       employeeId
     );

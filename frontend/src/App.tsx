@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+﻿import { Navigate, Route, Routes } from "react-router-dom";
 
 import { PermissionRoute } from "./app/router/PermissionRoute";
 import { PlatformAdminRoute } from "./app/router/PlatformAdminRoute";
@@ -30,6 +30,14 @@ import { BranchesPage } from "./features/branches";
 import { DesignationsPage } from "./features/designations/pages/DesignationsPage";
 import { PositionsPage } from "./features/positions/pages/PositionsPage";
 import { ProjectsPage } from "./features/projects/pages/ProjectsPage";
+import { AttendancePage } from "./features/attendance/pages/AttendancePage";
+// added by wali: Route attendance record finalization and punch adjustment approvals in the Attendance module.
+import { AttendanceApprovalsPage } from "./features/attendance/pages/AttendanceApprovalsPage";
+import { AttendanceConfigurationPage } from "./features/attendance/pages/AttendanceConfigurationPage";
+// added by wali: Expose the shift timing and grace-period configuration workspace.
+import { AttendanceShiftsPage } from "./features/attendance/pages/AttendanceShiftsPage";
+// added by wali: Expose weekly work schedules and employee shift assignments as attendance setup pages.
+import { AttendanceShiftAssignmentsPage, AttendanceWorkSchedulesPage } from "./features/attendance/pages/AttendanceSchedulingPage";
 import { WorkforceAccessPage } from "./features/workforce-access";
 import { WorkforceConfigurationPage } from "./features/workforce-configuration";
 import { WorkforceReportsPage } from "./features/workforce-reports";
@@ -40,7 +48,6 @@ import { LeaveRequestsPage } from "./features/leave/pages/LeaveRequestsPage";
 // edited by wali: Add the company-wide employee leave balance overview.
 import { LeaveBalancesPage } from "./features/leave/pages/LeaveBalancesPage";
 import { RolesPage } from "./features/roles";
-import { ModulePlaceholderPage } from "./features/shared/pages/ModulePlaceholderPage";
 import { NotFoundPage } from "./features/shared/pages/NotFoundPage";
 import { AuthLayout } from "./layouts/AuthLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";
@@ -141,15 +148,27 @@ export default function App() {
             <Route path="/employees/:employeeId/edit" element={<EmployeeFormPage mode="edit" />} />
           </Route>
 
-          <Route
-            path="/attendance"
-            element={
-              <ModulePlaceholderPage
-                title="Attendance"
-                description="Daily attendance, schedules and workforce time records."
-              />
-            }
-          />
+          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.manage", "attendance.finalize", "employee.view_self"]} />}>
+            {/* added by wali: Redirect the old Overview URL into the single daily-and-history Records page. */}
+            <Route path="/attendance" element={<Navigate to="/attendance/records" replace />} />
+            <Route path="/attendance/records" element={<AttendancePage />} />
+          </Route>
+          {/* added by wali: Restrict the attendance approval inbox to users with record or adjustment review access. */}
+          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.finalize", "attendance.manage", "attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"]} />}>
+            <Route path="/attendance/approvals" element={<AttendanceApprovalsPage />} />
+          </Route>
+          {/* added by wali: Protect shift definitions with the backend scheduling permissions. */}
+          <Route element={<PermissionRoute permissions={["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"]} />}>
+            <Route path="/attendance/shifts" element={<AttendanceShiftsPage />} />
+            {/* added by wali: Protect work schedule templates with attendance scheduling access. */}
+            <Route path="/attendance/schedules" element={<AttendanceWorkSchedulesPage />} />
+            {/* added by wali: Keep employee shift assignment management within the attendance module. */}
+            <Route path="/attendance/assignments" element={<AttendanceShiftAssignmentsPage />} />
+          </Route>
+          {/* added by wali: Keep biometric device and employee identifier setup in its own protected attendance page. */}
+          <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
+            <Route path="/attendance/configuration" element={<AttendanceConfigurationPage />} />
+          </Route>
 
           {/* edited by wali: Let Platform Admins and tenant Company Admins manage their scoped roles. */}
           <Route element={<PermissionRoute permissions={["roles.manage"]} allowRoleCodes={["COMPANY_ADMIN"]} />}>

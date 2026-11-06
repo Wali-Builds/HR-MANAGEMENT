@@ -39,6 +39,7 @@ import {
   getEffectiveEmployeeShift,
   getShift,
   getWorkSchedule,
+  listAllShiftAssignments,
   listEmployeeShiftAssignments,
   listShifts,
   listWorkScheduleDays,
@@ -472,6 +473,24 @@ export async function listEmployeeShiftAssignmentsController(
 
     data:
       result
+  });
+}
+
+// added by wali: Serve company-wide employee shift/schedule assignment rows for the assignment overview page.
+export async function listAllShiftAssignmentsController(
+  _request: Request,
+  response: Response
+): Promise<void> {
+  const validated = response.locals.validated as {
+    query: EmployeeShiftAssignmentListQuery;
+  };
+  const result = await listAllShiftAssignments(
+    validated.query,
+    getAuthContext(response)
+  );
+  sendSuccess(response, {
+    message: "Employee schedule assignments retrieved successfully",
+    data: result
   });
 }
 
