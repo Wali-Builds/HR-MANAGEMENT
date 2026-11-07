@@ -51,9 +51,7 @@ function buildProfileSections(profile: EmployeeSelfProfile): ProfileSection[] {
         { label: "Position", value: displayValue(profile.positionTitle) },
         { label: "Reporting manager", value: displayValue(profile.reportingManagerName) },
         { label: "Employment type", value: profile.employmentTypeName },
-        { label: "Assignment type", value: displayValue(profile.assignmentType) },
         { label: "Work location", value: displayValue(profile.workLocation) },
-        { label: "Employment percentage", value: profile.employmentPercentage === null ? "Not provided" : `${profile.employmentPercentage}%` },
         { label: "Assignment effective from", value: displayDate(profile.assignmentEffectiveFrom) },
       ],
     },
@@ -62,7 +60,6 @@ function buildProfileSections(profile: EmployeeSelfProfile): ProfileSection[] {
       rows: [
         { label: "Joining date", value: displayDate(profile.joiningDate) },
         { label: "Probation ends", value: displayDate(profile.probationEndDate) },
-        { label: "Confirmation date", value: displayDate(profile.confirmationDate) },
         { label: "Contract starts", value: displayDate(profile.contractStartDate) },
         { label: "Contract ends", value: displayDate(profile.contractEndDate) },
         { label: "Resignation date", value: displayDate(profile.resignationDate) },

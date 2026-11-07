@@ -148,17 +148,17 @@ export default function App() {
             <Route path="/employees/:employeeId/edit" element={<EmployeeFormPage mode="edit" />} />
           </Route>
 
-          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.manage", "attendance.finalize", "employee.view_self"]} />}>
+          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.manage", "attendance.finalize", "employee.view_self"]} denyPlatformAdmin />}>
             {/* added by wali: Redirect the old Overview URL into the single daily-and-history Records page. */}
             <Route path="/attendance" element={<Navigate to="/attendance/records" replace />} />
             <Route path="/attendance/records" element={<AttendancePage />} />
           </Route>
           {/* added by wali: Restrict the attendance approval inbox to users with record or adjustment review access. */}
-          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.finalize", "attendance.manage", "attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"]} />}>
+          <Route element={<PermissionRoute permissions={["attendance.view", "attendance.finalize", "attendance.manage", "attendance.adjustment.view", "attendance.adjustment.manage", "attendance.adjustment.approve"]} denyPlatformAdmin />}>
             <Route path="/attendance/approvals" element={<AttendanceApprovalsPage />} />
           </Route>
           {/* added by wali: Protect shift definitions with the backend scheduling permissions. */}
-          <Route element={<PermissionRoute permissions={["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"]} />}>
+          <Route element={<PermissionRoute permissions={["attendance.scheduling.view", "attendance.scheduling.manage", "attendance.scheduling.assign", "attendance.manage"]} denyPlatformAdmin />}>
             <Route path="/attendance/shifts" element={<AttendanceShiftsPage />} />
             {/* added by wali: Protect work schedule templates with attendance scheduling access. */}
             <Route path="/attendance/schedules" element={<AttendanceWorkSchedulesPage />} />
@@ -166,7 +166,7 @@ export default function App() {
             <Route path="/attendance/assignments" element={<AttendanceShiftAssignmentsPage />} />
           </Route>
           {/* added by wali: Keep biometric device and employee identifier setup in its own protected attendance page. */}
-          <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
+          <Route element={<PermissionRoute permissions={["employee.view_all"]} denyPlatformAdmin />}>
             <Route path="/attendance/configuration" element={<AttendanceConfigurationPage />} />
           </Route>
 

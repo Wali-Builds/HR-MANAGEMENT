@@ -131,7 +131,6 @@ export function EmployeeRecordPage() {
                 <div><span>Department</span><strong>{employee.assignment.departmentName ?? "Not assigned"}</strong></div>
                 <div><span>Branch</span><strong>{employee.assignment.branchName ?? "Not assigned"}</strong></div>
                 <div><span>Reporting manager</span><strong>{employee.assignment.reportingManagerName ?? "Not assigned"}</strong><small>{employee.assignment.reportingManagerCode}</small></div>
-                <div><span>Employment percentage</span><strong>{employee.assignment.employmentPercentage ?? 100}%</strong></div>
               </div>
             </section>
             <section className="emp-record-card">
@@ -152,7 +151,6 @@ export function EmployeeRecordPage() {
               <div className="emp-detail-grid">
                 <div><span>Joining date</span><strong>{employee.joiningDate}</strong></div>
                 <div><span>Probation end</span><strong>{employee.probationEndDate ?? "—"}</strong></div>
-                <div><span>Confirmation date</span><strong>{employee.confirmationDate ?? "—"}</strong></div>
                 <div><span>Contract start</span><strong>{employee.contractStartDate ?? "—"}</strong></div>
                 <div><span>Contract end</span><strong>{employee.contractEndDate ?? "—"}</strong></div>
                 <div><span>Last working date</span><strong>{employee.lastWorkingDate ?? "—"}</strong></div>
@@ -161,10 +159,8 @@ export function EmployeeRecordPage() {
             <section className="emp-record-card">
               <header><Building2 size={18} /><div><h3>Assignment metadata</h3><p>Movement and assignment controls</p></div></header>
               <div className="emp-detail-grid">
-                <div><span>Assignment type</span><strong>{employee.assignment.assignmentType ?? "—"}</strong></div>
                 <div><span>Effective from</span><strong>{employee.assignment.effectiveFrom ?? "—"}</strong></div>
                 <div><span>Effective to</span><strong>{employee.assignment.effectiveTo ?? "Current"}</strong></div>
-                <div className="emp-detail-grid__wide"><span>Transfer reason</span><strong>{employee.assignment.transferReason ?? "No transfer reason recorded"}</strong></div>
               </div>
             </section>
           </>

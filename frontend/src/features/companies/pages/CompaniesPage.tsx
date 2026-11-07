@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 
 import { normalizeApiError } from "../../../api/api-error";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { CompanyFilterRail } from "../components/CompanyFilterRail";
+import { CompanyFiltersPanel } from "../components/CompanyFiltersPanel";
 import { CompanyKanbanCard } from "../components/CompanyKanbanCard";
 import { CompanyListView } from "../components/CompanyListView";
 import {
@@ -52,6 +52,7 @@ export function CompaniesPage() {
   const [sortBy, setSortBy] = useState<CompanySortField>("updated_at");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DESC");
   const [view, setView] = useState<CompanyWorkspaceView>(readStoredView);
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [companyToDeactivate, setCompanyToDeactivate] = useState<Company | null>(null);
 
@@ -132,15 +133,16 @@ export function CompaniesPage() {
     setPage(1);
   }
 
+  const activeFilterCount = status === "all" ? 0 : 1;
+
   const error = companiesQuery.isError
     ? normalizeApiError(companiesQuery.error)
     : null;
 
   return (
-    <section className="org-workspace">
+    <section className="emp-workspace emp-workspace--access-ui org-workspace org-workspace--workforce-ui">
       <CompanyWorkspaceToolbar
         search={search}
-        status={status}
         sortBy={sortBy}
         sortOrder={sortOrder}
         view={view}
@@ -148,10 +150,10 @@ export function CompaniesPage() {
         totalPages={pagination?.totalPages ?? 1}
         total={pagination?.total}
         canCreate={canCreate}
-        canViewDeleted={isPlatformAdmin}
         isRefreshing={companiesQuery.isFetching}
+        filtersOpen={filtersOpen}
+        activeFilterCount={activeFilterCount}
         onSearchChange={setSearch}
-        onStatusChange={setStatus}
         onSortByChange={setSortBy}
         onSortOrderChange={setSortOrder}
         onViewChange={setView}
@@ -161,11 +163,13 @@ export function CompaniesPage() {
         }
         onCreate={() => navigate("/companies/new")}
         onRefresh={() => void companiesQuery.refetch()}
+        onToggleFilters={() => setFiltersOpen((value) => !value)}
         onClear={clearFilters}
       />
 
-      <div className="org-workspace__body">
-        <CompanyFilterRail
+      <div className={`emp-workspace__body ${filtersOpen ? "has-filters" : ""}`}>
+        <CompanyFiltersPanel
+          open={filtersOpen}
           companies={companies}
           counts={statusCounts}
           canViewDeleted={isPlatformAdmin}
@@ -174,8 +178,8 @@ export function CompaniesPage() {
           onSearchLocation={setSearch}
         />
 
-        <main className="org-record-area">
-          <div className="org-record-area__context">
+        <main className="emp-record-area org-record-area">
+          <div className="emp-record-area__context org-record-area__context">
             <div>
               <strong>
                 {pagination
@@ -207,8 +211,8 @@ export function CompaniesPage() {
               ))}
             </div>
           ) : error ? (
-            <div className="org-state-panel">
-              <span className="org-state-panel__icon org-state-panel__icon--error">
+              <div className="emp-state-panel org-state-panel">
+              <span className="emp-state-panel__icon emp-state-panel__icon--error org-state-panel__icon org-state-panel__icon--error">
                 <Building2 size={26} />
               </span>
               <h2>Companies could not be loaded</h2>
@@ -222,8 +226,8 @@ export function CompaniesPage() {
               </button>
             </div>
           ) : companies.length === 0 ? (
-            <div className="org-state-panel">
-              <span className="org-state-panel__icon">
+            <div className="emp-state-panel org-state-panel">
+              <span className="emp-state-panel__icon org-state-panel__icon">
                 <Building2 size={27} />
               </span>
               <h2>{deferredSearch || status !== "all" ? "No matching companies" : "No companies yet"}</h2>
