@@ -29,8 +29,8 @@ export const employeeFormSchema = z
     spouseName: z.string().trim().max(150),
     gender: z.string().trim().min(1, "Gender is required").max(30),
     dateOfBirth: optionalDate.min(1, "Date of birth is required"),
-    maritalStatus: z.string().trim().min(1, "Marital status is required").max(30),
-    bloodGroup: z.string().trim().min(1, "Blood group is required").max(10),
+    maritalStatus: z.string().trim().max(30),
+    bloodGroup: z.string().trim().max(10),
     nationality: z.string().trim().min(2, "Nationality is required").max(80),
     cnicNumber: z.string().trim().min(1, "CNIC number is required").max(20),
     passportNumber: z.string().trim().max(50),
@@ -42,7 +42,6 @@ export const employeeFormSchema = z
     employeeStatusId: z.string().trim().min(1, "Employee status is required"),
     joiningDate: z.string().trim().min(1, "Joining date is required"),
     probationEndDate: optionalDate,
-    confirmationDate: optionalDate,
     contractStartDate: optionalDate,
     contractEndDate: optionalDate,
     resignationDate: optionalDate,
@@ -58,27 +57,7 @@ export const employeeFormSchema = z
     reportingManagerId: z.string().trim(),
     // edited by wali: Every employee must be assigned to a position, including on edit.
     positionId: z.string().trim().min(1, "Position is required"),
-    assignmentType: z.string().trim().min(2, "Assignment type is required").max(30),
-    assignmentEffectiveFrom: z
-      .string()
-      .trim()
-      .min(1, "Assignment effective date is required"),
     workLocation: z.string().trim().max(255),
-    employmentPercentage: z
-      .union([z.number(), z.string(), z.nan()])
-      .transform((value) =>
-        (typeof value === "number" && Number.isNaN(value)) || (typeof value === "string" && value.trim() === "")
-          ? undefined
-          : Number(value),
-      )
-      .pipe(
-        z.number()
-          .finite()
-          .min(0.01, "Employment percentage must be greater than zero")
-          .max(100, "Employment percentage cannot exceed 100")
-          .optional(),
-      ),
-    transferReason: z.string().trim().max(500),
   })
   .superRefine((data, context) => {
     const today = new Date().toISOString().slice(0, 10);
@@ -93,7 +72,6 @@ export const employeeFormSchema = z
 
     const checks: Array<[string, string, keyof typeof data, string]> = [
       [data.joiningDate, data.probationEndDate, "probationEndDate", "Probation end date cannot be before joining date"],
-      [data.joiningDate, data.confirmationDate, "confirmationDate", "Confirmation date cannot be before joining date"],
       [data.contractStartDate, data.contractEndDate, "contractEndDate", "Contract end date cannot be before contract start date"],
       [data.joiningDate, data.resignationDate, "resignationDate", "Resignation date cannot be before joining date"],
       [data.joiningDate, data.lastWorkingDate, "lastWorkingDate", "Last working date cannot be before joining date"],

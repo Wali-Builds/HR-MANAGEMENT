@@ -294,10 +294,6 @@ const moduleNavigation: Partial<
 > = {
   companies: [
     { label: "Organisations", to: "/companies" },
-    // edited by wali: Link the Companies workspace to the standalone Branches page.
-    { label: "Branches", to: "/employees/organisation/branches", permissions: ["branch.view"] },
-    { label: "Departments", to: "/companies/departments" },
-
   ],
   // edited by wali: Link the subscriptions workspace directly to plan management.
   subscriptions: [

@@ -11,6 +11,10 @@ export function useVisibleModules() {
   return useMemo(
     () =>
       workspaceModules.filter((module) => {
+        // edited by wali: Keep Attendance out of the Platform Admin workspace.
+        if (module.id === "attendance" && isPlatformAdmin) {
+          return false;
+        }
         // edited by wali: Hide Leave setup from employees and Platform Admins.
         if (module.companyAdminOnly) {
           return Boolean(

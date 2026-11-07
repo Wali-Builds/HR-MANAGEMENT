@@ -522,18 +522,13 @@ export const createEmployeeBodySchema =
       dateOfBirth:
         isoDateSchema,
 
-      maritalStatus: z
-        .string()
-        .trim()
-        .min(1, "Marital status is required")
-        .max(30),
+      maritalStatus:
+        nullableText(30)
+          .optional(),
 
-      bloodGroup: z
-        .string()
-        .trim()
-        .min(1, "Blood group is required")
-        .max(10)
-        .transform((value) => value.toUpperCase()),
+      bloodGroup:
+        bloodGroupSchema
+          .optional(),
 
       nationality: z
         .string()
@@ -679,20 +674,13 @@ export const updateEmployeeBodySchema =
         isoDateSchema
           .optional(),
 
-      maritalStatus: z
-        .string()
-        .trim()
-        .min(1, "Marital status is required")
-        .max(30)
-        .optional(),
+      maritalStatus:
+        nullableText(30)
+          .optional(),
 
-      bloodGroup: z
-        .string()
-        .trim()
-        .min(1, "Blood group is required")
-        .max(10)
-        .transform((value) => value.toUpperCase())
-        .optional(),
+      bloodGroup:
+        bloodGroupSchema
+          .optional(),
 
       nationality: z
         .string()

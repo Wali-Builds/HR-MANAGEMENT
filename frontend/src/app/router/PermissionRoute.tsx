@@ -8,12 +8,15 @@ interface PermissionRouteProps {
   requireAll?: boolean;
   // edited by wali: Allow the explicitly designated company administrator role.
   allowRoleCodes?: string[];
+  // edited by wali: Exclude Platform Administrators from tenant-only workspaces.
+  denyPlatformAdmin?: boolean;
 }
 
 export function PermissionRoute({
   permissions,
   requireAll = false,
   allowRoleCodes = [],
+  denyPlatformAdmin = false,
 }: PermissionRouteProps) {
   const user = useAuthStore((state) => state.user);
   const {
@@ -34,14 +37,15 @@ export function PermissionRoute({
     ) ?? false;
 
   const isAllowed =
-    hasAllowedRole ||
-    // added by wali: Allow Company Admin-level access through
-    // the COMPANY_ADMIN permission, even when the role code is custom.
-    hasCompanyAdminPermission ||
-    permissions.length === 0 ||
-    (requireAll
-      ? hasAllPermissions(permissions)
-      : hasAnyPermission(permissions));
+    !(denyPlatformAdmin && user?.isPlatformAdmin) &&
+    (hasAllowedRole ||
+      // added by wali: Allow Company Admin-level access through
+      // the COMPANY_ADMIN permission, even when the role code is custom.
+      hasCompanyAdminPermission ||
+      permissions.length === 0 ||
+      (requireAll
+        ? hasAllPermissions(permissions)
+        : hasAnyPermission(permissions)));
 
   return isAllowed ? (
     <Outlet />

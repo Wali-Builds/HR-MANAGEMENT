@@ -1,5 +1,6 @@
 /* edited by wali: Match the subscription catalog to the shared HR workspace theme. */
 .subscription-admin{width:min(1500px,100%);margin:0 auto;color:var(--ink)}
+.subscription-admin--workforce-ui{width:100%;max-width:none;margin:0;display:grid;align-content:start;gap:10px;color:#102a43}
 .subscription-admin__header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
 .subscription-admin__header h1{margin:4px 0 7px;font-size:clamp(24px,3vw,32px);letter-spacing:-.035em}
 .subscription-admin__header p{margin:0;color:var(--muted);font-size:13px}
@@ -32,6 +33,35 @@
 .subscription-admin__error,.subscription-admin__alert{display:flex;align-items:center;gap:10px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px}
 .subscription-admin__error{margin:18px;padding:15px}.subscription-admin__error div{flex:1}.subscription-admin__error h2{margin:0 0 3px;color:#7c2d12;font-size:13px}.subscription-admin__error p{margin:0;font-size:11px}
 .subscription-admin__alert{margin-bottom:16px;padding:10px 12px;font-size:11px;line-height:1.5}
+.subscription-admin--workforce-ui .emp-control-panel__meta{flex-wrap:wrap}
+.subscription-admin--workforce-ui .emp-control-panel__meta .emp-icon-button{flex:0 0 auto}
+.subscription-admin--workforce-ui .emp-record-area__context{margin:0 0 14px}
+.subscription-admin--workforce-ui .subscription-admin__loading{min-height:280px}
+.subscription-admin--workforce-ui .subscription-admin__error{margin:0}
+.subscription-plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.subscription-plan-card{min-width:0;padding:15px;background:#fff;border:1px solid #dce4e9;border-radius:12px;box-shadow:0 1px 2px rgba(17,41,55,.035);transition:transform 150ms ease,border-color 150ms ease,box-shadow 150ms ease}
+.subscription-plan-card:hover{transform:translateY(-1px);border-color:#b9cde0;box-shadow:0 8px 22px rgba(22,51,70,.07)}
+.subscription-plan-card__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.subscription-plan-card__code{color:#0f6d7a;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.subscription-plan-card__header h2{margin:3px 0 0;color:#102a3c;font-size:17px;line-height:1.25}
+.subscription-plan-card__edit{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;color:#5f7483;background:#f7f9fa;border:1px solid #dce4e9;border-radius:8px;cursor:pointer}
+.subscription-plan-card__edit:hover{color:#0f6d7a;background:#eef7f7;border-color:#bedadb}
+.subscription-plan-card__description{min-height:36px;margin:8px 0 11px;color:#647487;font-size:12px;line-height:1.5}
+.subscription-plan-card__prices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.subscription-plan-card__prices div{min-width:0;padding:9px 10px;background:#f5f8fa;border-radius:8px}
+.subscription-plan-card__prices span,.subscription-plan-card__prices strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subscription-plan-card__prices span{color:#768795;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.subscription-plan-card__prices strong{margin-top:3px;color:#213b4d;font-size:15px}
+.subscription-plan-card__limits{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;border-top:1px solid #e9eef1;border-bottom:1px solid #e9eef1}
+.subscription-plan-card__limits div{min-width:0;display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:6px;color:#657887;font-size:11px}
+.subscription-plan-card__limits div>svg{color:#7f97a8}
+.subscription-plan-card__limits strong{overflow:hidden;color:#344d5e;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.subscription-plan-card__storage-icon{color:#7f97a8;font-size:8px;font-weight:800}
+.subscription-plan-card__footer{min-height:34px;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.subscription-plan-card__features{color:#617483;font-size:11px;font-weight:600;text-align:right}
+.subscription-plan-empty{min-height:300px}
+.subscription-plan-status-filter button{flex-direction:column;gap:2px;min-height:52px}
+.subscription-plan-status-filter button small{color:#80909d;font-size:10px}
 .subscription-admin__modal-layer{position:fixed;inset:0;z-index:1000;padding:22px;display:grid;place-items:center}
 .subscription-admin__backdrop{position:absolute;inset:0;width:100%;height:100%;background:rgba(9,23,37,.56);cursor:pointer}
 .subscription-admin__dialog{position:relative;width:min(920px,100%);max-height:min(92vh,1000px);display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.75);border-radius:15px;box-shadow:var(--shadow-lg)}
@@ -53,4 +83,6 @@
 .subscription-admin__feature-option{min-width:0;padding:9px;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:start;gap:8px;background:#f9fbfc;border:1px solid #edf1f4;border-radius:7px;cursor:pointer}
 .subscription-admin__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:780px){.subscription-admin__form-grid--four,.subscription-admin__form-grid--three{grid-template-columns:repeat(2,minmax(0,1fr))}.subscription-admin__table{min-width:800px}}
+@media(max-width:980px){.subscription-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.subscription-admin__header{align-items:flex-start;flex-direction:column}.subscription-admin__form-grid,.subscription-admin__form-grid--four,.subscription-admin__form-grid--three,.subscription-admin__feature-group>div{grid-template-columns:minmax(0,1fr)}.subscription-admin__modal-layer{padding:8px}.subscription-admin__dialog{max-height:96vh}.subscription-admin__dialog-head,.subscription-admin__dialog-body,.subscription-admin__dialog-foot{padding-right:13px;padding-left:13px}}
+@media(max-width:600px){.subscription-plan-grid{grid-template-columns:minmax(0,1fr)}}

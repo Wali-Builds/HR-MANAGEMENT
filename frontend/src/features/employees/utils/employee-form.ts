@@ -34,7 +34,6 @@ export const employeeDefaultValues: EmployeeFormValues = {
   employeeStatusId: "",
   joiningDate: today(),
   probationEndDate: "",
-  confirmationDate: "",
   contractStartDate: "",
   contractEndDate: "",
   resignationDate: "",
@@ -49,11 +48,7 @@ export const employeeDefaultValues: EmployeeFormValues = {
   designationId: "",
   reportingManagerId: "",
   positionId: "",
-  assignmentType: "PRIMARY",
-  assignmentEffectiveFrom: today(),
   workLocation: "",
-  employmentPercentage: 100,
-  transferReason: "",
 };
 
 export function employeeToFormValues(employee: Employee): EmployeeFormValues {
@@ -81,7 +76,6 @@ export function employeeToFormValues(employee: Employee): EmployeeFormValues {
     employeeStatusId: employee.employeeStatusId,
     joiningDate: employee.joiningDate,
     probationEndDate: employee.probationEndDate ?? "",
-    confirmationDate: employee.confirmationDate ?? "",
     contractStartDate: employee.contractStartDate ?? "",
     contractEndDate: employee.contractEndDate ?? "",
     resignationDate: employee.resignationDate ?? "",
@@ -96,11 +90,7 @@ export function employeeToFormValues(employee: Employee): EmployeeFormValues {
     designationId: employee.assignment.designationId ?? "",
     reportingManagerId: employee.assignment.reportingManagerId ?? "",
     positionId: employee.assignment.positionId ?? "",
-    assignmentType: employee.assignment.assignmentType ?? "PRIMARY",
-    assignmentEffectiveFrom: employee.assignment.effectiveFrom ?? today(),
     workLocation: employee.assignment.workLocation ?? "",
-    employmentPercentage: employee.assignment.employmentPercentage ?? 100,
-    transferReason: employee.assignment.transferReason ?? "",
   };
 }
 
@@ -112,10 +102,7 @@ function assignmentChanged(values: EmployeeFormValues, employee: Employee): bool
     (values.designationId || null) !== employee.assignment.designationId ||
     (values.reportingManagerId || null) !== employee.assignment.reportingManagerId ||
     (values.positionId || null) !== employee.assignment.positionId ||
-    values.assignmentType !== (employee.assignment.assignmentType ?? "PRIMARY") ||
-    nullable(values.workLocation) !== employee.assignment.workLocation ||
-      (values.employmentPercentage ?? 100) !== (employee.assignment.employmentPercentage ?? 100) ||
-    nullable(values.transferReason) !== employee.assignment.transferReason
+    nullable(values.workLocation) !== employee.assignment.workLocation
   );
 }
 
@@ -148,7 +135,6 @@ export function toEmployeeMutationInput(
     employeeStatusId: values.employeeStatusId,
     joiningDate: values.joiningDate,
     probationEndDate: nullable(values.probationEndDate),
-    confirmationDate: nullable(values.confirmationDate),
     contractStartDate: nullable(values.contractStartDate),
     contractEndDate: nullable(values.contractEndDate),
     resignationDate: nullable(values.resignationDate),
@@ -167,13 +153,13 @@ export function toEmployeeMutationInput(
       designationId: nullable(values.designationId),
       reportingManagerId: nullable(values.reportingManagerId),
       positionId: nullable(values.positionId),
-      assignmentType: values.assignmentType,
-      effectiveFrom: values.assignmentEffectiveFrom || values.joiningDate,
+      // edited by wali: Preserve the backend assignment type while keeping it out of the employee UI.
+      assignmentType: existingEmployee?.assignment.assignmentType ?? "PRIMARY",
+      // edited by wali: Use the employee joining date for new assignments and retain the saved effective date on edits.
+      effectiveFrom: existingEmployee?.assignment.effectiveFrom ?? values.joiningDate,
       workLocation: nullable(values.workLocation),
-      ...(values.employmentPercentage !== undefined
-        ? { employmentPercentage: values.employmentPercentage }
-        : {}),
-      transferReason: nullable(values.transferReason),
+      // edited by wali: Preserve the backend transfer reason while keeping it out of the employee UI.
+      transferReason: existingEmployee?.assignment.transferReason ?? null,
     };
   }
 
