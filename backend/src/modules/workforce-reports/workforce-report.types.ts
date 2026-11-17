@@ -65,7 +65,7 @@ export interface WorkforceEmployeeSummary {
   employeeId: string;
   employeeCode: string;
   employeeName: string;
-  joiningDate: string;
+  joiningDate: string | null;
   contractEndDate: string | null;
   branchName: string | null;
   departmentName: string | null;
