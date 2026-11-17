@@ -47,11 +47,10 @@ function EmploymentDetailsEditor({ employee, onSaved }: { employee: Employee; on
   const updateEmployee = useUpdateEmployee();
   const lookupsQuery = useEmployeeLookups();
   const references = useEmployeeReferenceData(employee.companyId);
-  const [assignmentEffectiveFrom, setAssignmentEffectiveFrom] = useState(() =>
+  const assignmentEffectiveFrom =
     employee.assignment.effectiveFrom
       ? getNextEffectiveDate(employee)
-      : employee.joiningDate ?? getTodayLocalDate(),
-  );
+      : employee.joiningDate ?? getTodayLocalDate();
   const {
     register,
     handleSubmit,
@@ -127,20 +126,6 @@ function EmploymentDetailsEditor({ employee, onSaved }: { employee: Employee; on
   );
 }
 
-function AssignmentRecord({ employee, onOpen }: { employee: Employee; onOpen: () => void }) {
-  return (
-    <article className="emp-assignment-record">
-      <header className="emp-assignment-record__header">
-        <div>
-          <h2>{employee.fullName}</h2>
-          <span>{employee.employeeCode} · {employee.employeeStatusName}</span>
-          <p>{employee.assignment.positionTitle ?? "No position"} · {employee.assignment.departmentName ?? "No department"}</p>
-        </div>
-        <button type="button" className="emp-primary-action" onClick={onOpen}>Manage assignment <ArrowRight size={15} /></button>
-      </header>
-    </article>
-  );
-}
 function getTodayLocalDate(): string {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
