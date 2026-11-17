@@ -53,7 +53,7 @@ export interface Employee {
   employeeStatusCode: string;
   employeeStatusName: string;
   isActiveEmployment: boolean;
-  joiningDate: string;
+  joiningDate: string | null;
   probationEndDate: string | null;
   confirmationDate: string | null;
   contractStartDate: string | null;
@@ -65,6 +65,7 @@ export interface Employee {
   remarks: string | null;
   isActive: boolean;
   assignment: EmployeeAssignment;
+  assignmentHistory?: EmployeeAssignment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -98,7 +99,7 @@ export interface EmployeeSelfProfile {
   employmentTypeName: string;
   employeeStatusName: string;
   isActiveEmployment: boolean;
-  joiningDate: string;
+  joiningDate: string | null;
   probationEndDate: string | null;
   confirmationDate: string | null;
   contractStartDate: string | null;
@@ -251,7 +252,7 @@ export interface EmployeeMutationInput {
   alternateNumber: string | null;
   employmentTypeId: string;
   employeeStatusId: string;
-  joiningDate: string;
+  joiningDate?: string | null;
   probationEndDate: string | null;
   confirmationDate: string | null;
   contractStartDate: string | null;

@@ -285,9 +285,7 @@ function mapEmployeeSummary(
       fullName(row),
 
     joiningDate:
-      dateOnly(
-        row.joining_date
-      ) as string,
+      dateOnly(row.joining_date),
 
     contractEndDate:
       dateOnly(

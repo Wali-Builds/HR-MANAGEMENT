@@ -326,6 +326,11 @@ const moduleNavigation: Partial<
       to: "/employees",
       permissions: ["employee.view_all"],
     },
+    {
+      label: "Assignments",
+      to: "/employees/assignments",
+      permissions: ["employee.view_all"],
+    },
     // edited by wali: Give Company Admins direct Workforce tabs for designation and position setup.
     // {
     //   label: "Designations",
@@ -366,11 +371,6 @@ const moduleNavigation: Partial<
     //   to: "/employees/reports",
     //   permissions: ["employee.view_all"],
     // },
-    {
-      label: "Configuration",
-      to: "/employees/configuration",
-      permissions: ["company.manage"],
-    },
   ],
   // edited by wali: Keep the initial Leave navigation focused on Company Admin setup.
   leave: [

@@ -3,6 +3,7 @@ import {
   CalendarDays,
   Contact,
   Fingerprint,
+  Landmark,
   MapPin,
   UserRound,
 } from "lucide-react";
@@ -46,7 +47,15 @@ interface Props {
   references: ReferenceData;
   companies: Company[];
   isPlatformAdmin: boolean;
+  employeeIdSequenceStart: string | null;
   currentEmployeeId?: string;
+  onlyEmploymentSections?: boolean;
+  requireAssignment?: boolean;
+  currentPosition?: {
+    positionId: string | null;
+    positionTitle: string | null;
+    positionCode: string | null;
+  };
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -74,14 +83,31 @@ export function EmployeeFormSections(props: Props) {
         (position) => position.designationId === designationId,
       )
     : [];
+  const positionOptions = filteredPositions.map((item) => ({
+    value: item.positionId,
+    label: `${item.positionTitle} (${item.positionCode})`,
+  }));
+  const selectedPositionId = props.watch("positionId");
+  if (
+    props.currentPosition?.positionId === selectedPositionId &&
+    selectedPositionId &&
+    !positionOptions.some((option) => option.value === selectedPositionId)
+  ) {
+    positionOptions.push({
+      value: selectedPositionId,
+      label: props.currentPosition.positionTitle
+        ? `${props.currentPosition.positionTitle}${props.currentPosition.positionCode ? ` (${props.currentPosition.positionCode})` : ""}`
+        : selectedPositionId,
+    });
+  }
   const nationality = props.watch("nationality");
   const nationalityOptions = nationality && !COUNTRIES.includes(nationality)
     ? [...COUNTRY_OPTIONS, { value: nationality, label: nationality }]
     : COUNTRY_OPTIONS;
 
   return (
-    <div className="emp-form-sections">
-      <section className="emp-form-section">
+    <div className={`emp-form-sections${props.onlyEmploymentSections ? " emp-form-sections--employment-only" : ""}`}>
+      {!props.onlyEmploymentSections ? <section className="emp-form-section">
         <header><span><UserRound size={18} /></span><div><h2>Identity</h2><p>Core employee identity and personal profile</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
           {props.isPlatformAdmin ? (
@@ -91,11 +117,23 @@ export function EmployeeFormSections(props: Props) {
               <FieldError message={props.errors.companyId?.message} />
             </label>
           ) : null}
-          <label className="emp-field">
-            <span>Employee code</span>
-            <input {...props.register("employeeCode")} placeholder="Auto-generated when empty" />
-            <FieldError message={props.errors.employeeCode?.message} />
-          </label>
+          {props.isHiring ? (
+            <div className="emp-field">
+              <span>Employee ID</span>
+              <div className="emp-field__readonly">Auto-generated when saved</div>
+              <small className="emp-field__hint">
+                {props.employeeIdSequenceStart
+                  ? `Sequence starts at ${props.employeeIdSequenceStart}; the next available ID will be assigned.`
+                  : "The next available ID from this company’s saved sequence will be assigned."}
+              </small>
+            </div>
+          ) : (
+            <label className="emp-field">
+              <span>Employee ID</span>
+              <input {...props.register("employeeCode")} />
+              <FieldError message={props.errors.employeeCode?.message} />
+            </label>
+          )}
           <label className="emp-field"><span>First name <b>*</b></span><input {...props.register("firstName")} /><FieldError message={props.errors.firstName?.message} /></label>
           <label className="emp-field"><span>Middle name</span><input {...props.register("middleName")} /></label>
           <label className="emp-field"><span>Last name <b>*</b></span><input {...props.register("lastName")} /><FieldError message={props.errors.lastName?.message} /></label>
@@ -108,26 +146,25 @@ export function EmployeeFormSections(props: Props) {
           <label className="emp-field"><span>Father name</span><input {...props.register("fatherName")} /></label>
           <label className="emp-field"><span>Spouse name</span><input {...props.register("spouseName")} /></label>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="emp-form-section">
+      {!props.isHiring && props.requireAssignment ? <section className="emp-form-section">
         <header><span><BriefcaseBusiness size={18} /></span><div><h2>Employment & assignment</h2><p>Placement, role, reporting line and employment status</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
           <label className="emp-field"><span>Employment type <b>*</b></span><EmployeeMenuSelect value={props.watch("employmentTypeId")} placeholder="Select type" options={(props.lookups?.employmentTypes ?? []).map((item) => ({ value: item.employmentTypeId, label: item.typeName }))} onChange={(value) => props.setValue("employmentTypeId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading} /><FieldError message={props.errors.employmentTypeId?.message} /></label>
           <label className="emp-field"><span>Employee status <b>*</b></span><EmployeeMenuSelect value={props.watch("employeeStatusId")} placeholder="Select status" options={(props.lookups?.employeeStatuses ?? []).map((item) => ({ value: item.employeeStatusId, label: item.statusName }))} onChange={(value) => props.setValue("employeeStatusId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading} /><FieldError message={props.errors.employeeStatusId?.message} /></label>
-          <label className="emp-field"><span>Joining date <b>*</b></span><input type="date" {...props.register("joiningDate")} /><FieldError message={props.errors.joiningDate?.message} /></label>
-          <label className="emp-field"><span>Branch {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={branchId} placeholder={props.isHiring ? "Select branch" : "No branch"} options={props.references.branches.map((item) => ({ value: item.branchId, label: item.branchName }))} onChange={(value) => { props.setValue("branchId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("departmentId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading} /><FieldError message={props.errors.branchId?.message} /></label>
-          <label className="emp-field"><span>Department {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={departmentId} placeholder={!branchId ? "Select branch first" : props.isHiring ? "Select department" : "No department"} options={filteredDepartments.map((item) => ({ value: item.departmentId, label: item.departmentName }))} onChange={(value) => { props.setValue("departmentId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !branchId} /><FieldError message={props.errors.departmentId?.message} /></label>
-          <label className="emp-field"><span>Designation {props.isHiring ? <b>*</b> : null}</span><EmployeeMenuSelect value={designationId} placeholder={!departmentId ? "Select department first" : props.isHiring ? "Select designation" : "No designation"} options={props.references.designations.filter((item) => item.departmentId === departmentId).map((item) => ({ value: item.designationId, label: item.designationName }))} onChange={(value) => { props.setValue("designationId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !departmentId} /><FieldError message={props.errors.designationId?.message} /></label>
-          {/* edited by wali: Mark Position as required in both hiring and employee edit forms. */}
-          <label className="emp-field"><span>Position <b>*</b></span><EmployeeMenuSelect value={props.watch("positionId")} placeholder={!departmentId ? "Select department first" : !designationId ? "Select designation first" : "Select position"} options={filteredPositions.map((item) => ({ value: item.positionId, label: `${item.positionTitle} (${item.positionCode})` }))} onChange={(value) => props.setValue("positionId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading || !departmentId || !designationId} /><FieldError message={props.errors.positionId?.message} /></label>
+          <label className="emp-field"><span>Branch {props.isHiring || props.requireAssignment ? <b>*</b> : null}</span><EmployeeMenuSelect value={branchId} placeholder={props.isHiring || props.requireAssignment ? "Select branch" : "No branch"} options={props.references.branches.map((item) => ({ value: item.branchId, label: item.branchName }))} onChange={(value) => { props.setValue("branchId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("departmentId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading} /><FieldError message={props.errors.branchId?.message} /></label>
+          <label className="emp-field"><span>Department {props.isHiring || props.requireAssignment ? <b>*</b> : null}</span><EmployeeMenuSelect value={departmentId} placeholder={!branchId ? "Select branch first" : props.isHiring || props.requireAssignment ? "Select department" : "No department"} options={filteredDepartments.map((item) => ({ value: item.departmentId, label: item.departmentName }))} onChange={(value) => { props.setValue("departmentId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("designationId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("reportingManagerId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("projectId", "", { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !branchId} /><FieldError message={props.errors.departmentId?.message} /></label>
+          <label className="emp-field"><span>Designation {props.isHiring || props.requireAssignment ? <b>*</b> : null}</span><EmployeeMenuSelect value={designationId} placeholder={!departmentId ? "Select department first" : props.isHiring || props.requireAssignment ? "Select designation" : "No designation"} options={props.references.designations.filter((item) => item.departmentId === departmentId).map((item) => ({ value: item.designationId, label: item.designationName }))} onChange={(value) => { props.setValue("designationId", value, { shouldDirty: true, shouldValidate: true }); props.setValue("positionId", "", { shouldDirty: true, shouldValidate: true }); }} disabled={props.references.isLoading || !departmentId} /><FieldError message={props.errors.designationId?.message} /></label>
+          {/* Position remains required when editing an employee's assignment. */}
+          <label className="emp-field"><span>Position <b>*</b></span><EmployeeMenuSelect value={selectedPositionId} placeholder={!departmentId ? "Select department first" : !designationId ? "Select designation first" : "Select position"} options={positionOptions} onChange={(value) => props.setValue("positionId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading || !departmentId || !designationId} /><FieldError message={props.errors.positionId?.message} /></label>
           <label className="emp-field"><span>Project</span><EmployeeMenuSelect value={props.watch("projectId")} placeholder={!departmentId ? "Select department first" : "No project"} options={props.references.projects.map((item) => ({ value: item.projectId, label: `${item.projectName} (${item.projectCode})` }))} onChange={(value) => props.setValue("projectId", value, { shouldDirty: true, shouldValidate: true })} disabled={!departmentId} /></label>
           <label className="emp-field"><span>Reporting manager</span><EmployeeMenuSelect value={props.watch("reportingManagerId")} placeholder={!departmentId ? "Select department first" : "No manager"} options={availableManagers.filter((item) => item.employeeId !== props.currentEmployeeId).map((item) => ({ value: item.employeeId, label: `${item.fullName} · ${item.employeeCode}` }))} onChange={(value) => props.setValue("reportingManagerId", value, { shouldDirty: true, shouldValidate: true })} disabled={props.references.isLoading || !departmentId} /></label>
           <label className="emp-field emp-field--wide"><span><MapPin size={13} /> Work location</span><input {...props.register("workLocation")} placeholder="Office, site, city or remote" /></label>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="emp-form-section">
+      {!props.onlyEmploymentSections ? <section className="emp-form-section">
         <header><span><Contact size={18} /></span><div><h2>Contact & identification</h2><p>Communication details and official identity references</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
           {/* edited by wali: Show which contact details are required during new employee creation. */}
@@ -138,20 +175,32 @@ export function EmployeeFormSections(props: Props) {
           <label className="emp-field"><span>CNIC number <b>*</b></span><input {...props.register("cnicNumber")} /><FieldError message={props.errors.cnicNumber?.message} /></label>
           <label className="emp-field"><span>Passport number</span><input {...props.register("passportNumber")} /></label>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="emp-form-section">
-        <header><span><CalendarDays size={18} /></span><div><h2>Employment dates</h2><p>Probation, contract and separation timeline</p></div></header>
+      {props.isHiring ? <section className="emp-form-section">
+        <header><span><Landmark size={18} /></span><div><h2>Bank details <small>(optional)</small></h2><p>Add an account now or leave this section blank and add it from the employee profile later.</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
+          <label className="emp-field"><span>Bank name</span><input {...props.register("bankName")} placeholder="e.g. HBL" /><FieldError message={props.errors.bankName?.message} /></label>
+          <label className="emp-field"><span>Branch name</span><input {...props.register("bankBranchName")} placeholder="Optional" /><FieldError message={props.errors.bankBranchName?.message} /></label>
+          <label className="emp-field"><span>Account title</span><input {...props.register("bankAccountTitle")} /><FieldError message={props.errors.bankAccountTitle?.message} /></label>
+          <label className="emp-field"><span>Account number</span><input {...props.register("bankAccountNumber")} autoComplete="off" /><FieldError message={props.errors.bankAccountNumber?.message} /></label>
+          <label className="emp-field"><span>IBAN</span><input {...props.register("bankIban")} autoComplete="off" /><FieldError message={props.errors.bankIban?.message} /></label>
+        </div>
+      </section> : null}
+
+      {!props.isHiring ? <section className="emp-form-section">
+        <header><span><CalendarDays size={18} /></span><div><h2>Employment dates</h2><p>Joining, probation, contract and separation timeline</p></div></header>
+        <div className="emp-form-grid emp-form-grid--3">
+          <label className="emp-field"><span>Joining date <b>*</b></span><input type="date" {...props.register("joiningDate")} /><FieldError message={props.errors.joiningDate?.message} /></label>
           <label className="emp-field"><span>Probation end</span><input type="date" {...props.register("probationEndDate")} /><FieldError message={props.errors.probationEndDate?.message} /></label>
           <label className="emp-field"><span>Contract start</span><input type="date" {...props.register("contractStartDate")} /></label>
           <label className="emp-field"><span>Contract end</span><input type="date" {...props.register("contractEndDate")} /><FieldError message={props.errors.contractEndDate?.message} /></label>
           <label className="emp-field"><span>Resignation date</span><input type="date" {...props.register("resignationDate")} /><FieldError message={props.errors.resignationDate?.message} /></label>
           <label className="emp-field"><span>Last working date</span><input type="date" {...props.register("lastWorkingDate")} /><FieldError message={props.errors.lastWorkingDate?.message} /></label>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="emp-form-section">
+      {!props.onlyEmploymentSections ? <section className="emp-form-section">
         <header><span><Fingerprint size={18} /></span><div><h2>System details</h2><p>Profile media, biometric reference and internal notes</p></div></header>
         <div className="emp-form-grid emp-form-grid--2">
           <label className="emp-field"><span>Profile photo path / URL</span><input {...props.register("profilePhotoPath")} placeholder="Stored file path or image URL" /></label>
@@ -159,7 +208,7 @@ export function EmployeeFormSections(props: Props) {
           <label className="emp-field emp-field--full"><span>Remarks</span><textarea rows={4} {...props.register("remarks")} /></label>
           <label className="emp-toggle-field"><input type="checkbox" {...props.register("isActive")} /><span><strong>Active employee record</strong><small>Active records consume an employee seat under the company subscription.</small></span></label>
         </div>
-      </section>
+      </section> : null}
     </div>
   );
 }

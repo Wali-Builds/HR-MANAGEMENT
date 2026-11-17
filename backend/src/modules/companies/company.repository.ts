@@ -51,6 +51,7 @@ const companySelectColumns = `
   date_format,
   logo_path,
   employee_code_prefix,
+  employee_code_start_number,
   employee_code_length,
   is_active,
   deleted_at,
@@ -296,13 +297,14 @@ export async function createCompanyRecord(
               date_format,
               logo_path,
               employee_code_prefix,
+              employee_code_start_number,
               employee_code_length,
               is_active
           )
           VALUES (
               ?, ?, ?, ?, ?, ?, ?, ?, ?,
               ?, ?, ?, ?, ?, ?, ?, ?, ?,
-              ?, ?, ?, ?, ?
+              ?, ?, ?, ?, ?, ?
           )
         `,
         [
@@ -329,6 +331,8 @@ export async function createCompanyRecord(
           input.logoPath ?? null,
           input.employeeCodePrefix ??
             null,
+          input.employeeCodeStartNumber ??
+            1,
           input.employeeCodeLength,
           input.isActive ? 1 : 0
         ]
@@ -668,6 +672,16 @@ export async function updateCompanyRecord(
       addUpdate(
         "employee_code_length",
         input.employeeCodeLength
+      );
+    }
+
+    if (
+      input.employeeCodeStartNumber !==
+      undefined
+    ) {
+      addUpdate(
+        "employee_code_start_number",
+        input.employeeCodeStartNumber
       );
     }
 

@@ -22,6 +22,7 @@ import { EmployeeDocumentsPage } from "./features/employee-documents";
 import {
   EmployeeFormPage,
   EmployeeRecordPage,
+  EmployeeAssignmentsPage,
   MyEmployeeProfilePage,
   EmployeesPage,
 } from "./features/employees";
@@ -39,7 +40,6 @@ import { AttendanceShiftsPage } from "./features/attendance/pages/AttendanceShif
 // added by wali: Expose weekly work schedules and employee shift assignments as attendance setup pages.
 import { AttendanceShiftAssignmentsPage, AttendanceWorkSchedulesPage } from "./features/attendance/pages/AttendanceSchedulingPage";
 import { WorkforceAccessPage } from "./features/workforce-access";
-import { WorkforceConfigurationPage } from "./features/workforce-configuration";
 import { WorkforceReportsPage } from "./features/workforce-reports";
 import { LeaveHomePage } from "./features/leave/pages/LeaveHomePage";
 import { LeaveSetupPage } from "./features/leave/pages/LeaveSetupPage";
@@ -131,15 +131,14 @@ export default function App() {
           <Route element={<PermissionRoute permissions={["users.manage"]} />}>
             <Route path="/employees/access" element={<WorkforceAccessPage />} />
           </Route>
+          <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
+            <Route path="/employees/assignments" element={<EmployeeAssignmentsPage />} />
+          </Route>
           {/* edited by wali: Restrict full employee records to workforce administrators. */}
           <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
             <Route path="/employees/reports" element={<WorkforceReportsPage />} />
           </Route>
-          {/* edited by wali: Keep workforce configuration within the company workforce permission boundary. */}
-          <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
-            <Route path="/employees/configuration" element={<WorkforceConfigurationPage />} />
-          </Route>
-
+          <Route path="/employees/configuration" element={<Navigate to="/employees" replace />} />
           {/* Dynamic employee routes stay last. */}
           <Route element={<PermissionRoute permissions={["employee.view_all"]} />}>
             <Route path="/employees/:employeeId" element={<EmployeeRecordPage />} />

@@ -138,7 +138,7 @@ export function EmployeeWorkspaceToolbar(props: Props) {
             options={[
               { value: "updated_at", label: "Recently updated" },
               { value: "created_at", label: "Recently created" },
-              { value: "employee_code", label: "Employee code" },
+              { value: "employee_code", label: "Employee ID" },
               { value: "first_name", label: "Employee name" },
               { value: "joining_date", label: "Joining date" },
             ]}

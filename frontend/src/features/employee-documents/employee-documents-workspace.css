@@ -634,6 +634,53 @@
   border-radius: 14px;
 }
 
+.doc-workspace--embedded {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #dce4ea;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.doc-workspace--embedded .doc-control-panel {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.doc-workspace--embedded .doc-control-panel__primary,
+.doc-workspace--embedded .doc-control-panel__secondary {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.doc-workspace--embedded .doc-control-panel__primary { padding-bottom: 12px; border-bottom: 1px solid #e8edf1; }
+.doc-workspace--embedded .doc-control-panel__secondary { justify-content: flex-start; flex-wrap: wrap; }
+.doc-workspace--embedded .doc-module-icon { color: #2c65a5; background: #eef4fb; }
+.doc-workspace--embedded .doc-control-panel__identity small { color: #527ca8; font-size: 9px; }
+.doc-workspace--embedded .doc-control-panel__identity h1 { margin: 1px 0 0; color: #2b4150; font-size: 17px; }
+.doc-workspace--embedded .doc-primary-button { color: #fff; background: #316fba; border-color: #316fba; }
+.doc-workspace--embedded .doc-primary-button:hover:not(:disabled) { background: #285f9f; }
+.doc-workspace--embedded .doc-workspace__body {
+  min-height: 0;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.doc-workspace--embedded .doc-record-area { padding: 0; }
+.doc-workspace--embedded .doc-state-panel { min-height: 170px; padding: 20px; background: transparent; border: 0; }
+.doc-workspace--embedded .doc-table-wrap { border-color: #e2e8ed; border-radius: 8px; }
+
 @media (max-width: 760px) {
   .doc-workspace--leave-ui .doc-control-panel__primary { padding: 16px; }
   .doc-workspace--leave-ui .doc-control-panel__secondary { padding: 12px; }
@@ -685,3 +732,54 @@
 .doc-workspace--leave-ui .doc-form-error,
 .doc-workspace--leave-ui .doc-delete-warning p { font-size: 12px; font-weight: 500; }
 .doc-workspace--leave-ui .doc-delete-warning strong { font-size: 13px; font-weight: 700; }
+
+/* Keep the profile-embedded document header compact and vertically balanced. */
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded {
+  box-sizing: border-box;
+  padding: 18px;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__primary {
+  min-height: 0;
+  align-items: center;
+  padding: 0 0 12px;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__identity {
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__identity > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__identity small {
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: .08em;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__identity h1 {
+  margin: 2px 0 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-module-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-control-panel__actions { flex: 0 0 auto; }
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-record-area--centered {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+}
+.doc-workspace.doc-workspace--leave-ui.doc-workspace--embedded .doc-record-area--centered .doc-state-panel {
+  width: 100%;
+  min-height: 210px;
+  margin: auto;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}

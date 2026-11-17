@@ -191,6 +191,13 @@ export const createCompanyBodySchema =
         nullableText(20)
           .optional(),
 
+      employeeCodeStartNumber: z
+        .number()
+        .int()
+        .min(1)
+        .max(Number.MAX_SAFE_INTEGER)
+        .default(1),
+
       employeeCodeLength: z
         .number()
         .int()

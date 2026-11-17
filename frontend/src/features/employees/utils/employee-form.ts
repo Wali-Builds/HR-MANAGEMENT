@@ -1,10 +1,6 @@
 import type { Employee, EmployeeMutationInput } from "../types/employee.types";
 import type { EmployeeFormValues } from "../schemas/employee.schema";
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function nullable(value: string): string | null {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
@@ -30,9 +26,14 @@ export const employeeDefaultValues: EmployeeFormValues = {
   officialEmail: "",
   mobileNumber: "",
   alternateNumber: "",
+  bankName: "",
+  bankBranchName: "",
+  bankAccountTitle: "",
+  bankAccountNumber: "",
+  bankIban: "",
   employmentTypeId: "",
   employeeStatusId: "",
-  joiningDate: today(),
+  joiningDate: "",
   probationEndDate: "",
   contractStartDate: "",
   contractEndDate: "",
@@ -72,9 +73,14 @@ export function employeeToFormValues(employee: Employee): EmployeeFormValues {
     officialEmail: employee.officialEmail ?? "",
     mobileNumber: employee.mobileNumber ?? "",
     alternateNumber: employee.alternateNumber ?? "",
+    bankName: "",
+    bankBranchName: "",
+    bankAccountTitle: "",
+    bankAccountNumber: "",
+    bankIban: "",
     employmentTypeId: employee.employmentTypeId,
     employeeStatusId: employee.employeeStatusId,
-    joiningDate: employee.joiningDate,
+    joiningDate: employee.joiningDate ?? "",
     probationEndDate: employee.probationEndDate ?? "",
     contractStartDate: employee.contractStartDate ?? "",
     contractEndDate: employee.contractEndDate ?? "",
@@ -133,8 +139,9 @@ export function toEmployeeMutationInput(
     alternateNumber: nullable(values.alternateNumber),
     employmentTypeId: values.employmentTypeId,
     employeeStatusId: values.employeeStatusId,
-    joiningDate: values.joiningDate,
+    ...(values.joiningDate ? { joiningDate: values.joiningDate } : {}),
     probationEndDate: nullable(values.probationEndDate),
+    confirmationDate: existingEmployee?.confirmationDate ?? null,
     contractStartDate: nullable(values.contractStartDate),
     contractEndDate: nullable(values.contractEndDate),
     resignationDate: nullable(values.resignationDate),
@@ -145,7 +152,8 @@ export function toEmployeeMutationInput(
     isActive: values.isActive,
   };
 
-  if (!existingEmployee || assignmentChanged(values, existingEmployee)) {
+  const hasCompleteAssignment = Boolean(values.branchId && values.departmentId && values.designationId && values.positionId);
+  if (existingEmployee ? assignmentChanged(values, existingEmployee) : hasCompleteAssignment) {
     input.assignment = {
       branchId: nullable(values.branchId),
       departmentId: nullable(values.departmentId),

@@ -190,6 +190,15 @@ function hasEffectivePermission(
   }
 
   if (
+    normalizedPermission === "company.view" &&
+    auth.permissions.some(
+      (permission) => normalizePermission(permission) === "company.manage"
+    )
+  ) {
+    return true;
+  }
+
+  if (
     auth.permissions.some(
       (permission) =>
         normalizePermission(permission) === normalizedPermission
@@ -200,9 +209,13 @@ function hasEffectivePermission(
 
   const isTenantCompanyAdmin = Boolean(
     auth.companyId &&
-    auth.roleCodes.some(
-      (roleCode) =>
-        normalizeRole(roleCode) === "COMPANY_ADMIN"
+    (
+      auth.roleCodes.some(
+        (roleCode) => normalizeRole(roleCode) === "COMPANY_ADMIN"
+      ) ||
+      auth.permissions.some(
+        (permission) => normalizePermission(permission) === "company_admin"
+      )
     )
   );
 
@@ -210,6 +223,8 @@ function hasEffectivePermission(
     isTenantCompanyAdmin &&
     (
       normalizedPermission.startsWith("employee.") ||
+      normalizedPermission === "company.view" ||
+      normalizedPermission === "company.manage" ||
       normalizedPermission === "roles.manage" ||
       normalizedPermission === "users.manage" ||
       normalizedPermission === "branch.view" ||

@@ -38,9 +38,14 @@ export const employeeFormSchema = z
     officialEmail: optionalEmail,
     mobileNumber: z.string().trim().max(50),
     alternateNumber: z.string().trim().max(50),
+    bankName: z.string().trim().max(150),
+    bankBranchName: z.string().trim().max(150),
+    bankAccountTitle: z.string().trim().max(150),
+    bankAccountNumber: z.string().trim().max(200),
+    bankIban: z.string().trim().max(50),
     employmentTypeId: z.string().trim().min(1, "Employment type is required"),
     employeeStatusId: z.string().trim().min(1, "Employee status is required"),
-    joiningDate: z.string().trim().min(1, "Joining date is required"),
+    joiningDate: optionalDate,
     probationEndDate: optionalDate,
     contractStartDate: optionalDate,
     contractEndDate: optionalDate,
@@ -55,8 +60,7 @@ export const employeeFormSchema = z
     projectId: z.string().trim(),
     designationId: z.string().trim(),
     reportingManagerId: z.string().trim(),
-    // edited by wali: Every employee must be assigned to a position, including on edit.
-    positionId: z.string().trim().min(1, "Position is required"),
+    positionId: z.string().trim(),
     workLocation: z.string().trim().max(255),
   })
   .superRefine((data, context) => {
@@ -89,7 +93,23 @@ export const employeeFormSchema = z
     }
   });
 
-// edited by wali: Require a complete organization assignment when hiring a new employee.
+export const employeeEditFormSchema = employeeFormSchema.superRefine((data, context) => {
+  if (!data.joiningDate.trim()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["joiningDate"], message: "Joining date is required" });
+  }
+  if (!data.positionId.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["positionId"],
+      message: "Position is required",
+    });
+  }
+});
+
+// Profile edits don't change employee assignment; the separate Assignment page keeps its position requirement.
+export const employeeProfileEditFormSchema = employeeFormSchema;
+
+// New employees can be saved first and assigned from the Assignments tab later.
 export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, context) => {
   // edited by wali: Require every contact channel when creating a new employee.
   const requiredContacts = [
@@ -109,21 +129,28 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
     }
   }
 
-  const requiredAssignments = [
-    ["branchId", data.branchId, "Branch"],
-    ["departmentId", data.departmentId, "Department"],
-    ["designationId", data.designationId, "Designation"],
-  ] as const;
-
-  for (const [field, value, label] of requiredAssignments) {
-    if (!value.trim()) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [field],
-        message: `${label} is required for employee hiring`,
-      });
+  const bankFields = [data.bankName, data.bankBranchName, data.bankAccountTitle, data.bankAccountNumber, data.bankIban];
+  const addingBankDetails = bankFields.some((value) => value.trim().length > 0);
+  if (addingBankDetails) {
+    const requiredBankFields = [
+      ["bankName", data.bankName, "Bank name"],
+      ["bankAccountTitle", data.bankAccountTitle, "Account title"],
+      ["bankAccountNumber", data.bankAccountNumber, "Account number"],
+    ] as const;
+    for (const [field, value, label] of requiredBankFields) {
+      if (!value.trim()) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: `${label} is required when adding bank details` });
+      }
+    }
+    if (data.bankAccountNumber.trim() && !/^[A-Za-z0-9./_\-\s]{4,200}$/.test(data.bankAccountNumber.trim())) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankAccountNumber"], message: "Enter a valid account number" });
+    }
+    const normalizedIban = data.bankIban.toUpperCase().replace(/[\s-]/g, "");
+    if (normalizedIban && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankIban"], message: "Enter a valid IBAN" });
     }
   }
+
 });
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
 // edited by wali: Keep raw form input types distinct from the schema's parsed submission values.

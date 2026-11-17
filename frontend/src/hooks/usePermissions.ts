@@ -87,8 +87,10 @@ export function usePermissions() {
     const isCompanyAdminPermission = (permission: string): boolean =>
       isTenantCompanyAdmin &&
       (permission.startsWith("employee.") ||
+        permission === "company.view" ||
         permission === "roles.manage" ||
         permission === "users.manage" ||
+        permission === "company.manage" ||
         permission === "branch.view" ||
         permission === "branch.manage" ||
         permission === "department.view" ||
@@ -141,6 +143,7 @@ export function usePermissions() {
 
       return Boolean(
         permissionSet.has(permission) ||
+        (permission === "company.view" && permissionSet.has("company.manage")) ||
         isCompanyAdminPermission(permission),
       );
     };

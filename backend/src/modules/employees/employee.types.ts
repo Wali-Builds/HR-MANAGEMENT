@@ -34,7 +34,7 @@ export interface EmployeeDatabaseRow {
   employment_type_id: DatabaseId;
   employee_status_id: DatabaseId;
 
-  joining_date: Date | string;
+  joining_date: Date | string | null;
   probation_end_date: Date | string | null;
   confirmation_date: Date | string | null;
   contract_start_date: Date | string | null;
@@ -142,6 +142,34 @@ export interface EmployeeAssignmentResponse {
   transferReason: string | null;
 }
 
+export interface EmployeeAssignmentHistoryDatabaseRow {
+  assignment_id: DatabaseId;
+  branch_id: DatabaseId | null;
+  branch_name: string | null;
+  department_id: DatabaseId | null;
+  department_name: string | null;
+  project_id: DatabaseId | null;
+  project_code: string | null;
+  project_name: string | null;
+  designation_id: DatabaseId | null;
+  designation_name: string | null;
+  reporting_manager_id: DatabaseId | null;
+  reporting_manager_code: string | null;
+  reporting_manager_name: string | null;
+  assignment_type: string;
+  effective_from: Date | string;
+  effective_to: Date | string | null;
+  work_location: string | null;
+  employment_percentage: number | string;
+  transfer_reason: string | null;
+  position_assignment_id: DatabaseId | null;
+  position_id: DatabaseId | null;
+  position_code: string | null;
+  position_title: string | null;
+}
+
+export type EmployeeAssignmentHistoryResponse = EmployeeAssignmentResponse;
+
 export interface EmployeeResponse {
   employeeId: string;
   companyId: string;
@@ -181,7 +209,7 @@ export interface EmployeeResponse {
   employeeStatusName: string;
   isActiveEmployment: boolean;
 
-  joiningDate: string;
+  joiningDate: string | null;
   probationEndDate: string | null;
   confirmationDate: string | null;
 
@@ -199,6 +227,8 @@ export interface EmployeeResponse {
 
   assignment:
     EmployeeAssignmentResponse;
+
+  assignmentHistory: EmployeeAssignmentHistoryResponse[];
 
   createdAt: string;
   updatedAt: string;
@@ -233,7 +263,7 @@ export interface EmployeeSelfProfileResponse {
   employmentTypeName: string;
   employeeStatusName: string;
   isActiveEmployment: boolean;
-  joiningDate: Date | string;
+  joiningDate: Date | string | null;
   probationEndDate: Date | string | null;
   confirmationDate: Date | string | null;
   contractStartDate: Date | string | null;
@@ -341,7 +371,7 @@ export interface EmployeeCreateRecord {
   employmentTypeId: string;
   employeeStatusId: string;
 
-  joiningDate: string;
+  joiningDate: string | null;
   probationEndDate: string | null;
   confirmationDate: string | null;
 
@@ -358,7 +388,7 @@ export interface EmployeeCreateRecord {
   isActive: boolean;
 
   assignment:
-    EmployeeAssignmentMutation;
+    EmployeeAssignmentMutation | null;
 }
 
 export interface EmploymentTypeLookup {

@@ -21,10 +21,12 @@ import {
   findPositionReference,
   getEmployeeLookups,
   listEmployeeRecords,
+  listEmployeeAssignmentHistory,
   softDeleteEmployeeRecord,
   updateEmployeeRecord
 } from "./employee.repository.js";
 import { findActiveProjectForAssignment } from "../projects/project.repository.js";
+import { createEmployeeAccessAccount } from "../users/user.service.js";
 
 import type {
   CreateEmployeeInput,
@@ -103,7 +105,7 @@ type AssignmentInputFields = {
 };
 
 interface EmployeeDateRange {
-  joiningDate: string;
+  joiningDate: string | null;
 
   probationEndDate:
     | string
@@ -222,21 +224,6 @@ function dateOnly(
     );
 
   return `${year}-${month}-${day}`;
-}
-
-function requiredDateOnly(
-  value: Date | string
-): string {
-  const convertedValue =
-    dateOnly(value);
-
-  if (!convertedValue) {
-    throw new Error(
-      "Required date value is missing"
-    );
-  }
-
-  return convertedValue;
 }
 
 function dateTimeIso(
@@ -369,9 +356,7 @@ function mapEmployee(
       ),
 
     joiningDate:
-      requiredDateOnly(
-        employee.joining_date
-      ),
+      dateOnly(employee.joining_date),
 
     probationEndDate:
       dateOnly(
@@ -509,6 +494,8 @@ function mapEmployee(
       transferReason:
         employee.transfer_reason
     },
+
+    assignmentHistory: [],
 
     createdAt:
       dateTimeIso(
@@ -1064,6 +1051,7 @@ function validateEmployeeDateRange(
   values: EmployeeDateRange
 ): void {
   if (
+    values.joiningDate &&
     values.probationEndDate &&
     values.probationEndDate <
       values.joiningDate
@@ -1080,6 +1068,7 @@ function validateEmployeeDateRange(
   }
 
   if (
+    values.joiningDate &&
     values.confirmationDate &&
     values.confirmationDate <
       values.joiningDate
@@ -1113,6 +1102,7 @@ function validateEmployeeDateRange(
   }
 
   if (
+    values.joiningDate &&
     values.resignationDate &&
     values.resignationDate <
       values.joiningDate
@@ -1129,6 +1119,7 @@ function validateEmployeeDateRange(
   }
 
   if (
+    values.joiningDate &&
     values.lastWorkingDate &&
     values.lastWorkingDate <
       values.joiningDate
@@ -1571,7 +1562,46 @@ export async function getEmployee(
     });
   }
 
-  return mapEmployee(employee);
+  const response = mapEmployee(employee);
+  const branchIds = assignedBranchIds(auth);
+  const assignmentHistory = await listEmployeeAssignmentHistory(
+    employeeId,
+    String(employee.company_id)
+  );
+
+  response.assignmentHistory = assignmentHistory
+    .filter((assignment) =>
+      branchIds.length === 0 ||
+      (assignment.branch_id !== null &&
+        branchIds.includes(String(assignment.branch_id)))
+    )
+    .map((assignment) => ({
+      assignmentId: String(assignment.assignment_id),
+      branchId: nullableId(assignment.branch_id),
+      branchName: assignment.branch_name,
+      departmentId: nullableId(assignment.department_id),
+      departmentName: assignment.department_name,
+      projectId: nullableId(assignment.project_id),
+      projectCode: assignment.project_code,
+      projectName: assignment.project_name,
+      designationId: nullableId(assignment.designation_id),
+      designationName: assignment.designation_name,
+      reportingManagerId: nullableId(assignment.reporting_manager_id),
+      reportingManagerCode: assignment.reporting_manager_code,
+      reportingManagerName: assignment.reporting_manager_name,
+      positionAssignmentId: nullableId(assignment.position_assignment_id),
+      positionId: nullableId(assignment.position_id),
+      positionCode: assignment.position_code,
+      positionTitle: assignment.position_title,
+      assignmentType: assignment.assignment_type,
+      effectiveFrom: dateOnly(assignment.effective_from),
+      effectiveTo: dateOnly(assignment.effective_to),
+      workLocation: assignment.work_location,
+      employmentPercentage: nullableNumber(assignment.employment_percentage),
+      transferReason: assignment.transfer_reason
+    }));
+
+  return response;
 }
 
 // edited by wali: Resolve an employee profile from the authenticated identity, never a client-supplied employee ID.
@@ -1606,7 +1636,15 @@ export async function createEmployee(
   input: CreateEmployeeInput,
   auth: AuthContext,
   metadata: RequestMetadata
-): Promise<EmployeeResponse> {
+): Promise<{
+  employee: EmployeeResponse;
+  accessAccount: {
+    username: string;
+    email: string | null;
+    temporaryPassword: string;
+  } | null;
+  accessAccountError: string | null;
+}> {
   const companyId =
     resolveCompanyId(
       input,
@@ -1696,8 +1734,8 @@ export async function createEmployee(
     }
   }
 
-  const assignment =
-    await resolveAssignment(
+  const assignment = input.assignment
+    ? await resolveAssignment(
       companyId,
       input.assignment,
       {
@@ -1710,19 +1748,21 @@ export async function createEmployee(
         assignmentType:
           "PRIMARY",
         effectiveFrom:
-          input.joiningDate,
+          input.assignment.effectiveFrom,
         workLocation: null,
         employmentPercentage: 100,
         transferReason: null
       }
-    );
+    )
+    : null;
 
-  assertEmployeeBranchAccess(
-    auth,
-    assignment.branchId
-  );
+  if (assignment) {
+    assertEmployeeBranchAccess(auth, assignment.branchId);
+  }
 
   if (
+    assignment &&
+    input.joiningDate &&
     assignment.effectiveFrom <
     input.joiningDate
   ) {
@@ -1800,7 +1840,7 @@ export async function createEmployee(
       input.employeeStatusId,
 
     joiningDate:
-      input.joiningDate,
+      input.joiningDate ?? null,
 
     probationEndDate:
       input.probationEndDate ?? null,
@@ -1843,9 +1883,38 @@ export async function createEmployee(
         metadata
       );
 
-    return mapEmployee(
-      employee
-    );
+    const response = mapEmployee(employee);
+    try {
+      const accessAccount = await createEmployeeAccessAccount({
+        employeeId: response.employeeId,
+        companyId: response.companyId,
+        employeeCode: response.employeeCode,
+        personalEmail: response.personalEmail
+      }, auth, metadata);
+
+      return {
+        employee: response,
+        accessAccount,
+        accessAccountError: null
+      };
+    } catch (error) {
+      const accessAccountError = error instanceof AppError
+        ? error.message
+        : error instanceof Error && error.message === "EMPLOYEE_ROLE_INACTIVE"
+          ? "The company's EMPLOYEE role is inactive. Activate it and retry access setup."
+          : error instanceof Error && error.message === "EMPLOYEE_PERMISSION_NOT_CONFIGURED"
+            ? "The built-in EMPLOYEE permission is missing. Contact an administrator to configure it."
+            : error instanceof Error && error.message === "EMPLOYEE_ACCESS_COMPANY_INACTIVE"
+              ? "The employee's company is inactive, so login access cannot be created."
+              : "Login access could not be generated due to a system setup issue. Retry from Workforce Access or contact an administrator.";
+
+      // Employee creation remains successful if access provisioning fails.
+      return {
+        employee: response,
+        accessAccount: null,
+        accessAccountError
+      };
+    }
   } catch (error) {
     return translateRepositoryError(
       error
@@ -1955,9 +2024,7 @@ export async function updateEmployee(
   EmployeeDateRange = {
     joiningDate:
       input.joiningDate ??
-      requiredDateOnly(
-        existing.joining_date
-      ),
+      dateOnly(existing.joining_date),
 
     probationEndDate:
       input.probationEndDate !==
@@ -2062,7 +2129,8 @@ export async function updateEmployee(
 
           effectiveFrom:
             currentEffectiveFrom ??
-            resultingDates.joiningDate,
+            resultingDates.joiningDate ??
+            input.assignment.effectiveFrom,
 
           workLocation:
             existing.work_location,
@@ -2084,6 +2152,7 @@ export async function updateEmployee(
     );
 
     if (
+      resultingDates.joiningDate &&
       assignment.effectiveFrom <
       resultingDates.joiningDate
     ) {
