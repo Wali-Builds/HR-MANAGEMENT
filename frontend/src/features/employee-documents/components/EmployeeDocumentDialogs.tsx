@@ -209,7 +209,7 @@ function MetadataFields({ values, onChange }: MetadataFieldsProps) {
         />
         <span>
           <strong>Confidential document</strong>
-          <small>Restrict this file to authorised employee and HR access.</small>
+          <small>Mark this document as confidential.</small>
         </span>
       </label>
     </div>

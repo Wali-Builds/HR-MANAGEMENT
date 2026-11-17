@@ -2,6 +2,8 @@ import {
   AppError
 } from "../../common/errors/app-error.js";
 
+import { randomBytes } from "node:crypto";
+
 import {
   hashPassword
 } from "../../common/security/password.js";
@@ -18,6 +20,7 @@ import {
   findActiveCompany,
   findActiveDepartmentScope,
   findActiveRolesByCodes,
+  findEmployeeAccessRoleCodeForCompany,
   findEmployeeForUserAccount,
   findRolesForUsers,
   findUserByEmployeeId,
@@ -1235,6 +1238,72 @@ export async function createUser(
       error
     );
   }
+}
+
+// edited by wali: Provision a least-privilege employee login immediately after the employee record is created.
+export async function createEmployeeAccessAccount(
+  employee: {
+    employeeId: string;
+    companyId: string;
+    employeeCode: string;
+    personalEmail: string | null;
+  },
+  auth: AuthContext,
+  metadata: RequestMetadata
+): Promise<{
+  username: string;
+  email: string | null;
+  temporaryPassword: string;
+}> {
+  const employeeRoleCode = await findEmployeeAccessRoleCodeForCompany(employee.companyId);
+  if (!employeeRoleCode) {
+    throw new AppError({
+      message: "No active company role grants the EMPLOYEE permission. Ask a Company Admin to add that permission to the employee access role.",
+      statusCode: 422,
+      code: "EMPLOYEE_ACCESS_ROLE_NOT_CONFIGURED"
+    });
+  }
+
+  const normalizedUsername = (employee.employeeCode || `employee${employee.employeeId}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .slice(0, 68);
+  const baseUsername = normalizedUsername.length >= 3
+    ? normalizedUsername
+    : `emp-${employee.employeeId}`;
+  let username = baseUsername;
+  let suffix = 0;
+  while ((await findUserConflicts({ username, email: null })).usernameExists) {
+    suffix += 1;
+    const uniqueSuffix = `-${employee.employeeId}${suffix > 1 ? `-${suffix}` : ""}`;
+    username = `${baseUsername.slice(0, 80 - uniqueSuffix.length)}${uniqueSuffix}`;
+  }
+
+  const email = employee.personalEmail;
+  const temporaryPassword = `Aa1!${randomBytes(24).toString("base64url")}`;
+
+  await createUser({
+    companyId: employee.companyId,
+    employeeId: employee.employeeId,
+    username,
+    email,
+    temporaryPassword,
+    confirmTemporaryPassword: temporaryPassword,
+    isPlatformAdmin: false,
+    isActive: true,
+    isEmailVerified: false,
+    mustChangePassword: true,
+    roles: [{
+      roleCode: employeeRoleCode,
+      companyId: employee.companyId,
+      branchId: null,
+      departmentId: null,
+      expiresAt: null,
+      isActive: true
+    }]
+  }, auth, metadata);
+
+  return { username, email, temporaryPassword };
 }
 
 export async function updateUser(

@@ -160,7 +160,7 @@ export async function createEmployeeController(
         CreateEmployeeInput;
     };
 
-  const employee =
+  const result =
     await createEmployee(
       validated.body,
       getAuthContext(response),
@@ -174,7 +174,9 @@ export async function createEmployeeController(
       "Employee created successfully",
 
     data: {
-      employee
+      employee: result.employee,
+      accessAccount: result.accessAccount,
+      accessAccountError: result.accessAccountError
     }
   });
 }

@@ -165,7 +165,7 @@ const assignmentTypeSchema = z
     value.toUpperCase()
   );
 
-// edited by wali: Require branch, department, designation, and position for new hires.
+// Allow employee records to be created before their first assignment is added.
 const createAssignmentSchema =
   z
     .object({
@@ -194,7 +194,7 @@ const createAssignmentSchema =
           .default("PRIMARY"),
 
       effectiveFrom:
-        isoDateSchema.optional(),
+        isoDateSchema,
 
       workLocation:
         nullableText(255)
@@ -571,7 +571,8 @@ export const createEmployeeBodySchema =
         databaseIdSchema,
 
       joiningDate:
-        isoDateSchema,
+        nullableDateSchema
+          .optional(),
 
       probationEndDate:
         nullableDateSchema
@@ -615,6 +616,7 @@ export const createEmployeeBodySchema =
 
       assignment:
         createAssignmentSchema
+          .optional()
     })
     .strict()
     .superRefine(

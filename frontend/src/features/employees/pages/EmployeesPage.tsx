@@ -18,6 +18,7 @@ import {
 } from "../components/EmployeeFiltersPanel";
 import { EmployeeKanbanCard } from "../components/EmployeeKanbanCard";
 import { EmployeeListView } from "../components/EmployeeListView";
+import { EmployeeNumberingPanel } from "../components/EmployeeNumberingPanel";
 import {
   EmployeeWorkspaceToolbar,
   type EmployeeWorkspaceView,
@@ -212,6 +213,10 @@ export function EmployeesPage() {
         onToggleFilters={() => setFiltersOpen((value) => !value)}
         onClear={clearFilters}
       />
+
+      {scopeCompanyId && hasPermission("company.manage") ? (
+        <EmployeeNumberingPanel companyId={scopeCompanyId} />
+      ) : null}
 
       <div className={`emp-workspace__body ${filtersOpen ? "has-filters" : ""}`}>
         <EmployeeFiltersPanel

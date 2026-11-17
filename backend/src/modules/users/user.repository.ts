@@ -1025,6 +1025,26 @@ export async function findActiveRolesByCodes(
   }));
 }
 
+// edited by wali: Resolve the company-admin-defined role that grants employee self-service.
+export async function findEmployeeAccessRoleCodeForCompany(companyId: string): Promise<string | null> {
+  const rows = await databasePool.query(
+    `
+      SELECT r.role_code
+      FROM roles r
+      INNER JOIN role_permissions rp ON rp.role_id = r.role_id
+      INNER JOIN permissions p ON p.permission_id = rp.permission_id
+      WHERE r.company_id = ?
+        AND r.is_active = 1
+        AND p.permission_code = 'EMPLOYEE'
+      ORDER BY r.role_id
+      LIMIT 1
+    `,
+    [companyId],
+  ) as Array<{ role_code: string }>;
+
+  return rows[0]?.role_code ?? null;
+}
+
 export async function findActiveBranchScope(
   branchId: string
 ): Promise<{

@@ -26,6 +26,7 @@ export interface CompanyDatabaseRow {
   date_format: string;
   logo_path: string | null;
   employee_code_prefix: string | null;
+  employee_code_start_number: number | string;
   employee_code_length: number;
   is_active: number | boolean;
   deleted_at: Date | string | null;
@@ -56,6 +57,7 @@ export interface CompanyResponse {
   dateFormat: string;
   logoPath: string | null;
   employeeCodePrefix: string | null;
+  employeeCodeStartNumber: number;
   employeeCodeLength: number;
   isActive: boolean;
   // edited by wali: Return the deletion timestamp for administrator audit visibility.

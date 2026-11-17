@@ -272,6 +272,7 @@ export function CompanyRecordPage() {
                   <DetailItem label="Currency" value={company.currencyCode} icon={<Globe2 size={16} />} />
                   <DetailItem label="Date format" value={company.dateFormat} icon={<CalendarClock size={16} />} />
                   <DetailItem label="Employee prefix" value={company.employeeCodePrefix} icon={<Hash size={16} />} />
+                  <DetailItem label="Employee ID starts at" value={String(company.employeeCodeStartNumber)} icon={<Hash size={16} />} />
                   <DetailItem label="Employee code length" value={String(company.employeeCodeLength)} icon={<Hash size={16} />} />
                   <DetailItem label="Record status" value={company.isActive ? "Active" : "Inactive"} icon={<ShieldCheck size={16} />} />
                 </div>
@@ -372,7 +373,7 @@ export function CompanyRecordPage() {
                 <div><span>Country and timezone</span><strong>{company.countryCode} · {company.timezone}</strong></div>
                 <div><span>Financial display</span><strong>{company.currencyCode}</strong></div>
                 <div><span>Date presentation</span><strong>{company.dateFormat}</strong></div>
-                <div><span>Employee-number format</span><strong>{company.employeeCodePrefix || "No prefix"} + {company.employeeCodeLength} digits</strong></div>
+                <div><span>Employee-number format</span><strong>{company.employeeCodePrefix || "EMP"} + {company.employeeCodeStartNumber} start + {company.employeeCodeLength} digits</strong></div>
                 <div><span>Logo source</span><strong>{company.logoPath || "No logo configured"}</strong></div>
                 <div><span>Workspace access</span><strong>{company.isActive ? "Enabled" : "Disabled"}</strong></div>
               </div>

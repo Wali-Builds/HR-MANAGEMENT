@@ -76,7 +76,7 @@ function saveBlob(blob: Blob, filename: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-function EmployeeDocumentsPageContent() {
+function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployeeId?: string }) {
   const dialogMotion = useRequiredOrganisationDialogMotion();
   const user = useAuthStore((state) => state.user);
   const { hasPermission, isPlatformAdmin } = usePermissions();
@@ -102,9 +102,7 @@ function EmployeeDocumentsPageContent() {
 
   const ownEmployeeId = user?.employeeId ?? null;
   const requestedEmployeeId = searchParams.get("employeeId");
-  const selectedEmployeeId = canViewAll
-    ? requestedEmployeeId
-    : ownEmployeeId;
+  const selectedEmployeeId = embeddedEmployeeId ?? (canViewAll ? requestedEmployeeId : ownEmployeeId);
   const scopeCompanyId = isPlatformAdmin
     ? selectedCompanyId || undefined
     : user?.companyId ?? undefined;
@@ -115,7 +113,7 @@ function EmployeeDocumentsPageContent() {
     sortBy: "display_name",
     sortOrder: "ASC",
     isActive: true,
-  }, isPlatformAdmin);
+  }, isPlatformAdmin && !embeddedEmployeeId);
 
   const employeeListQuery = useQuery({
     queryKey: [
@@ -136,6 +134,7 @@ function EmployeeDocumentsPageContent() {
       }),
     enabled:
       canViewAll &&
+      !embeddedEmployeeId &&
       (!isPlatformAdmin || Boolean(scopeCompanyId)),
     staleTime: 60_000,
   });
@@ -146,6 +145,7 @@ function EmployeeDocumentsPageContent() {
 
   useEffect(() => {
     if (
+      !embeddedEmployeeId &&
       canViewAll &&
       !requestedEmployeeId &&
       employees.length > 0
@@ -157,6 +157,7 @@ function EmployeeDocumentsPageContent() {
     }
   }, [
     canViewAll,
+    embeddedEmployeeId,
     employees,
     requestedEmployeeId,
     searchParams,
@@ -190,6 +191,13 @@ function EmployeeDocumentsPageContent() {
   const replaceMutation = useReplaceEmployeeDocumentFile();
   const deleteMutation = useDeleteEmployeeDocument();
   const documents = documentsQuery.data ?? [];
+  const showDocumentPlaceholder =
+    !selectedEmployeeId ||
+    selectedEmployeeQuery.isLoading ||
+    documentsQuery.isLoading ||
+    selectedEmployeeQuery.isError ||
+    documentsQuery.isError ||
+    documents.length === 0;
 
   // edited by wali: Route document form closes through the shared 360 ms transition.
   function closeUpload() { dialogMotion.close(() => setUploadOpen(false)); }
@@ -322,7 +330,7 @@ function EmployeeDocumentsPageContent() {
     isPlatformAdmin && !selectedCompanyId;
 
   return (
-    <section className="doc-workspace doc-workspace--leave-ui">
+    <section className={`doc-workspace doc-workspace--leave-ui${embeddedEmployeeId ? " doc-workspace--embedded" : ""}`}>
       <header className="doc-control-panel">
         <div className="doc-control-panel__primary">
           <div className="doc-control-panel__identity">
@@ -356,7 +364,7 @@ function EmployeeDocumentsPageContent() {
         </div>
 
         <div className="doc-control-panel__secondary">
-          {isPlatformAdmin ? (
+          {isPlatformAdmin && !embeddedEmployeeId ? (
             <label className="doc-compact-field">
               <Building2 size={15} />
               <EmployeeMenuSelect
@@ -399,8 +407,8 @@ function EmployeeDocumentsPageContent() {
         </div>
       </header>
 
-      <div className={`doc-workspace__body ${canViewAll ? "has-employee-rail" : ""}`}>
-        {canViewAll ? (
+      <div className={`doc-workspace__body ${canViewAll && !embeddedEmployeeId ? "has-employee-rail" : ""}`}>
+        {canViewAll && !embeddedEmployeeId ? (
           <aside className="doc-employee-rail">
             <div className="doc-employee-rail__header">
               <div>
@@ -452,8 +460,8 @@ function EmployeeDocumentsPageContent() {
           </aside>
         ) : null}
 
-        <main className="doc-record-area">
-          {selectedEmployeeId && selectedEmployee ? (
+        <main className={`doc-record-area${embeddedEmployeeId && showDocumentPlaceholder ? " doc-record-area--centered" : ""}`}>
+          {selectedEmployeeId && selectedEmployee && !embeddedEmployeeId ? (
             <header className="doc-selected-employee">
               <EmployeeAvatar employee={selectedEmployee} size="md" />
               <div>
@@ -576,4 +584,8 @@ function EmployeeDocumentsPageContent() {
 // edited by wali: Provide shared trigger-origin motion to employee document forms.
 export function EmployeeDocumentsPage() {
   return <OrganisationDialogMotionProvider><EmployeeDocumentsPageContent /></OrganisationDialogMotionProvider>;
+}
+
+export function EmployeeDocumentsPanel({ employeeId }: { employeeId: string }) {
+  return <OrganisationDialogMotionProvider><EmployeeDocumentsPageContent embeddedEmployeeId={employeeId} /></OrganisationDialogMotionProvider>;
 }

@@ -117,6 +117,9 @@ function mapCompany(
     employeeCodePrefix:
       company.employee_code_prefix,
 
+    employeeCodeStartNumber:
+      Number(company.employee_code_start_number),
+
     employeeCodeLength:
       Number(
         company.employee_code_length

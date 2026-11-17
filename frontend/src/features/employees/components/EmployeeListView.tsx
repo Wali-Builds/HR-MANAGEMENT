@@ -46,7 +46,7 @@ export function EmployeeListView(props: Props) {
               <td>
                 <div className="emp-list-employment">
                   <strong>{employee.employmentTypeName}</strong>
-                  <span>Joined {employee.joiningDate}</span>
+                  <span>{employee.joiningDate ? `Joined ${employee.joiningDate}` : "Joining date pending"}</span>
                 </div>
               </td>
               <td><EmployeeStatusBadge employee={employee} /></td>

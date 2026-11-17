@@ -2,12 +2,12 @@ import {
   Archive,
   ArrowLeft,
   BriefcaseBusiness,
-  Building2,
   CalendarDays,
   Contact,
   Edit3,
   FileText,
   Fingerprint,
+  History,
   LoaderCircle,
   Mail,
   MapPin,
@@ -17,7 +17,7 @@ import {
   UserRoundX,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
@@ -26,16 +26,26 @@ import { ArchiveEmployeeDialog } from "../components/ArchiveEmployeeDialog";
 import { EmployeeAvatar } from "../components/EmployeeAvatar";
 import { EmployeeStatusBadge } from "../components/EmployeeStatusBadge";
 import { useEmployee, useUpdateEmployee } from "../hooks/useEmployees";
+import { EmployeeDocumentsPanel } from "../../employee-documents/pages/EmployeeDocumentsPage";
 
 export function EmployeeRecordPage() {
   const navigate = useNavigate();
   const { employeeId } = useParams<{ employeeId: string }>();
+  const [searchParams] = useSearchParams();
   const { hasPermission } = usePermissions();
   const employeeQuery = useEmployee(employeeId ?? null);
   const updateMutation = useUpdateEmployee();
-  const [tab, setTab] = useState<"overview" | "employment" | "contact" | "system">("overview");
+  const [tab, setTab] = useState<"overview" | "assignment" | "contact" | "documents" | "system">(() => {
+    const requestedTab = searchParams.get("tab");
+    return requestedTab === "assignment" || requestedTab === "documents" ? requestedTab : "overview";
+  });
   const [archiveOpen, setArchiveOpen] = useState(false);
   const employee = employeeQuery.data;
+  const assignmentHistory = employee?.assignmentHistory?.length
+    ? employee.assignmentHistory
+    : employee?.assignment.assignmentId
+      ? [employee.assignment]
+      : [];
   const canEdit = hasPermission("employee.update");
   const canArchive = hasPermission("employee.delete");
 
@@ -69,7 +79,7 @@ export function EmployeeRecordPage() {
   }
 
   const facts = [
-    ["Employee code", employee.employeeCode],
+    ["Employee ID", employee.employeeCode],
     ["Employment type", employee.employmentTypeName],
     [
       "Employee status",
@@ -77,15 +87,15 @@ export function EmployeeRecordPage() {
         ? employee.employeeStatusName
         : "Inactive",
     ],
-    ["Joining date", employee.joiningDate],
+    ["Joining date", employee.joiningDate ?? "Not assigned"],
   ];
 
   return (
     <section className="emp-record-page">
       <header className="emp-record-toolbar">
         <div className="emp-record-toolbar__left">
-          <button type="button" className="emp-back-button" onClick={() => navigate("/employees")}><ArrowLeft size={17} /></button>
-          <div><span>Employees / {employee.employeeCode}</span><h1>{employee.fullName}</h1></div>
+          <button type="button" className="emp-back-button" onClick={() => navigate(searchParams.get("tab") === "assignment" ? "/employees/assignments" : "/employees")}><ArrowLeft size={17} /></button>
+          <div><span>{searchParams.get("tab") === "assignment" ? "Assignments" : "Employees"} / {employee.employeeCode}</span><h1>{employee.fullName}</h1></div>
         </div>
         <div className="emp-record-toolbar__actions">
           <button type="button" className="emp-icon-button" onClick={() => void employeeQuery.refetch()} title="Refresh"><RefreshCw className={employeeQuery.isFetching ? "spin" : ""} size={15} /></button>
@@ -114,9 +124,9 @@ export function EmployeeRecordPage() {
 
       <nav className="emp-record-tabs">
         <button type="button" className={tab === "overview" ? "is-active" : ""} onClick={() => setTab("overview")}>Overview</button>
-        <button type="button" className={tab === "employment" ? "is-active" : ""} onClick={() => setTab("employment")}>Employment</button>
+        <button type="button" className={tab === "assignment" ? "is-active" : ""} onClick={() => setTab("assignment")}>Assignment</button>
         <button type="button" className={tab === "contact" ? "is-active" : ""} onClick={() => setTab("contact")}>Contact & identity</button>
-        <button type="button" onClick={() => navigate(`/employees/documents?employeeId=${employee.employeeId}`)}><FileText size={13} /> Documents</button>
+        <button type="button" className={tab === "documents" ? "is-active" : ""} onClick={() => setTab("documents")}><FileText size={13} /> Documents</button>
         <button type="button" className={tab === "system" ? "is-active" : ""} onClick={() => setTab("system")}>System</button>
       </nav>
 
@@ -144,24 +154,61 @@ export function EmployeeRecordPage() {
           </>
         ) : null}
 
-        {tab === "employment" ? (
+        {tab === "assignment" ? (
           <>
-            <section className="emp-record-card">
-              <header><CalendarDays size={18} /><div><h3>Employment timeline</h3><p>Key dates across the employee lifecycle</p></div></header>
+            <section className="emp-record-card emp-record-card--feature">
+              <header>
+                <BriefcaseBusiness size={18} />
+                <div><h3>Current assignment</h3><p>Department, project, role and reporting placement</p></div>
+              </header>
               <div className="emp-detail-grid">
-                <div><span>Joining date</span><strong>{employee.joiningDate}</strong></div>
-                <div><span>Probation end</span><strong>{employee.probationEndDate ?? "—"}</strong></div>
-                <div><span>Contract start</span><strong>{employee.contractStartDate ?? "—"}</strong></div>
-                <div><span>Contract end</span><strong>{employee.contractEndDate ?? "—"}</strong></div>
-                <div><span>Last working date</span><strong>{employee.lastWorkingDate ?? "—"}</strong></div>
+                <div><span>Branch</span><strong>{employee.assignment.branchName ?? "Not assigned"}</strong></div>
+                <div><span>Department</span><strong>{employee.assignment.departmentName ?? "Not assigned"}</strong></div>
+                <div><span>Project</span><strong>{employee.assignment.projectName ?? "Not assigned"}</strong></div>
+                <div><span>Designation</span><strong>{employee.assignment.designationName ?? "Not assigned"}</strong></div>
+                <div><span>Position</span><strong>{employee.assignment.positionTitle ?? "Not assigned"}</strong></div>
+                <div><span>Reporting manager</span><strong>{employee.assignment.reportingManagerName ?? "Not assigned"}</strong></div>
+                <div><span>Work location</span><strong>{employee.assignment.workLocation ?? "Not provided"}</strong></div>
+                <div><span>Effective from</span><strong>{employee.assignment.effectiveFrom ?? "—"}</strong></div>
               </div>
             </section>
             <section className="emp-record-card">
-              <header><Building2 size={18} /><div><h3>Assignment metadata</h3><p>Movement and assignment controls</p></div></header>
+              <header><CalendarDays size={18} /><div><h3>Employment dates</h3><p>Employment dates are preserved with the employee record</p></div></header>
               <div className="emp-detail-grid">
-                <div><span>Effective from</span><strong>{employee.assignment.effectiveFrom ?? "—"}</strong></div>
-                <div><span>Effective to</span><strong>{employee.assignment.effectiveTo ?? "Current"}</strong></div>
+                <div><span>Joining date</span><strong>{employee.joiningDate ?? "Not assigned"}</strong></div>
+                <div><span>Probation end</span><strong>{employee.probationEndDate ?? "—"}</strong></div>
+                <div><span>Contract start</span><strong>{employee.contractStartDate ?? "—"}</strong></div>
+                <div><span>Contract end</span><strong>{employee.contractEndDate ?? "—"}</strong></div>
               </div>
+            </section>
+            <section className="emp-record-card emp-record-card--feature">
+              <header><History size={18} /><div><h3>Assignment history</h3><p>Branch, department, project, and role records over time</p></div></header>
+              {assignmentHistory.length === 0 ? (
+                <p className="emp-assignment-history__empty">No assignment records are available for this employee.</p>
+              ) : (
+                <div className="emp-assignment-history">
+                  {assignmentHistory.map((record) => {
+                    const isCurrent = record.assignmentId === employee.assignment.assignmentId;
+                    return (
+                      <article className="emp-assignment-history__item" key={record.assignmentId ?? `${record.effectiveFrom}-${record.departmentId}`}>
+                        <header>
+                          <div>
+                            <strong>{record.departmentName ?? "Department not assigned"} · {record.branchName ?? "Branch not assigned"}</strong>
+                            <span>{[record.designationName, record.positionTitle].filter(Boolean).join(" · ") || "Role not assigned"}</span>
+                          </div>
+                          <span className={isCurrent ? "emp-assignment-history__status is-current" : "emp-assignment-history__status"}>{isCurrent ? "Current" : "Previous"}</span>
+                        </header>
+                        <div className="emp-assignment-history__details">
+                          <div><span>Effective period</span><strong>{record.effectiveFrom ?? "—"} to {record.effectiveTo ?? (isCurrent ? "Current" : "Not recorded")}</strong></div>
+                          <div><span>Project</span><strong>{record.projectName ?? "No project"}</strong></div>
+                          <div><span>Reporting manager</span><strong>{record.reportingManagerName ?? "Not assigned"}</strong></div>
+                          {record.transferReason ? <div><span>Reason for change</span><strong>{record.transferReason}</strong></div> : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           </>
         ) : null}
@@ -189,6 +236,12 @@ export function EmployeeRecordPage() {
               </div>
             </section>
           </>
+        ) : null}
+
+        {tab === "documents" ? (
+          <div className="emp-record-documents">
+            <EmployeeDocumentsPanel employeeId={employee.employeeId} />
+          </div>
         ) : null}
 
         {tab === "system" ? (

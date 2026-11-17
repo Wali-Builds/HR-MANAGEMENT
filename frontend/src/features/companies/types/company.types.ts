@@ -30,6 +30,7 @@ export interface Company {
   dateFormat: string;
   logoPath: string | null;
   employeeCodePrefix: string | null;
+  employeeCodeStartNumber: number;
   employeeCodeLength: number;
   isActive: boolean;
   // edited by wali: Null for live companies; populated for soft-deleted companies.
@@ -80,6 +81,7 @@ export interface CompanyMutationInput {
   dateFormat: string;
   logoPath?: string | null;
   employeeCodePrefix?: string | null;
+  employeeCodeStartNumber?: number;
   employeeCodeLength: number;
   isActive: boolean;
 }

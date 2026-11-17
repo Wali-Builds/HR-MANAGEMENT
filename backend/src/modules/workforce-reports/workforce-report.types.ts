@@ -41,7 +41,7 @@ export interface WorkforceEmployeeSummaryDatabaseRow {
   first_name: string;
   middle_name: string | null;
   last_name: string | null;
-  joining_date: Date | string;
+  joining_date: Date | string | null;
   contract_end_date: Date | string | null;
   branch_name: string | null;
   department_name: string | null;

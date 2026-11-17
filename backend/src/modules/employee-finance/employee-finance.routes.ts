@@ -7,6 +7,7 @@ import {
 } from "../../common/middleware/authenticate.middleware.js";
 
 import {
+  requireAnyPermission,
   requirePermission
 } from "../../common/middleware/authorization.middleware.js";
 
@@ -98,7 +99,8 @@ employeeFinanceRouter.get(
 
 employeeFinanceRouter.post(
   "/:employeeId/bank-accounts",
-  requirePermission(
+  requireAnyPermission(
+    "employee.create",
     "employee.update"
   ),
   validateRequest(

@@ -19,6 +19,7 @@ import type {
   EmployeeAssignmentMutation,
   EmployeeCreateRecord,
   EmployeeDatabaseRow,
+  EmployeeAssignmentHistoryDatabaseRow,
   EmployeeSelfProfileResponse,
   EmployeeListOptions,
   EmployeeListResult,
@@ -30,6 +31,7 @@ import type {
 interface CompanyEmployeeSettings {
   companyId: string;
   employeeCodePrefix: string | null;
+  employeeCodeStartNumber: number;
   employeeCodeLength: number;
 }
 
@@ -876,6 +878,7 @@ export async function findActiveCompanySettings(
         SELECT
             company_id,
             employee_code_prefix,
+            employee_code_start_number,
             employee_code_length
         FROM companies
         WHERE company_id = ?
@@ -894,6 +897,9 @@ export async function findActiveCompanySettings(
         employee_code_prefix:
           string | null;
 
+        employee_code_start_number:
+          string | number;
+
         employee_code_length:
           string | number;
       }
@@ -909,6 +915,9 @@ export async function findActiveCompanySettings(
 
     employeeCodePrefix:
       row.employee_code_prefix,
+
+    employeeCodeStartNumber:
+      Number(row.employee_code_start_number),
 
     employeeCodeLength:
       Number(
@@ -1707,6 +1716,71 @@ export async function findEmployeeById(
   ) ?? null;
 }
 
+export async function listEmployeeAssignmentHistory(
+  employeeId: string,
+  companyId: string
+): Promise<EmployeeAssignmentHistoryDatabaseRow[]> {
+  const rows = await databasePool.query(
+    `
+      SELECT
+        ea.assignment_id,
+        ea.branch_id,
+        b.branch_name,
+        ea.department_id,
+        d.department_name,
+        ea.project_id,
+        pr.project_code,
+        pr.project_name,
+        ea.designation_id,
+        dg.designation_name,
+        ea.reporting_manager_id,
+        rm.employee_code AS reporting_manager_code,
+        TRIM(CONCAT_WS(' ', rm.first_name, rm.middle_name, rm.last_name)) AS reporting_manager_name,
+        ea.assignment_type,
+        ea.effective_from,
+        ea.effective_to,
+        ea.work_location,
+        ea.employment_percentage,
+        ea.transfer_reason,
+        pa.position_assignment_id,
+        pa.position_id,
+        p.position_code,
+        p.position_title
+      FROM employee_assignments ea
+      INNER JOIN employees e
+        ON e.employee_id = ea.employee_id
+      LEFT JOIN branches b
+        ON b.branch_id = ea.branch_id
+      LEFT JOIN departments d
+        ON d.department_id = ea.department_id
+      LEFT JOIN projects pr
+        ON pr.project_id = ea.project_id
+      LEFT JOIN designations dg
+        ON dg.designation_id = ea.designation_id
+      LEFT JOIN employees rm
+        ON rm.employee_id = ea.reporting_manager_id
+      LEFT JOIN position_assignments pa
+        ON pa.position_assignment_id = (
+          SELECT pa2.position_assignment_id
+          FROM position_assignments pa2
+          WHERE pa2.employee_id = ea.employee_id
+            AND pa2.effective_from <= ea.effective_from
+            AND (pa2.effective_to IS NULL OR pa2.effective_to >= ea.effective_from)
+          ORDER BY pa2.effective_from DESC, pa2.position_assignment_id DESC
+          LIMIT 1
+        )
+      LEFT JOIN positions p
+        ON p.position_id = pa.position_id
+      WHERE ea.employee_id = ?
+        AND e.company_id = ?
+      ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+    `,
+    [employeeId, companyId]
+  );
+
+  return rows as EmployeeAssignmentHistoryDatabaseRow[];
+}
+
 // edited by wali: Read the employee's own profile details while excluding national and biometric identifiers.
 export async function findEmployeeSelfProfile(
   employeeId: string,
@@ -1821,7 +1895,7 @@ export async function findEmployeeSelfProfile(
         employment_type_name: string;
         employee_status_name: string;
         is_active_employment: number | boolean;
-        joining_date: Date | string;
+        joining_date: Date | string | null;
         probation_end_date: Date | string | null;
         confirmation_date: Date | string | null;
         contract_start_date: Date | string | null;
@@ -1861,7 +1935,7 @@ export async function findEmployeeSelfProfile(
     employmentTypeName: row.employment_type_name,
     employeeStatusName: row.employee_status_name,
     isActiveEmployment: Number(row.is_active_employment) === 1,
-    joiningDate: toDateOnly(row.joining_date) ?? "",
+    joiningDate: toDateOnly(row.joining_date),
     probationEndDate: toDateOnly(row.probation_end_date),
     confirmationDate: toDateOnly(row.confirmation_date),
     contractStartDate: toDateOnly(row.contract_start_date),
@@ -1890,6 +1964,7 @@ export async function createEmployeeRecord(
         `
           SELECT
               employee_code_prefix,
+              employee_code_start_number,
               employee_code_length
           FROM companies
           WHERE company_id = ?
@@ -1906,6 +1981,9 @@ export async function createEmployeeRecord(
         | {
             employee_code_prefix:
               string | null;
+
+            employee_code_start_number:
+              string | number;
 
             employee_code_length:
               string | number;
@@ -1985,8 +2063,10 @@ export async function createEmployeeRecord(
         }
       }
 
-      const nextNumber =
-        highestNumber + 1;
+      const nextNumber = Math.max(
+        highestNumber + 1,
+        Number(company.employee_code_start_number) || 1,
+      );
 
       employeeCode =
         `${prefix}${String(
@@ -2090,9 +2170,10 @@ export async function createEmployeeRecord(
         insertResult.insertId
       );
 
-    await connection.query(
-      `
-        INSERT INTO employee_assignments (
+    if (input.assignment) {
+      await connection.query(
+        `
+          INSERT INTO employee_assignments (
             employee_id,
             branch_id,
             department_id,
@@ -2111,41 +2192,32 @@ export async function createEmployeeRecord(
             ?, ?, ?, ?, ?, ?, ?, ?,
             NULL, ?, ?, ?, 1
         )
-      `,
-      [
-        employeeId,
-        input.assignment.branchId,
-        input.assignment.departmentId,
-        input.assignment.projectId,
-        input.assignment.designationId,
-        input.assignment
-          .reportingManagerId,
-        input.assignment
-          .assignmentType,
-        input.assignment
-          .effectiveFrom,
-        input.assignment
-          .workLocation,
-        input.assignment
-          .employmentPercentage,
-        input.assignment
-          .transferReason
-      ]
-    );
-
-    if (
-      input.assignment.positionId
-    ) {
-      await createPositionAssignment(
-        connection,
-        employeeId,
-        input.assignment.positionId,
-        input.assignment
-          .assignmentType,
-        input.assignment
-          .effectiveFrom,
-        actor.userId
+        `,
+        [
+          employeeId,
+          input.assignment.branchId,
+          input.assignment.departmentId,
+          input.assignment.projectId,
+          input.assignment.designationId,
+          input.assignment.reportingManagerId,
+          input.assignment.assignmentType,
+          input.assignment.effectiveFrom,
+          input.assignment.workLocation,
+          input.assignment.employmentPercentage,
+          input.assignment.transferReason
+        ]
       );
+
+      if (input.assignment.positionId) {
+        await createPositionAssignment(
+          connection,
+          employeeId,
+          input.assignment.positionId,
+          input.assignment.assignmentType,
+          input.assignment.effectiveFrom,
+          actor.userId
+        );
+      }
     }
 
     const employee =

@@ -153,7 +153,7 @@ export function CompanyDetailsDrawer({
                 <DetailRow icon={Clock3} label="Timezone" value={company.timezone} />
                 <DetailRow icon={Settings2} label="Currency" value={company.currencyCode} />
                 <DetailRow icon={CalendarDays} label="Date format" value={company.dateFormat} />
-                <DetailRow icon={Hash} label="Employee code" value={`${company.employeeCodePrefix || "No prefix"} · ${company.employeeCodeLength} digits`} />
+                <DetailRow icon={Hash} label="Employee ID sequence" value={`${company.employeeCodePrefix || "EMP"} · starts at ${company.employeeCodeStartNumber} · ${company.employeeCodeLength} digits`} />
               </div>
             </div>
           </>

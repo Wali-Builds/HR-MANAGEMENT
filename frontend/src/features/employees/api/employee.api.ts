@@ -37,6 +37,39 @@ export interface ProjectReference {
   departmentId: string | null;
 }
 
+export interface EmployeeCreationResult {
+  employee: Employee;
+  accessAccount: {
+    username: string;
+    email: string | null;
+    temporaryPassword: string;
+  } | null;
+  accessAccountError: string | null;
+}
+
+export interface EmployeeBankAccountCreateInput {
+  bankName: string;
+  branchName?: string | null;
+  accountTitle: string;
+  accountNumber: string;
+  iban?: string | null;
+  accountType?: string;
+  currencyCode?: string;
+  paymentPriority?: number;
+  isPrimary?: boolean;
+  isActive?: boolean;
+}
+
+export async function createEmployeeBankAccountRequest(
+  employeeId: string,
+  input: EmployeeBankAccountCreateInput,
+): Promise<void> {
+  await apiClient.post<ApiSuccessResponse<{ bankAccount: unknown }>>(
+    `/employees/${employeeId}/bank-accounts`,
+    input,
+  );
+}
+
 export async function listActiveProjectReferencesRequest(departmentId: string): Promise<ProjectReference[]> {
   const response = await apiClient.get<ApiSuccessResponse<{ projects: ProjectReference[] }>>("/projects", {
     params: { departmentId, activeOnly: "true" },
@@ -83,12 +116,12 @@ export async function getEmployeeLookupsRequest(): Promise<EmployeeLookups> {
 
 export async function createEmployeeRequest(
   input: EmployeeMutationInput,
-): Promise<Employee> {
+): Promise<EmployeeCreationResult> {
   const response = await apiClient.post<
-    ApiSuccessResponse<{ employee: Employee }>
+    ApiSuccessResponse<EmployeeCreationResult>
   >("/employees", input);
 
-  return response.data.data.employee;
+  return response.data.data;
 }
 
 export async function updateEmployeeRequest(

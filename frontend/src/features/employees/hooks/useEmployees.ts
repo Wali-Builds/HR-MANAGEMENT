@@ -164,7 +164,7 @@ export function useCreateEmployee() {
 
   return useMutation({
     mutationFn: createEmployeeRequest,
-    onSuccess: async (employee) => {
+    onSuccess: async ({ employee }) => {
       queryClient.setQueryData(
         employeeQueryKeys.detail(employee.employeeId),
         employee,
@@ -188,11 +188,10 @@ export function useUpdateEmployee() {
       input: Partial<EmployeeMutationInput>;
     }) => updateEmployeeRequest(employeeId, input),
     onSuccess: async (employee) => {
-      queryClient.setQueryData(
-        employeeQueryKeys.detail(employee.employeeId),
-        employee,
-      );
       await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: employeeQueryKeys.detail(employee.employeeId),
+        }),
         queryClient.invalidateQueries({
           queryKey: employeeQueryKeys.lists(),
         }),

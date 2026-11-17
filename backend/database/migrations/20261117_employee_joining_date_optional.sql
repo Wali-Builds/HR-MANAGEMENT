@@ -1,0 +1,2 @@
+ALTER TABLE employees
+  MODIFY COLUMN joining_date DATE DEFAULT NULL;
