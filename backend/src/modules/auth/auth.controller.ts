@@ -41,7 +41,9 @@ const refreshCookieOptions = {
     env.NODE_ENV === "production",
 
   sameSite:
-    "lax" as const,
+    env.NODE_ENV === "production"
+      ? "none" as const
+      : "lax" as const,
 
   path:
     "/api/v1/auth"
