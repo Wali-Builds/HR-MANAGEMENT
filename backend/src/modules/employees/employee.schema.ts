@@ -292,7 +292,7 @@ const updateAssignmentSchema =
     );
 
 type EmployeeDateFields = {
-  joiningDate?: string | undefined;
+  joiningDate?: string | null | undefined;
 
   dateOfBirth?:
     | string
