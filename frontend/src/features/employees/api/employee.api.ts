@@ -60,12 +60,49 @@ export interface EmployeeBankAccountCreateInput {
   isActive?: boolean;
 }
 
+export interface EmployeeBankAccount {
+  bankAccountId: string;
+  bankName: string;
+  branchName: string | null;
+  accountTitle: string;
+  accountNumberLast4: string | null;
+  accountNumberMasked: string | null;
+  ibanLast4: string | null;
+  ibanMasked: string | null;
+  accountType: string;
+  currencyCode: string;
+  paymentPriority: number;
+  isPrimary: boolean;
+  isActive: boolean;
+}
+
+export type EmployeeBankAccountUpdateInput = Partial<EmployeeBankAccountCreateInput>;
+
+export async function listEmployeeBankAccountsRequest(employeeId: string): Promise<EmployeeBankAccount[]> {
+  const response = await apiClient.get<ApiSuccessResponse<{ bankAccounts: EmployeeBankAccount[] }>>(
+    `/employees/${employeeId}/bank-accounts`,
+    { params: { includeInactive: true } },
+  );
+  return response.data.data.bankAccounts;
+}
+
 export async function createEmployeeBankAccountRequest(
   employeeId: string,
   input: EmployeeBankAccountCreateInput,
 ): Promise<void> {
   await apiClient.post<ApiSuccessResponse<{ bankAccount: unknown }>>(
     `/employees/${employeeId}/bank-accounts`,
+    input,
+  );
+}
+
+export async function updateEmployeeBankAccountRequest(
+  employeeId: string,
+  bankAccountId: string,
+  input: EmployeeBankAccountUpdateInput,
+): Promise<void> {
+  await apiClient.patch<ApiSuccessResponse<{ bankAccount: unknown }>>(
+    `/employees/${employeeId}/bank-accounts/${bankAccountId}`,
     input,
   );
 }

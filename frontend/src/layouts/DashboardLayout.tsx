@@ -16,6 +16,7 @@ export function DashboardLayout() {
       location.pathname === "/employees/documents" ||
       location.pathname === "/employees/access" ||
       location.pathname === "/employees/assignments" ||
+      /^\/employees\/[^/]+$/.test(location.pathname) ||
       location.pathname === "/projects" ||
       // added by wali: Reset attendance pages to the top when opening a view or reloading it.
       location.pathname.startsWith("/attendance") ||

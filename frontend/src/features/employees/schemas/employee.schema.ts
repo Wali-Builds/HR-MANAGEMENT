@@ -111,9 +111,16 @@ export const employeeProfileEditFormSchema = employeeFormSchema;
 
 // New employees can be saved first and assigned from the Assignments tab later.
 export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, context) => {
-  // edited by wali: Require every contact channel when creating a new employee.
+  if (!/^\d{5}-\d{7}-\d$/.test(data.cnicNumber)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["cnicNumber"],
+      message: "Use CNIC format 12345-1234567-1",
+    });
+  }
+
+  // edited by wali: Require personal email and phone contacts when creating an employee.
   const requiredContacts = [
-    ["officialEmail", data.officialEmail, "Official email"],
     ["personalEmail", data.personalEmail, "Personal email"],
     ["mobileNumber", data.mobileNumber, "Mobile number"],
     ["alternateNumber", data.alternateNumber, "Emergency number"],

@@ -108,7 +108,28 @@ export function EmployeeMenuSelect({ value, options, placeholder, onChange, disa
           ref={menuRef}
           style={{ position: "fixed", inset: "auto", top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, zIndex: 2000 }}
         >
-          {searchable || allowCustomValue ? <div className="emp-menu-select__search"><Search size={14} /><input ref={searchRef} value={query} maxLength={customValueMaxLength} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} /></div> : null}
+          {searchable || allowCustomValue ? <div className="emp-menu-select__search"><Search size={14} /><input
+            ref={searchRef}
+            value={query}
+            maxLength={customValueMaxLength}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              const normalizedQuery = query.trim().toLocaleLowerCase();
+              if (!normalizedQuery) return;
+              const exactMatch = visibleOptions.find((option) =>
+                option.label.toLocaleLowerCase() === normalizedQuery ||
+                option.value.toLocaleLowerCase() === normalizedQuery,
+              );
+              const match = exactMatch ?? (visibleOptions.length === 1 ? visibleOptions[0] : undefined);
+              if (!match) return;
+              onChange(match.value);
+              setIsOpen(false);
+              setQuery("");
+            }}
+            placeholder={searchPlaceholder}
+          /></div> : null}
           <div className="emp-menu-select__options" role="listbox">
             {visibleOptions.map((option) => (
               <button

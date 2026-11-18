@@ -8,6 +8,7 @@ import {
   FileText,
   Fingerprint,
   History,
+  Landmark,
   LoaderCircle,
   Mail,
   MapPin,
@@ -16,6 +17,7 @@ import {
   UserRoundCheck,
   UserRoundX,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -27,6 +29,7 @@ import { EmployeeAvatar } from "../components/EmployeeAvatar";
 import { EmployeeStatusBadge } from "../components/EmployeeStatusBadge";
 import { useEmployee, useUpdateEmployee } from "../hooks/useEmployees";
 import { EmployeeDocumentsPanel } from "../../employee-documents/pages/EmployeeDocumentsPage";
+import { listEmployeeBankAccountsRequest } from "../api/employee.api";
 
 export function EmployeeRecordPage() {
   const navigate = useNavigate();
@@ -39,6 +42,15 @@ export function EmployeeRecordPage() {
     const requestedTab = searchParams.get("tab");
     return requestedTab === "assignment" || requestedTab === "documents" ? requestedTab : "overview";
   });
+  const bankAccountsQuery = useQuery({
+    queryKey: ["employees", employeeId, "bank-accounts"],
+    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? ""),
+    enabled: Boolean(employeeId && tab === "overview"),
+    staleTime: 60_000,
+  });
+  const bankAccount = bankAccountsQuery.data?.find((account) => account.isPrimary && account.isActive)
+    ?? bankAccountsQuery.data?.find((account) => account.isActive)
+    ?? bankAccountsQuery.data?.[0];
   const [archiveOpen, setArchiveOpen] = useState(false);
   const employee = employeeQuery.data;
   const assignmentHistory = employee?.assignmentHistory?.length
@@ -151,6 +163,19 @@ export function EmployeeRecordPage() {
                 <span><MapPin size={16} /><div><small>Work location</small><strong>{employee.assignment.workLocation ?? "Not provided"}</strong></div></span>
               </div>
             </section>
+            <section className="emp-record-card">
+              <header><Landmark size={18} /><div><h3>Bank details</h3><p>Saved payroll account information</p></div></header>
+              {bankAccountsQuery.isLoading ? <p>Loading bank details…</p> : bankAccountsQuery.isError ? <p>Bank details could not be loaded.</p> : bankAccount ? (
+                <div className="emp-detail-grid">
+                  <div><span>Bank</span><strong>{bankAccount.bankName}</strong></div>
+                  <div><span>Branch</span><strong>{bankAccount.branchName ?? "Not provided"}</strong></div>
+                  <div><span>Account title</span><strong>{bankAccount.accountTitle}</strong></div>
+                  <div><span>Account number</span><strong>{bankAccount.accountNumberMasked ?? "Not provided"}</strong></div>
+                  <div><span>IBAN</span><strong>{bankAccount.ibanMasked ?? "Not provided"}</strong></div>
+                  <div><span>Currency</span><strong>{bankAccount.currencyCode}</strong></div>
+                </div>
+              ) : <p>No bank account has been added.</p>}
+            </section>
           </>
         ) : null}
 
@@ -173,7 +198,7 @@ export function EmployeeRecordPage() {
               </div>
             </section>
             <section className="emp-record-card">
-              <header><CalendarDays size={18} /><div><h3>Employment dates</h3><p>Employment dates are preserved with the employee record</p></div></header>
+              <header><CalendarDays size={18} /><div><h3>Employment dates</h3><p>Employment timeline for this employee</p></div></header>
               <div className="emp-detail-grid">
                 <div><span>Joining date</span><strong>{employee.joiningDate ?? "Not assigned"}</strong></div>
                 <div><span>Probation end</span><strong>{employee.probationEndDate ?? "—"}</strong></div>
@@ -201,7 +226,7 @@ export function EmployeeRecordPage() {
                         <div className="emp-assignment-history__details">
                           <div><span>Effective period</span><strong>{record.effectiveFrom ?? "—"} to {record.effectiveTo ?? (isCurrent ? "Current" : "Not recorded")}</strong></div>
                           <div><span>Project</span><strong>{record.projectName ?? "No project"}</strong></div>
-                          <div><span>Reporting manager</span><strong>{record.reportingManagerName ?? "Not assigned"}</strong></div>
+                          <div><span>Reporting manager</span><strong>{record.reportingManagerName || "No manager"}</strong></div>
                           {record.transferReason ? <div><span>Reason for change</span><strong>{record.transferReason}</strong></div> : null}
                         </div>
                       </article>

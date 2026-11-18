@@ -559,7 +559,8 @@ function assertViewAccess(
 
 function assertManageAccess(
   auth: AuthContext,
-  employee: EmployeeFinanceOwnerDatabaseRow
+  employee: EmployeeFinanceOwnerDatabaseRow,
+  allowCreate = false
 ): void {
   if (auth.isPlatformAdmin) {
     return;
@@ -571,10 +572,8 @@ function assertManageAccess(
   );
 
   if (
-    hasPermission(
-      auth,
-      "employee.update"
-    )
+    hasPermission(auth, "employee.update") ||
+    (allowCreate && hasPermission(auth, "employee.create"))
   ) {
     return;
   }
@@ -888,7 +887,8 @@ export async function createEmployeeBankAccount(
 
   assertManageAccess(
     auth,
-    employee
+    employee,
+    true
   );
 
   assertBankAccountState({

@@ -20,7 +20,12 @@ import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { useCompanies, useCompany } from "../../companies/hooks/useCompanies";
-import { createEmployeeBankAccountRequest, listActiveProjectReferencesRequest } from "../api/employee.api";
+import {
+  createEmployeeBankAccountRequest,
+  listActiveProjectReferencesRequest,
+  listEmployeeBankAccountsRequest,
+  updateEmployeeBankAccountRequest,
+} from "../api/employee.api";
 import { EmployeeFormSections } from "../components/EmployeeFormSections";
 import {
   useCreateEmployee,
@@ -55,6 +60,15 @@ export function EmployeeFormPage({ mode }: Props) {
   const canUseForm = isEditing ? hasPermission("employee.update") : hasPermission("employee.create");
 
   const employeeQuery = useEmployee(isEditing ? employeeId ?? null : null);
+  const bankAccountsQuery = useQuery({
+    queryKey: ["employees", employeeId, "bank-accounts"],
+    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? ""),
+    enabled: Boolean(isEditing && employeeId),
+    staleTime: 60_000,
+  });
+  const existingBankAccount = bankAccountsQuery.data?.find((account) => account.isPrimary && account.isActive)
+    ?? bankAccountsQuery.data?.find((account) => account.isActive)
+    ?? bankAccountsQuery.data?.[0];
   const lookupsQuery = useEmployeeLookups();
   // edited by wali: Load the platform company directory only for Platform Admins.
   const companiesQuery = useCompanies({
@@ -83,6 +97,7 @@ export function EmployeeFormPage({ mode }: Props) {
     reset,
     watch,
     getValues,
+    getFieldState,
     setValue,
     formState: { errors, isDirty },
   } = useForm<EmployeeFormInputValues, unknown, EmployeeFormValues>({
@@ -134,6 +149,13 @@ export function EmployeeFormPage({ mode }: Props) {
   }, [employeeQuery.data, isEditing, reset, searchParams, user?.companyId]);
 
   useEffect(() => {
+    if (!isEditing || !employeeQuery.data || !existingBankAccount) return;
+    if (!getFieldState("bankName").isDirty) setValue("bankName", existingBankAccount.bankName);
+    if (!getFieldState("bankBranchName").isDirty) setValue("bankBranchName", existingBankAccount.branchName ?? "");
+    if (!getFieldState("bankAccountTitle").isDirty) setValue("bankAccountTitle", existingBankAccount.accountTitle);
+  }, [employeeQuery.data, existingBankAccount, getFieldState, isEditing, setValue]);
+
+  useEffect(() => {
     if (isEditing || !lookupsQuery.data) return;
 
     if (!getValues("employmentTypeId")) {
@@ -169,6 +191,24 @@ export function EmployeeFormPage({ mode }: Props) {
       return;
     }
 
+    const hasBankDetails = [values.bankName, values.bankBranchName, values.bankAccountTitle, values.bankAccountNumber, values.bankIban]
+      .some((value) => value.trim().length > 0);
+    if (isEditing && !existingBankAccount && hasBankDetails) {
+      if (!values.bankName.trim() || !values.bankAccountTitle.trim() || !values.bankAccountNumber.trim()) {
+        toast.error("Bank name, account title and account number are required to add bank details.");
+        return;
+      }
+      if (!/^[A-Za-z0-9./_\-\s]{4,200}$/.test(values.bankAccountNumber.trim())) {
+        toast.error("Enter a valid bank account number.");
+        return;
+      }
+      const normalizedIban = values.bankIban.toUpperCase().replace(/[\s-]/g, "");
+      if (normalizedIban && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
+        toast.error("Enter a valid IBAN.");
+        return;
+      }
+    }
+
     const input = toEmployeeMutationInput(values, employeeQuery.data);
 
     try {
@@ -178,16 +218,26 @@ export function EmployeeFormPage({ mode }: Props) {
         : created!.employee;
       let bankDetailsWarning: string | null = null;
 
-      const hasBankDetails = [values.bankName, values.bankBranchName, values.bankAccountTitle, values.bankAccountNumber, values.bankIban]
-        .some((value) => value.trim().length > 0);
-      if (!isEditing && hasBankDetails) {
+      if (isEditing && existingBankAccount) {
+        try {
+          await updateEmployeeBankAccountRequest(employee.employeeId, existingBankAccount.bankAccountId, {
+            bankName: values.bankName,
+            branchName: values.bankBranchName || null,
+            accountTitle: values.bankAccountTitle,
+            ...(values.bankAccountNumber.trim() ? { accountNumber: values.bankAccountNumber.trim() } : {}),
+            ...(values.bankIban.trim() ? { iban: values.bankIban.trim() } : {}),
+          });
+        } catch (bankError) {
+          bankDetailsWarning = `Bank details were not saved: ${normalizeApiError(bankError).message}`;
+        }
+      } else if (hasBankDetails) {
         try {
           await createEmployeeBankAccountRequest(employee.employeeId, {
-            bankName: values.bankName,
-            ...(values.bankBranchName ? { branchName: values.bankBranchName } : {}),
-            accountTitle: values.bankAccountTitle,
-            accountNumber: values.bankAccountNumber,
-            ...(values.bankIban ? { iban: values.bankIban } : {}),
+            bankName: values.bankName.trim(),
+            ...(values.bankBranchName ? { branchName: values.bankBranchName.trim() } : {}),
+            accountTitle: values.bankAccountTitle.trim(),
+            accountNumber: values.bankAccountNumber.trim(),
+            ...(values.bankIban ? { iban: values.bankIban.trim() } : {}),
             accountType: "CURRENT",
             currencyCode: "PKR",
             paymentPriority: 1,
@@ -270,7 +320,7 @@ export function EmployeeFormPage({ mode }: Props) {
         </div>
         <div className="emp-record-toolbar__actions">
           <button type="button" className="emp-secondary-action" onClick={discard} disabled={isSaving}>Discard</button>
-          <button type="submit" className="emp-primary-action" disabled={isSaving || (!isEditing && lookupsQuery.isLoading)}>
+          <button type="submit" className="emp-primary-action" disabled={isSaving || (isEditing && bankAccountsQuery.isLoading) || (!isEditing && lookupsQuery.isLoading)}>
             {isSaving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}
             {isSaving ? "Saving…" : "Save employee"}
           </button>
@@ -315,6 +365,7 @@ export function EmployeeFormPage({ mode }: Props) {
           isPlatformAdmin={isPlatformAdmin}
           employeeIdSequenceStart={employeeIdSequenceStart}
           currentEmployeeId={employeeId}
+          existingBankAccount={existingBankAccount}
         />
         </div>
       </div>
