@@ -541,7 +541,8 @@ export const createEmployeeBodySchema =
         .string()
         .trim()
         .min(1, "CNIC number is required")
-        .max(20),
+        .max(20)
+        .regex(/^\d{5}-\d{7}-\d$/, "CNIC number must use format 12345-1234567-1"),
 
       passportNumber:
         nullableText(50)
@@ -554,7 +555,7 @@ export const createEmployeeBodySchema =
 
       officialEmail:
         nullableEmailSchema
-          .refine((value) => value != null, "Official email is required when creating an employee"),
+          .optional(),
 
       mobileNumber:
         nullableText(50)

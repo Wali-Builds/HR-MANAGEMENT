@@ -1,6 +1,9 @@
 import {
   Router
 } from "express";
+import type {
+  RequestHandler
+} from "express";
 
 import {
   authenticate
@@ -54,6 +57,27 @@ import {
 export const employeeFinanceRouter =
   Router();
 
+function requireEmployeeFinancePermission(
+  ...permissions: string[]
+): RequestHandler {
+  const permissionGuard = permissions.length === 1
+    ? requirePermission(permissions[0]!)
+    : requireAnyPermission(...permissions);
+
+  return (request, response, next) => {
+    const auth = response.locals.auth as
+      | { companyId?: string | null; roleCodes?: string[]; isPlatformAdmin?: boolean }
+      | undefined;
+
+    if (!auth?.isPlatformAdmin && auth?.companyId && auth.roleCodes?.includes("COMPANY_ADMIN")) {
+      next();
+      return;
+    }
+
+    permissionGuard(request, response, next);
+  };
+}
+
 employeeFinanceRouter.use(
   authenticate,
   requireCompletedPasswordChange
@@ -99,7 +123,7 @@ employeeFinanceRouter.get(
 
 employeeFinanceRouter.post(
   "/:employeeId/bank-accounts",
-  requireAnyPermission(
+  requireEmployeeFinancePermission(
     "employee.create",
     "employee.update"
   ),
@@ -113,7 +137,7 @@ employeeFinanceRouter.post(
 
 employeeFinanceRouter.patch(
   "/:employeeId/bank-accounts/:bankAccountId",
-  requirePermission(
+  requireEmployeeFinancePermission(
     "employee.update"
   ),
   validateRequest(
@@ -126,7 +150,7 @@ employeeFinanceRouter.patch(
 
 employeeFinanceRouter.delete(
   "/:employeeId/bank-accounts/:bankAccountId",
-  requirePermission(
+  requireEmployeeFinancePermission(
     "employee.update"
   ),
   validateRequest(

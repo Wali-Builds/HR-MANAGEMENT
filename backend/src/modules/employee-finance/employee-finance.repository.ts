@@ -241,8 +241,20 @@ const employeeBankAccountSelect = `
       verifier.username
           AS verifier_username,
 
-      verifier.full_name
-          AS verifier_full_name,
+      COALESCE(
+          NULLIF(
+              TRIM(
+                  CONCAT_WS(
+                      ' ',
+                      verifier_employee.first_name,
+                      verifier_employee.middle_name,
+                      verifier_employee.last_name
+                  )
+              ),
+              ''
+          ),
+          verifier.username
+      ) AS verifier_full_name,
 
       ba.verified_at,
       ba.deleted_at,
@@ -252,6 +264,9 @@ const employeeBankAccountSelect = `
   LEFT JOIN users verifier
       ON verifier.user_id =
          ba.verified_by_user_id
+  LEFT JOIN employees verifier_employee
+      ON verifier_employee.employee_id =
+         verifier.employee_id
 `;
 
 const employeeTaxProfileSelect = `

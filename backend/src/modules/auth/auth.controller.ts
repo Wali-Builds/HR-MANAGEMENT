@@ -34,14 +34,16 @@ import type {
 export const REFRESH_COOKIE_NAME =
   "hr_refresh_token";
 
+const secureRefreshCookie =
+  new URL(env.FRONTEND_URL).protocol === "https:";
+
 const refreshCookieOptions = {
   httpOnly: true,
 
-  secure:
-    env.NODE_ENV === "production",
+  secure: secureRefreshCookie,
 
   sameSite:
-    env.NODE_ENV === "production"
+    secureRefreshCookie
       ? "none" as const
       : "lax" as const,
 
