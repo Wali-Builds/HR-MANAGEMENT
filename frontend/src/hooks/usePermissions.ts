@@ -44,6 +44,11 @@ export function usePermissions() {
       user?.companyId &&
       permissionSet.has("BRANCH_ADMIN"),
     );
+    const isDepartmentAdmin = Boolean(
+      user?.companyId &&
+      (user?.departmentIds?.length ?? 0) > 0 &&
+      permissionSet.has("DEPARTMENT_ADMIN"),
+    );
 
     // edited by wali: Restrict workforce structure setup to the linked Company Admin.
     const isCompanyAdminOnlyPermission = (permission: string): boolean =>
@@ -112,6 +117,17 @@ export function usePermissions() {
       if (
         isBranchAdmin &&
         branchAdminPermissions.has(permission) &&
+        (permission !== "employee.view_self" || Boolean(user?.employeeId))
+      ) {
+        return true;
+      }
+      // Department Admin receives Branch Admin actions, limited to assigned departments.
+      if (
+        isDepartmentAdmin &&
+        branchAdminPermissions.has(permission) &&
+        permission !== "branch.view" &&
+        !permission.startsWith("attendance.scheduling.") &&
+        permission !== "biometric.manage" &&
         (permission !== "employee.view_self" || Boolean(user?.employeeId))
       ) {
         return true;

@@ -68,13 +68,13 @@ export function EmployeeFiltersPanel(props: Props) {
         {props.showBranchFilter ? (
           <label>
             <span>Branch</span>
-            <EmployeeMenuSelect value={props.branchId} placeholder="All branches" options={props.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))} onChange={props.onBranchChange} />
+            <EmployeeMenuSelect value={props.branchId} placeholder="Select branch" options={[{ value: "ALL", label: "All branches" }, ...props.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={props.onBranchChange} allowClear={false} />
           </label>
         ) : null}
 
         <label>
           <span>Department</span>
-          <EmployeeMenuSelect value={props.departmentId} placeholder="All departments" options={props.departments.map((department) => ({ value: department.departmentId, label: department.departmentName }))} onChange={props.onDepartmentChange} />
+          <EmployeeMenuSelect value={props.departmentId} placeholder="Select department" options={[{ value: "ALL", label: "All departments" }, ...props.departments.filter((department) => props.branchId === "ALL" || !department.branchId || department.branchId === props.branchId).map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={props.onDepartmentChange} allowClear={false} />
         </label>
 
         <label>

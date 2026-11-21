@@ -19,6 +19,25 @@ export interface RefreshSessionUser {
   must_change_password: number | boolean;
 }
 
+export async function findRefreshSessionId(
+  refreshTokenHash: string
+): Promise<string | null> {
+  const rows = await databasePool.query(
+    `
+      SELECT session_id
+      FROM user_sessions
+      WHERE refresh_token_hash = ?
+        AND revoked_at IS NULL
+        AND expires_at > CURRENT_TIMESTAMP
+      LIMIT 1
+    `,
+    [refreshTokenHash]
+  );
+
+  const session = rows[0] as { session_id: DatabaseId } | undefined;
+  return session ? String(session.session_id) : null;
+}
+
 /**
  * Valid refresh token ko atomically rotate karta hai.
  *

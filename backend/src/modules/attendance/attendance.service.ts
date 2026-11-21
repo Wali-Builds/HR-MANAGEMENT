@@ -18,6 +18,7 @@ import {
   finalizeAttendanceMonthRecord,
   findAttendanceDeviceById,
   findAttendanceDeviceBySerialNumber,
+  departmentHasAttendanceBranch,
   findAttendanceEmployeeByCode,
   findAttendanceEmployeeById,
   findAttendancePolicyById,
@@ -488,24 +489,43 @@ function isBranchAdmin(auth: AuthContext): boolean {
   );
 }
 
+function isDepartmentAdmin(auth: AuthContext): boolean {
+  return Boolean(
+    auth.companyId &&
+    auth.departmentIds.length > 0 &&
+    [...auth.roleCodes, ...getPermissions(auth)].some(
+      (value) => value.trim().toUpperCase() === "DEPARTMENT_ADMIN"
+    )
+  );
+}
+
 // added by wali: Require every Branch Admin device operation to target one of their assigned branches.
-function assertAttendanceBranchAccess(auth: AuthContext, branchId: string | null): void {
-  if (!isBranchAdmin(auth)) return;
-  if (!branchId || !auth.branchIds.includes(String(branchId))) {
+async function assertAttendanceBranchAccess(auth: AuthContext, branchId: string | null): Promise<void> {
+  if (isBranchAdmin(auth) && (!branchId || !auth.branchIds.includes(String(branchId)))) {
     throw new AppError({
       message: "You can only manage attendance devices in your assigned branches",
       statusCode: 403,
       code: "ATTENDANCE_BRANCH_ACCESS_DENIED"
     });
   }
+  if (isDepartmentAdmin(auth) && (!branchId || !await departmentHasAttendanceBranch(auth.departmentIds, String(branchId)))) {
+    throw new AppError({ message: "You can only manage attendance devices at branches serving your assigned department", statusCode: 403, code: "ATTENDANCE_DEPARTMENT_ACCESS_DENIED" });
+  }
 }
 
 // added by wali: Apply branch scope when an endpoint reads one employee or attendance record directly.
 function assertAttendanceEmployeeBranchAccess(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
-  if (!isBranchAdmin(auth)) return;
-  const branchId = employee.branch_id === null || employee.branch_id === undefined ? null : String(employee.branch_id);
-  if (!branchId || !auth.branchIds.includes(branchId)) {
-    throw new AppError({ message: "You can only view attendance for employees in your assigned branches", statusCode: 403, code: "ATTENDANCE_BRANCH_ACCESS_DENIED" });
+  if (isBranchAdmin(auth)) {
+    const branchId = employee.branch_id === null || employee.branch_id === undefined ? null : String(employee.branch_id);
+    if (!branchId || !auth.branchIds.includes(branchId)) {
+      throw new AppError({ message: "You can only view attendance for employees in your assigned branches", statusCode: 403, code: "ATTENDANCE_BRANCH_ACCESS_DENIED" });
+    }
+  }
+  if (isDepartmentAdmin(auth)) {
+    const departmentId = employee.department_id === null || employee.department_id === undefined ? null : String(employee.department_id);
+    if (!departmentId || !auth.departmentIds.includes(departmentId)) {
+      throw new AppError({ message: "You can only view attendance for employees in your assigned department", statusCode: 403, code: "ATTENDANCE_DEPARTMENT_ACCESS_DENIED" });
+    }
   }
 }
 
@@ -2734,6 +2754,7 @@ export async function listAttendanceDevices(
     requireCompanyId(auth);
   // added by wali: Force Branch Admin device listings to their assigned branches, even when no branch filter is selected.
   const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
+  const departmentIds = isDepartmentAdmin(auth) ? auth.departmentIds : undefined;
 
   const result =
     await listAttendanceDeviceRecords(
@@ -2754,6 +2775,7 @@ export async function listAttendanceDevices(
           : {}),
 
         ...(branchIds !== undefined ? { branchIds } : {}),
+        ...(departmentIds !== undefined ? { departmentIds } : {}),
 
         ...(query.deviceType !== undefined
           ? {
@@ -2824,7 +2846,7 @@ export async function getAttendanceDevice(
     });
   }
 
-  assertAttendanceBranchAccess(auth, device.branch_id === null ? null : String(device.branch_id));
+  await assertAttendanceBranchAccess(auth, device.branch_id === null ? null : String(device.branch_id));
 
   return mapAttendanceDevice(
     device
@@ -2845,7 +2867,7 @@ export async function createAttendanceDevice(
     requireCompanyId(auth);
 
   // added by wali: Branch Admins must register a device to one of their assigned branches.
-  assertAttendanceBranchAccess(auth, input.branchId ?? null);
+  await assertAttendanceBranchAccess(auth, input.branchId ?? null);
 
   const record:
     CreateAttendanceDeviceRecord = {
@@ -2932,8 +2954,8 @@ export async function updateAttendanceDevice(
   if (!existingDevice) {
     throw new AppError({ message: "Attendance device was not found", statusCode: 404, code: "ATTENDANCE_DEVICE_NOT_FOUND" });
   }
-  assertAttendanceBranchAccess(auth, existingDevice.branch_id === null ? null : String(existingDevice.branch_id));
-  if (input.branchId !== undefined) assertAttendanceBranchAccess(auth, input.branchId);
+  await assertAttendanceBranchAccess(auth, existingDevice.branch_id === null ? null : String(existingDevice.branch_id));
+  if (input.branchId !== undefined) await assertAttendanceBranchAccess(auth, input.branchId);
 
   const record:
     UpdateAttendanceDeviceRecord = {
@@ -3755,6 +3777,7 @@ export async function listAttendanceRecords(
   );
   // added by wali: Keep attendance records inside the Branch Admin's assigned branches, independent of UI filters.
   const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
+  const departmentIds = isDepartmentAdmin(auth) ? auth.departmentIds : undefined;
 
   const result =
     await listAttendanceRecordRecords(
@@ -3775,6 +3798,7 @@ export async function listAttendanceRecords(
           : {}),
 
         ...(branchIds !== undefined ? { branchIds } : {}),
+        ...(departmentIds !== undefined ? { departmentIds } : {}),
 
         // added by wali: Pass department filter through to the attendance record repository.
         ...(query.departmentId !== undefined

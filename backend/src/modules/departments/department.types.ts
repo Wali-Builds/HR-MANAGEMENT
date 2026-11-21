@@ -52,6 +52,7 @@ export interface DepartmentListOptions {
   branchId?: string;
   // edited by wali: Filter Branch Admin lists to their role-assigned branch IDs.
   branchIds?: string[];
+  departmentIds?: string[];
   parentDepartmentId?: string;
   rootOnly?: boolean;
 

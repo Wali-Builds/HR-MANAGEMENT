@@ -262,8 +262,15 @@ function assignedBranchIds(auth: AuthContext): string[] {
 
 function assertPositionBranchAccess(
   auth: AuthContext,
-  branchId: string | null
+  branchId: string | null,
+  departmentId?: string | null
 ): void {
+  if (auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN")) {
+    if (!departmentId || !auth.departmentIds.includes(departmentId)) {
+      throw new AppError({ message: "This position is outside your assigned department access", statusCode: 403, code: "POSITION_DEPARTMENT_ACCESS_DENIED" });
+    }
+    return;
+  }
   const branchIds = assignedBranchIds(auth);
   if (branchIds.length > 0 && (!branchId || !branchIds.includes(branchId))) {
     throw new AppError({
@@ -606,6 +613,7 @@ export async function listPositions(
   }
 
   const branchIds = assignedBranchIds(auth);
+  const departmentIds = auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN") ? auth.departmentIds : [];
   if (
     query.branchId &&
     branchIds.length > 0 &&
@@ -633,6 +641,7 @@ export async function listPositions(
       : {}),
 
     ...(branchIds.length > 0 ? { branchIds } : {}),
+    ...(departmentIds.length > 0 ? { departmentIds } : {}),
 
     ...(query.departmentId !==
     undefined
@@ -741,7 +750,8 @@ export async function getPosition(
 
   assertPositionBranchAccess(
     auth,
-    databaseIdToString(position.branch_id)
+    databaseIdToString(position.branch_id),
+    databaseIdToString(position.department_id)
   );
 
   return mapPosition(position);
@@ -795,7 +805,8 @@ export async function createPosition(
 
   assertPositionBranchAccess(
     auth,
-    input.branchId ?? null
+    input.branchId ?? null,
+    input.departmentId ?? null
   );
 
   validateSalaryRange(
@@ -834,6 +845,14 @@ export async function createPosition(
 
     return mapPosition(position);
   } catch (error) {
+    if (error instanceof Error && error.message === "POSITION_DESIGNATION_ALREADY_LINKED") {
+      throw new AppError({
+        message: "This designation already has a position. Update its headcount instead.",
+        statusCode: 409,
+        code: "POSITION_DESIGNATION_ALREADY_LINKED",
+      });
+    }
+
     if (
       error instanceof Error &&
       [
@@ -915,8 +934,20 @@ export async function updatePosition(
 
   assertPositionBranchAccess(
     auth,
-    databaseIdToString(existing.branch_id)
+    databaseIdToString(existing.branch_id),
+    databaseIdToString(existing.department_id)
   );
+
+  if (
+    existing.designation_id !== null &&
+    Object.keys(input).some((field) => field !== "approvedHeadcount")
+  ) {
+    throw new AppError({
+      message: "Position details come from its designation. Only headcount can be changed here.",
+      statusCode: 409,
+      code: "POSITION_DETAILS_MANAGED_BY_DESIGNATION",
+    });
+  }
 
   const resultingBranchId =
     input.branchId !== undefined
@@ -927,7 +958,8 @@ export async function updatePosition(
 
   assertPositionBranchAccess(
     auth,
-    resultingBranchId
+    resultingBranchId,
+    input.departmentId !== undefined ? input.departmentId : databaseIdToString(existing.department_id)
   );
 
   const resultingDepartmentId =
@@ -1175,7 +1207,8 @@ export async function closePosition(
 
   assertPositionBranchAccess(
     auth,
-    databaseIdToString(position.branch_id)
+    databaseIdToString(position.branch_id),
+    databaseIdToString(position.department_id)
   );
 
   const currentAssignments =

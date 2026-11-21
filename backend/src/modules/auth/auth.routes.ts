@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  ipKeyGenerator,
   rateLimit
 } from "express-rate-limit";
 
@@ -32,8 +33,12 @@ import {
   logoutController,
   meController,
   refreshController,
+  REFRESH_COOKIE_NAME,
   resetPasswordController
 } from "./auth.controller.js";
+
+import { hashRefreshToken } from "../../common/security/session-token.js";
+import { findRefreshSessionId } from "./auth-session.repository.js";
 
 import {
   changePasswordRequestSchema,
@@ -86,10 +91,30 @@ const refreshRateLimiter =
     standardHeaders: true,
     legacyHeaders: false,
 
+    keyGenerator: async (request) => {
+      const cookies = request.cookies as Record<string, unknown> | undefined;
+      const refreshToken = cookies?.[REFRESH_COOKIE_NAME];
+
+      if (typeof refreshToken !== "string" || refreshToken.length === 0) {
+        return `ip:${ipKeyGenerator(request.ip ?? "unknown")}`;
+      }
+
+      const sessionId = await findRefreshSessionId(hashRefreshToken(refreshToken));
+      return sessionId
+        ? `session:${sessionId}`
+        : `ip:${ipKeyGenerator(request.ip ?? "unknown")}`;
+    },
+
     handler: (
-      _request,
+      request,
       response
     ) => {
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil(((request.rateLimit?.resetTime?.getTime() ?? Date.now() + 60_000) - Date.now()) / 1000)
+      );
+
+      response.setHeader("Retry-After", String(retryAfterSeconds));
       response.status(429).json({
         success: false,
 
@@ -101,11 +126,14 @@ const refreshRateLimiter =
             "REFRESH_RATE_LIMIT_EXCEEDED"
         },
 
+        retryAfterSeconds,
+
         requestId:
           response.locals.requestId
       });
     }
   });
+
   const changePasswordRateLimiter =
   rateLimit({
     windowMs:

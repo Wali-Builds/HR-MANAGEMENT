@@ -62,6 +62,14 @@ const userSelectColumns = `
     ORDER BY ea.effective_from DESC, ea.assignment_id DESC
     LIMIT 1
   ) AS employee_branch_id,
+  (
+    SELECT ea.department_id
+    FROM employee_assignments ea
+    WHERE ea.employee_id = e.employee_id
+      AND ea.is_current = 1
+    ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+    LIMIT 1
+  ) AS employee_department_id,
   e.deleted_at AS employee_deleted_at
 `;
 
@@ -617,17 +625,10 @@ export async function listUserRecords(
     conditions.push(`
       EXISTS (
         SELECT 1
-        FROM user_roles ur_branch
-        WHERE ur_branch.user_id =
-              u.user_id
-          AND ur_branch.branch_id = ?
-          AND ur_branch.is_active = 1
-          AND (
-              ur_branch.expires_at
-                  IS NULL
-              OR ur_branch.expires_at >
-                 CURRENT_TIMESTAMP
-          )
+        FROM employee_assignments ea_branch
+        WHERE ea_branch.employee_id = e.employee_id
+          AND ea_branch.branch_id = ?
+          AND ea_branch.is_current = 1
       )
     `);
 
@@ -640,18 +641,10 @@ export async function listUserRecords(
     conditions.push(`
       EXISTS (
         SELECT 1
-        FROM user_roles ur_department
-        WHERE ur_department.user_id =
-              u.user_id
-          AND ur_department.department_id
-              = ?
-          AND ur_department.is_active = 1
-          AND (
-              ur_department.expires_at
-                  IS NULL
-              OR ur_department.expires_at >
-                 CURRENT_TIMESTAMP
-          )
+        FROM employee_assignments ea_department
+        WHERE ea_department.employee_id = e.employee_id
+          AND ea_department.department_id = ?
+          AND ea_department.is_current = 1
       )
     `);
 
@@ -860,6 +853,8 @@ export async function findEmployeeForUserAccount(
   employeeId: string;
   companyId: string;
   officialEmail: string | null;
+  branchId: string | null;
+  departmentId: string | null;
 } | null> {
   const rows =
     await databasePool.query(
@@ -867,7 +862,23 @@ export async function findEmployeeForUserAccount(
         SELECT
             employee_id,
             company_id,
-            official_email
+            official_email,
+            (
+              SELECT ea.branch_id
+              FROM employee_assignments ea
+              WHERE ea.employee_id = employees.employee_id
+                AND ea.is_current = 1
+              ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+              LIMIT 1
+            ) AS branch_id,
+            (
+              SELECT ea.department_id
+              FROM employee_assignments ea
+              WHERE ea.employee_id = employees.employee_id
+                AND ea.is_current = 1
+              ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+              LIMIT 1
+            ) AS department_id
         FROM employees
         WHERE employee_id = ?
           AND company_id = ?
@@ -891,6 +902,8 @@ export async function findEmployeeForUserAccount(
 
         official_email:
           string | null;
+        branch_id: string | number | bigint | null;
+        department_id: string | number | bigint | null;
       }
     | undefined;
 
@@ -906,7 +919,9 @@ export async function findEmployeeForUserAccount(
       String(row.company_id),
 
     officialEmail:
-      row.official_email
+      row.official_email,
+    branchId: row.branch_id === null ? null : String(row.branch_id),
+    departmentId: row.department_id === null ? null : String(row.department_id)
   };
 }
 
@@ -964,6 +979,8 @@ export async function findActiveRolesByCodes(
   roleId: string;
   roleCode: string;
   companyId: string | null;
+  hasBranchAdminAccess: boolean;
+  hasDepartmentAdminAccess: boolean;
 }>> {
   if (roleCodes.length === 0) {
     return [];
@@ -980,7 +997,17 @@ export async function findActiveRolesByCodes(
         SELECT
             role_id,
             role_code,
-            company_id
+            company_id,
+            EXISTS (
+              SELECT 1 FROM role_permissions rp
+              INNER JOIN permissions p ON p.permission_id = rp.permission_id
+              WHERE rp.role_id = roles.role_id AND p.permission_code = 'BRANCH_ADMIN'
+            ) AS has_branch_admin_access,
+            EXISTS (
+              SELECT 1 FROM role_permissions rp
+              INNER JOIN permissions p ON p.permission_id = rp.permission_id
+              WHERE rp.role_id = roles.role_id AND p.permission_code = 'DEPARTMENT_ADMIN'
+            ) AS has_department_admin_access
         FROM roles
         WHERE role_code IN (
           ${placeholders}
@@ -1010,6 +1037,8 @@ export async function findActiveRolesByCodes(
 
       role_code: string;
       company_id: string | number | bigint | null;
+      has_branch_admin_access: number | boolean;
+      has_department_admin_access: number | boolean;
     }>
   ).map((row) => ({
     roleId:
@@ -1021,7 +1050,9 @@ export async function findActiveRolesByCodes(
     companyId:
       row.company_id === null
         ? null
-        : String(row.company_id)
+        : String(row.company_id),
+    hasBranchAdminAccess: row.has_branch_admin_access === true || Number(row.has_branch_admin_access) === 1,
+    hasDepartmentAdminAccess: row.has_department_admin_access === true || Number(row.has_department_admin_access) === 1
   }));
 }
 
@@ -1201,7 +1232,15 @@ export async function getUserLookupRecords(
                 ON p.permission_id = rp.permission_id
               WHERE rp.role_id = roles.role_id
                 AND p.permission_code = 'BRANCH_ADMIN'
-            ) AS has_branch_admin_access
+            ) AS has_branch_admin_access,
+            EXISTS (
+              SELECT 1
+              FROM role_permissions rp
+              INNER JOIN permissions p
+                ON p.permission_id = rp.permission_id
+              WHERE rp.role_id = roles.role_id
+                AND p.permission_code = 'DEPARTMENT_ADMIN'
+            ) AS has_department_admin_access
         FROM roles
         WHERE is_active = 1
           AND (
@@ -1309,7 +1348,15 @@ export async function getUserLookupRecords(
                   AND ea.is_current = 1
                 ORDER BY ea.effective_from DESC, ea.assignment_id DESC
                 LIMIT 1
-              ) AS branch_id
+              ) AS branch_id,
+              (
+                SELECT ea.department_id
+                FROM employee_assignments ea
+                WHERE ea.employee_id = e.employee_id
+                  AND ea.is_current = 1
+                ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+                LIMIT 1
+              ) AS department_id
           FROM employees e
 
           WHERE e.company_id = ?
@@ -1352,6 +1399,7 @@ export async function getUserLookupRecords(
           is_system_role:
             number | boolean;
           has_branch_admin_access: number | boolean;
+          has_department_admin_access: number | boolean;
         }>
       ).map((row) => ({
         roleId:
@@ -1374,7 +1422,10 @@ export async function getUserLookupRecords(
 
         // edited by wali: Let Workforce Access recognize roles carrying the Branch Admin marker.
         hasBranchAdminAccess:
-          row.has_branch_admin_access === true || Number(row.has_branch_admin_access) === 1
+          row.has_branch_admin_access === true || Number(row.has_branch_admin_access) === 1,
+
+        hasDepartmentAdminAccess:
+          row.has_department_admin_access === true || Number(row.has_department_admin_access) === 1
       })),
 
     employees:
@@ -1392,6 +1443,7 @@ export async function getUserLookupRecords(
           last_name: string | null;
           official_email: string | null;
           branch_id: string | number | bigint | null;
+          department_id: string | number | bigint | null;
         }>
       ).map((row) => ({
         employeeId:
@@ -1424,7 +1476,10 @@ export async function getUserLookupRecords(
 
         // edited by wali: Carry the employee's home branch into their role assignment.
         branchId:
-          row.branch_id === null ? null : String(row.branch_id)
+          row.branch_id === null ? null : String(row.branch_id),
+
+        departmentId:
+          row.department_id === null ? null : String(row.department_id)
       })),
 
     companies:

@@ -606,6 +606,10 @@ function assertEmployeeLeaveBranch(auth: AuthContext, employee: AttendanceEmploy
   if (isBranchAdmin && (!employee.branch_id || !auth.branchIds.includes(String(employee.branch_id)))) {
     throw new AppError({ message: "You cannot access leave balances outside your assigned branch", statusCode: 403, code: "LEAVE_BALANCE_BRANCH_ACCESS_DENIED" });
   }
+  const isDepartmentAdmin = auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN");
+  if (isDepartmentAdmin && (!employee.department_id || !auth.departmentIds.includes(String(employee.department_id)))) {
+    throw new AppError({ message: "You cannot access leave balances outside your assigned department", statusCode: 403, code: "LEAVE_BALANCE_DEPARTMENT_ACCESS_DENIED" });
+  }
 }
 
 function assertLeaveBalanceAdjustmentAccess(
@@ -1957,6 +1961,7 @@ export async function listLeaveBalances(
       {
         // edited by wali: Restrict Branch Admin balance listings to assigned branches.
         ...(auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN") ? { branchIds: auth.branchIds } : {}),
+        ...(auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN") ? { departmentIds: auth.departmentIds } : {}),
         ...(query.employeeId !== undefined
           ? {
               employeeId:
@@ -2065,7 +2070,7 @@ export async function getLeaveBalance(
   }
 
   // edited by wali: Validate direct balance lookup against employee branch assignment.
-  if (auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN")) {
+  if ((auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN")) || (auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN"))) {
     assertEmployeeLeaveBranch(auth, await getEmployeeOrThrow(String(balance.employee_id)));
   }
 
@@ -2252,7 +2257,8 @@ export async function initializeEmployeeLeaveBalance(
 ) {
   // edited by wali: Branch Admin can initialize balances, without gaining adjustment or recalculation rights.
   const isBranchAdmin = auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN");
-  if (!isBranchAdmin) assertLeaveBalanceManageAccess(auth);
+  const isDepartmentAdmin = auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN");
+  if (!isBranchAdmin && !isDepartmentAdmin) assertLeaveBalanceManageAccess(auth);
 
   const employee =
     await getEmployeeOrThrow(

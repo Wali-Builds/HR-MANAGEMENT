@@ -39,6 +39,7 @@ export interface AttendanceEmployeeDatabaseRow {
   employee_id: DatabaseId;
   company_id: DatabaseId;
   branch_id: DatabaseId | null;
+  department_id: DatabaseId | null;
 
   employee_code: string;
   first_name: string;

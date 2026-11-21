@@ -216,11 +216,12 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
-    if (form.positionCode.trim().length < 2) nextErrors.positionCode = "Enter a position code.";
-    if (form.positionTitle.trim().length < 2) nextErrors.positionTitle = "Enter a position title.";
-    if (!form.departmentId) nextErrors.departmentId = "Select a department.";
-    if (!form.designationId) nextErrors.designationId = "Select a designation.";
-    if (positionScopeLocked && (
+    const designationLinked = Boolean(editing?.designationId);
+    if (!designationLinked && form.positionCode.trim().length < 2) nextErrors.positionCode = "Enter a position code.";
+    if (!designationLinked && form.positionTitle.trim().length < 2) nextErrors.positionTitle = "Enter a position title.";
+    if (!designationLinked && !form.departmentId) nextErrors.departmentId = "Select a department.";
+    if (!designationLinked && !form.designationId) nextErrors.designationId = "Select a designation.";
+    if (!designationLinked && positionScopeLocked && (
       form.branchId !== (editing?.branchId ?? "") ||
       form.departmentId !== (editing?.departmentId ?? "") ||
       form.designationId !== (editing?.designationId ?? "")
@@ -230,13 +231,13 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
     if (!Number.isInteger(Number(form.approvedHeadcount)) || Number(form.approvedHeadcount) < 1) {
       nextErrors.approvedHeadcount = "Approved headcount must be at least 1.";
     }
-    if (form.minimumSalary && form.maximumSalary && Number(form.minimumSalary) > Number(form.maximumSalary)) {
+    if (!designationLinked && form.minimumSalary && form.maximumSalary && Number(form.minimumSalary) > Number(form.maximumSalary)) {
       nextErrors.maximumSalary = "Maximum salary must be greater than or equal to minimum salary.";
     }
-    if (form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
+    if (!designationLinked && form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
       nextErrors.effectiveTo = "Effective-to date cannot be before effective-from date.";
     }
-    if (editing && form.reportsToPositionId === editing.positionId) {
+    if (!designationLinked && editing && form.reportsToPositionId === editing.positionId) {
       nextErrors.reportsToPositionId = "A position cannot report to itself.";
     }
     setErrors(nextErrors);
@@ -262,7 +263,9 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
 
     try {
       if (editing) {
-        const updateInput: Partial<PositionInput> = { ...input };
+        const updateInput: Partial<PositionInput> = designationLinked
+          ? { approvedHeadcount: Number(form.approvedHeadcount) }
+          : { ...input };
         delete updateInput.companyId;
         await updateMutation.mutateAsync({ positionId: editing.positionId, input: updateInput });
         toast.success("Position updated successfully");
@@ -299,7 +302,7 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
         page={page}
         totalPages={pagination?.totalPages ?? 1}
         activeFilter={status}
-        canCreate={canManage && Boolean(companyId)}
+        canCreate={false}
         isFetching={query.isFetching}
         createLabel="New position"
         onSearchChange={setSearch}
@@ -317,9 +320,9 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
       ) : error || positions.length === 0 ? (
         <OrganisationEmptyState
           title={deferredSearch || status !== "all" ? "No matching positions" : "No positions configured"}
-          description={deferredSearch || status !== "all" ? "Adjust the search or status filter." : "Create approved workforce seats before assigning employees."}
+          description={deferredSearch || status !== "all" ? "Adjust the search or status filter." : "Positions are created automatically when a designation is added."}
           error={error}
-          canCreate={canManage && Boolean(companyId)}
+          canCreate={false}
           onCreate={openCreate}
           onRetry={() => void query.refetch()}
           isRetrying={query.isFetching}
@@ -368,14 +371,18 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
 
       <OrganisationDialog
         open={formOpen}
-        title={editing ? "Edit position" : "Create position"}
-        subtitle="Define an approved workforce seat and its reporting placement."
-        submitLabel={editing ? "Save changes" : "Create position"}
+        title={editing ? "Edit position headcount" : "Position details"}
+        subtitle={editing?.designationId ? "Update the approved headcount for this designation's position." : "Position details are managed by the linked designation."}
+        submitLabel={editing ? "Save headcount" : "Create position"}
         busy={busy}
         onClose={closeForm}
         onSubmit={submit}
       >
         <div className="wf-org-form-grid">
+          {editing?.designationId ? (
+            <OrganisationField label="Approved headcount" required error={errors.approvedHeadcount} hint={`Currently filled: ${editing.filledHeadcount}`}><TextInput type="number" min={Math.max(1, editing.filledHeadcount)} max="65535" value={form.approvedHeadcount} onChange={(e) => setField("approvedHeadcount", e.target.value)} /></OrganisationField>
+          ) : null}
+          {!editing?.designationId ? <>
           <OrganisationField label="Position code" required error={errors.positionCode} hint={form.designationId ? "Filled from the selected designation code. You can edit it if needed." : undefined}><TextInput value={form.positionCode} onChange={(e) => setField("positionCode", e.target.value)} placeholder="Select a designation to fill its code" /></OrganisationField>
           <OrganisationField label="Position title" required error={errors.positionTitle}><TextInput value={form.positionTitle} onChange={(e) => setField("positionTitle", e.target.value)} placeholder="HR Manager" /></OrganisationField>
           <OrganisationField label="Position type"><EmployeeMenuSelect className="wf-org-menu-select" value={form.positionType} placeholder="Select position type" options={[{ value: "PERMANENT", label: "Permanent" }, { value: "CONTRACT", label: "Contract" }, { value: "TEMPORARY", label: "Temporary" }, { value: "INTERNSHIP", label: "Internship" }]} onChange={(value) => setField("positionType", value)} allowClear={false} /></OrganisationField>
@@ -391,6 +398,7 @@ function PositionsPanelContent({ companyId, canManage, view, onViewChange }: Pro
           <OrganisationField label="Status"><EmployeeMenuSelect className="wf-org-menu-select" value={form.positionStatus} placeholder="Select status" options={[{ value: "ACTIVE", label: "Active" }, { value: "INACTIVE", label: "Inactive" }, { value: "FROZEN", label: "Frozen" }, { value: "CLOSED", label: "Closed" }]} onChange={(value) => setField("positionStatus", value as PositionStatus)} allowClear={false} /></OrganisationField>
           <OrganisationField label="Effective from"><TextInput type="date" value={form.effectiveFrom} onChange={(e) => setField("effectiveFrom", e.target.value)} /></OrganisationField>
           <OrganisationField label="Effective to" error={errors.effectiveTo}><TextInput type="date" value={form.effectiveTo} onChange={(e) => setField("effectiveTo", e.target.value)} /></OrganisationField>
+          </> : null}
         </div>
       </OrganisationDialog>
 

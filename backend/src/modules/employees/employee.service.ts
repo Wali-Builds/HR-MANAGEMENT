@@ -577,9 +577,18 @@ function assignedBranchIds(auth: AuthContext): string[] {
     : [];
 }
 
-function assertEmployeeBranchAccess(
+function assignedDepartmentIds(auth: AuthContext): string[] {
+  return auth.permissions.some(
+    (permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN"
+  )
+    ? auth.departmentIds
+    : [];
+}
+
+function assertEmployeeScopeAccess(
   auth: AuthContext,
-  branchId: string | null
+  branchId: string | null,
+  departmentId: string | null
 ): void {
   const branchIds = assignedBranchIds(auth);
   if (branchIds.length > 0 && (!branchId || !branchIds.includes(branchId))) {
@@ -587,6 +596,14 @@ function assertEmployeeBranchAccess(
       message: "This employee is outside your assigned branch access",
       statusCode: 403,
       code: "EMPLOYEE_BRANCH_ACCESS_DENIED"
+    });
+  }
+  const departmentIds = assignedDepartmentIds(auth);
+  if (departmentIds.length > 0 && (!departmentId || !departmentIds.includes(departmentId))) {
+    throw new AppError({
+      message: "This employee is outside your assigned department access",
+      statusCode: 403,
+      code: "EMPLOYEE_DEPARTMENT_ACCESS_DENIED"
     });
   }
 }
@@ -1388,6 +1405,9 @@ export async function listEmployees(
     ...(assignedBranchIds(auth).length > 0
       ? { branchIds: assignedBranchIds(auth) }
       : {}),
+    ...(assignedDepartmentIds(auth).length > 0
+      ? { departmentIds: assignedDepartmentIds(auth) }
+      : {}),
 
     sortBy:
       query.sortBy,
@@ -1544,9 +1564,10 @@ export async function getEmployee(
     String(employee.company_id)
   );
 
-  assertEmployeeBranchAccess(
+  assertEmployeeScopeAccess(
     auth,
-    nullableId(employee.branch_id)
+    nullableId(employee.branch_id),
+    nullableId(employee.department_id)
   );
 
   // edited by wali: Keep this endpoint for workforce admins; employees use the restricted /me endpoint.
@@ -1564,6 +1585,7 @@ export async function getEmployee(
 
   const response = mapEmployee(employee);
   const branchIds = assignedBranchIds(auth);
+  const departmentIds = assignedDepartmentIds(auth);
   const assignmentHistory = await listEmployeeAssignmentHistory(
     employeeId,
     String(employee.company_id)
@@ -1571,9 +1593,10 @@ export async function getEmployee(
 
   response.assignmentHistory = assignmentHistory
     .filter((assignment) =>
-      branchIds.length === 0 ||
-      (assignment.branch_id !== null &&
-        branchIds.includes(String(assignment.branch_id)))
+      (branchIds.length === 0 ||
+        (assignment.branch_id !== null && branchIds.includes(String(assignment.branch_id)))) &&
+      (departmentIds.length === 0 ||
+        (assignment.department_id !== null && departmentIds.includes(String(assignment.department_id))))
     )
     .map((assignment) => ({
       assignmentId: String(assignment.assignment_id),
@@ -1757,7 +1780,7 @@ export async function createEmployee(
     : null;
 
   if (assignment) {
-    assertEmployeeBranchAccess(auth, assignment.branchId);
+    assertEmployeeScopeAccess(auth, assignment.branchId, assignment.departmentId);
   }
 
   if (
@@ -1955,9 +1978,10 @@ export async function updateEmployee(
     companyId
   );
 
-  assertEmployeeBranchAccess(
+  assertEmployeeScopeAccess(
     auth,
-    nullableId(existing.branch_id)
+    nullableId(existing.branch_id),
+    nullableId(existing.department_id)
   );
 
   const resultingEmploymentTypeId =
@@ -2146,9 +2170,10 @@ export async function updateEmployee(
         employeeId
       );
 
-    assertEmployeeBranchAccess(
+    assertEmployeeScopeAccess(
       auth,
-      assignment.branchId
+      assignment.branchId,
+      assignment.departmentId
     );
 
     if (

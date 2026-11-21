@@ -10,6 +10,8 @@ export interface AuthUser {
   mustChangePassword: boolean;
   roleCodes: string[];
   permissions: string[];
+  branchIds: string[];
+  departmentIds: string[];
 }
 
 export interface AuthSessionData {

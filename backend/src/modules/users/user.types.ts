@@ -39,6 +39,7 @@ export interface UserDatabaseRow {
     string | null;
   // edited by wali: Expose current branch so access-role forms can default scope correctly.
   employee_branch_id: DatabaseId | null;
+  employee_department_id: DatabaseId | null;
   employee_deleted_at: Date | string | null;
 }
 
@@ -105,6 +106,7 @@ export interface UserResponse {
   employeeName: string | null;
   employeeOfficialEmail: string | null;
   employeeBranchId: string | null;
+  employeeDepartmentId: string | null;
   isEmployeeArchived: boolean;
 
   username: string;
@@ -223,6 +225,7 @@ export interface UserLookupRole {
   isSystemRole: boolean;
   // edited by wali: Identifies roles that require an assigned branch scope.
   hasBranchAdminAccess: boolean;
+  hasDepartmentAdminAccess: boolean;
 }
 
 export interface UserLookupEmployee {
@@ -232,6 +235,7 @@ export interface UserLookupEmployee {
   employeeName: string;
   officialEmail: string | null;
   branchId: string | null;
+  departmentId: string | null;
 }
 
 export interface UserLookupCompany {

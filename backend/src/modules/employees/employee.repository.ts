@@ -1486,6 +1486,12 @@ export async function listEmployeeRecords(
     values.push(...options.branchIds);
   }
 
+  if (options.departmentIds?.length) {
+    const placeholders = options.departmentIds.map(() => "?").join(", ");
+    conditions.push(`ea.department_id IN (${placeholders})`);
+    values.push(...options.departmentIds);
+  }
+
   if (options.departmentId) {
     conditions.push(
       "ea.department_id = ?"

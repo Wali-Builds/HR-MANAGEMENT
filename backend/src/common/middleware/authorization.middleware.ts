@@ -77,6 +77,17 @@ const BRANCH_ADMIN_PERMISSIONS = new Set([
   "biometric.manage"
 ]);
 
+const DEPARTMENT_ADMIN_PERMISSIONS = new Set(
+  [...BRANCH_ADMIN_PERMISSIONS].filter(
+    (permission) =>
+      permission !== "branch.view" &&
+      permission !== "attendance.scheduling.view" &&
+      permission !== "attendance.scheduling.manage" &&
+      permission !== "attendance.scheduling.assign" &&
+      permission !== "biometric.manage"
+  )
+);
+
 function hasEffectivePermission(
   auth: AuthContext,
   permissionCode: string,
@@ -135,6 +146,28 @@ function hasEffectivePermission(
     // edited by wali: Branch Admin can view their own profile only when linked to an employee record.
     if (
       BRANCH_ADMIN_PERMISSIONS.has(normalizedPermission) &&
+      (normalizedPermission !== "employee.view_self" || auth.employeeId !== null)
+    ) {
+      return true;
+    }
+  }
+
+  const isDepartmentAdmin = Boolean(
+    !auth.isPlatformAdmin &&
+    auth.companyId &&
+    auth.departmentIds.length > 0 &&
+    auth.permissions.some(
+      (permission) => normalizePermission(permission) === "department_admin"
+    )
+  );
+
+  if (isDepartmentAdmin) {
+    if (requestMethod.toUpperCase() === "DELETE") {
+      return false;
+    }
+
+    if (
+      DEPARTMENT_ADMIN_PERMISSIONS.has(normalizedPermission) &&
       (normalizedPermission !== "employee.view_self" || auth.employeeId !== null)
     ) {
       return true;

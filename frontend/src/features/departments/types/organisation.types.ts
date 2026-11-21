@@ -113,6 +113,7 @@ export interface DesignationInput {
   description?: string | null;
   minimumSalary?: number | null;
   maximumSalary?: number | null;
+  approvedHeadcount?: number;
   isManagerial: boolean;
   isActive: boolean;
 }
