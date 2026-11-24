@@ -109,7 +109,7 @@ function EmploymentDetailsEditor({ employee, onSaved }: { employee: Employee; on
         references={{ ...references, projects: projectsQuery.data ?? [] }}
         companies={[]}
         isPlatformAdmin={false}
-        employeeIdSequenceStart={null}
+        nextEmployeeCode={null}
         currentEmployeeId={employee.employeeId}
         currentPosition={{
           positionId: employee.assignment.positionId,

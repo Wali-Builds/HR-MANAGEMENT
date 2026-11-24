@@ -2,6 +2,7 @@ import type {
   Request,
   Response
 } from "express";
+import { readFile } from "node:fs/promises";
 
 import {
   AppError
@@ -27,8 +28,11 @@ import {
   getEmployee,
   getMyEmployeeProfile,
   getEmployeeLookupData,
+  getNextEmployeeCode,
+  getEmployeeProfilePhoto,
   listEmployees,
-  updateEmployee
+  updateEmployee,
+  uploadEmployeeProfilePhoto
 } from "./employee.service.js";
 
 function getAuthContext(
@@ -83,6 +87,23 @@ export async function getEmployeeLookupsController(
   });
 }
 
+export async function getNextEmployeeCodeController(
+  _request: Request,
+  response: Response
+): Promise<void> {
+  const validated = response.locals.validated as {
+    query: { companyId?: string };
+  };
+  const employeeCode = await getNextEmployeeCode(
+    validated.query.companyId,
+    getAuthContext(response)
+  );
+  sendSuccess(response, {
+    message: "Next employee ID retrieved successfully",
+    data: { employeeCode }
+  });
+}
+
 export async function listEmployeesController(
   _request: Request,
   response: Response
@@ -132,6 +153,32 @@ export async function getEmployeeController(
     data: {
       employee
     }
+  });
+}
+
+export async function getEmployeeProfilePhotoController(
+  _request: Request,
+  response: Response
+): Promise<void> {
+  const validated = response.locals.validated as { params: { employeeId: string } };
+  const photo = await getEmployeeProfilePhoto(validated.params.employeeId, getAuthContext(response));
+  response.setHeader("Cache-Control", "private, no-cache");
+  response.type(photo.mimeType).send(await readFile(photo.absolutePath));
+}
+
+export async function uploadEmployeeProfilePhotoController(
+  request: Request,
+  response: Response
+): Promise<void> {
+  const validated = response.locals.validated as { params: { employeeId: string } };
+  const profilePhotoPath = await uploadEmployeeProfilePhoto(
+    validated.params.employeeId,
+    request.file,
+    getAuthContext(response)
+  );
+  sendSuccess(response, {
+    message: "Employee photo uploaded successfully",
+    data: { profilePhotoPath }
   });
 }
 

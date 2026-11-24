@@ -19,9 +19,10 @@ import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { useCompanies, useCompany } from "../../companies/hooks/useCompanies";
+import { useCompanies } from "../../companies/hooks/useCompanies";
 import {
   createEmployeeBankAccountRequest,
+  getNextEmployeeCodeRequest,
   listActiveProjectReferencesRequest,
   listEmployeeBankAccountsRequest,
   updateEmployeeBankAccountRequest,
@@ -112,10 +113,11 @@ export function EmployeeFormPage({ mode }: Props) {
   const scopeCompanyId = isPlatformAdmin
     ? watchedCompanyId || undefined
     : user?.companyId ?? employeeQuery.data?.companyId;
-  const companyNumberingQuery = useCompany(!isEditing ? scopeCompanyId ?? null : null);
-  const employeeIdSequenceStart = companyNumberingQuery.data
-    ? `${companyNumberingQuery.data.employeeCodePrefix ?? "EMP"}${String(companyNumberingQuery.data.employeeCodeStartNumber).padStart(companyNumberingQuery.data.employeeCodeLength, "0")}`
-    : null;
+  const nextEmployeeCodeQuery = useQuery({
+    queryKey: ["employees", "next-code", scopeCompanyId ?? "current"],
+    queryFn: () => getNextEmployeeCodeRequest(scopeCompanyId),
+    enabled: !isEditing && (!isPlatformAdmin || Boolean(scopeCompanyId)),
+  });
   const references = useEmployeeReferenceData(
     scopeCompanyId,
     !isPlatformAdmin || Boolean(scopeCompanyId),
@@ -363,7 +365,7 @@ export function EmployeeFormPage({ mode }: Props) {
           references={{ ...references, projects: projectsQuery.data ?? [] }}
           companies={isPlatformAdmin ? companiesQuery.data?.companies ?? [] : []}
           isPlatformAdmin={isPlatformAdmin}
-          employeeIdSequenceStart={employeeIdSequenceStart}
+          nextEmployeeCode={nextEmployeeCodeQuery.data ?? null}
           currentEmployeeId={employeeId}
           existingBankAccount={existingBankAccount}
         />

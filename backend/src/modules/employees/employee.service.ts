@@ -2,9 +2,18 @@ import {
   AppError
 } from "../../common/errors/app-error.js";
 
+import { stat } from "node:fs/promises";
+import path from "node:path";
+
 import type {
   AuthContext
 } from "../auth/auth.types.js";
+
+import {
+  removeEmployeeProfilePhoto,
+  resolveEmployeeDocumentPath,
+  storeEmployeeProfilePhoto
+} from "../employee-documents/employee-document.storage.js";
 
 import {
   createEmployeeRecord,
@@ -20,6 +29,8 @@ import {
   findEmployeeConflicts,
   findPositionReference,
   getEmployeeLookups,
+  getNextEmployeeCode as getNextEmployeeCodeFromRepository,
+  updateEmployeeProfilePhotoRecord,
   listEmployeeRecords,
   listEmployeeAssignmentHistory,
   softDeleteEmployeeRecord,
@@ -268,6 +279,9 @@ function mapEmployee(
       String(
         employee.company_id
       ),
+
+    companyName:
+      employee.company_name,
 
     employeeCode:
       employee.employee_code,
@@ -1339,6 +1353,123 @@ function translateRepositoryError(
 
 export async function getEmployeeLookupData() {
   return getEmployeeLookups();
+}
+
+export async function getNextEmployeeCode(
+  requestedCompanyId: string | undefined,
+  auth: AuthContext,
+): Promise<string> {
+  let companyId: string;
+  if (auth.isPlatformAdmin) {
+    if (!requestedCompanyId) {
+      throw new AppError({
+        message: "A company must be selected to preview the next employee ID",
+        statusCode: 400,
+        code: "COMPANY_SCOPE_REQUIRED"
+      });
+    }
+    companyId = requestedCompanyId;
+  } else {
+    if (!auth.companyId) {
+      throw new AppError({
+        message: "No company is assigned to this account",
+        statusCode: 403,
+        code: "COMPANY_SCOPE_REQUIRED"
+      });
+    }
+    if (requestedCompanyId && requestedCompanyId !== auth.companyId) {
+      throw new AppError({
+        message: "You cannot preview an employee ID for another company",
+        statusCode: 403,
+        code: "COMPANY_SCOPE_FORBIDDEN"
+      });
+    }
+    companyId = auth.companyId;
+  }
+
+  try {
+    return await getNextEmployeeCodeFromRepository(companyId);
+  } catch (error) {
+    if (error instanceof Error && error.message === "COMPANY_NOT_FOUND") {
+      throw new AppError({
+        message: "The selected company was not found or is inactive",
+        statusCode: 404,
+        code: "COMPANY_NOT_FOUND"
+      });
+    }
+    if (error instanceof Error && error.message === "EMPLOYEE_CODE_TOO_LONG") {
+      throw new AppError({
+        message: "The generated employee code exceeds the supported length",
+        statusCode: 422,
+        code: "EMPLOYEE_CODE_TOO_LONG"
+      });
+    }
+    throw error;
+  }
+}
+
+export async function uploadEmployeeProfilePhoto(
+  employeeId: string,
+  file: Express.Multer.File | undefined,
+  auth: AuthContext,
+): Promise<string> {
+  const employee = await findEmployeeById(employeeId);
+  if (!employee) {
+    throw new AppError({ message: "Employee was not found", statusCode: 404, code: "EMPLOYEE_NOT_FOUND" });
+  }
+  assertCompanyAccess(auth, String(employee.company_id));
+  assertEmployeeScopeAccess(auth, nullableId(employee.branch_id), nullableId(employee.department_id));
+  if (!file) {
+    throw new AppError({ message: "Choose a photo to upload", statusCode: 422, code: "EMPLOYEE_PHOTO_REQUIRED" });
+  }
+
+  const storedPhoto = await storeEmployeeProfilePhoto(
+    String(employee.company_id),
+    employeeId,
+    file
+  );
+  const nextPath = `uploaded:${storedPhoto.storagePath}`;
+  try {
+    await updateEmployeeProfilePhotoRecord(employeeId, nextPath);
+  } catch (error) {
+    await removeEmployeeProfilePhoto(storedPhoto.storagePath);
+    throw error;
+  }
+  const oldPath = employee.profile_photo_path;
+  if (oldPath?.startsWith("uploaded:")) {
+    try {
+      await removeEmployeeProfilePhoto(oldPath.slice("uploaded:".length));
+    } catch {
+      // Keep a successful photo update even if old-file cleanup needs a later retry.
+    }
+  }
+  return nextPath;
+}
+
+export async function getEmployeeProfilePhoto(
+  employeeId: string,
+  auth: AuthContext,
+): Promise<{ absolutePath: string; mimeType: string }> {
+  const employee = await findEmployeeById(employeeId);
+  if (!employee) {
+    throw new AppError({ message: "Employee was not found", statusCode: 404, code: "EMPLOYEE_NOT_FOUND" });
+  }
+  assertCompanyAccess(auth, String(employee.company_id));
+  assertEmployeeScopeAccess(auth, nullableId(employee.branch_id), nullableId(employee.department_id));
+  if (!employee.profile_photo_path?.startsWith("uploaded:")) {
+    throw new AppError({ message: "Employee photo was not found", statusCode: 404, code: "EMPLOYEE_PHOTO_NOT_FOUND" });
+  }
+
+  const storagePath = employee.profile_photo_path.slice("uploaded:".length);
+  const absolutePath = resolveEmployeeDocumentPath(storagePath);
+  try {
+    await stat(absolutePath);
+  } catch {
+    throw new AppError({ message: "Employee photo file was not found", statusCode: 404, code: "EMPLOYEE_PHOTO_NOT_FOUND" });
+  }
+  const extension = path.extname(storagePath).toLowerCase();
+  const mimeType = extension === ".png" ? "image/png" : extension === ".webp" ? "image/webp" : "image/jpeg";
+  return { absolutePath, mimeType };
 }
 
 export async function listEmployees(

@@ -2,7 +2,8 @@ import { Router } from "express";
 
 import {
   ipKeyGenerator,
-  rateLimit
+  rateLimit,
+  type AugmentedRequest
 } from "express-rate-limit";
 
 import {
@@ -109,9 +110,13 @@ const refreshRateLimiter =
       request,
       response
     ) => {
+      const resetTime =
+        (request as AugmentedRequest)
+          .rateLimit?.resetTime;
+
       const retryAfterSeconds = Math.max(
         1,
-        Math.ceil(((request.rateLimit?.resetTime?.getTime() ?? Date.now() + 60_000) - Date.now()) / 1000)
+        Math.ceil(((resetTime?.getTime() ?? Date.now() + 60_000) - Date.now()) / 1000)
       );
 
       response.setHeader("Retry-After", String(retryAfterSeconds));

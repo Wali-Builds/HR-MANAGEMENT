@@ -76,6 +76,7 @@ export interface EmployeeConflictResult {
 const employeeSelectColumns = `
   e.employee_id,
   e.company_id,
+  c.display_name AS company_name,
   e.employee_code,
 
   e.first_name,
@@ -184,6 +185,9 @@ const employeeSelectColumns = `
 
 const employeeJoinSql = `
   FROM employees e
+
+  INNER JOIN companies c
+      ON c.company_id = e.company_id
 
   INNER JOIN employment_types et
       ON et.employment_type_id =
@@ -2290,6 +2294,53 @@ export async function createEmployeeRecord(
   } finally {
     connection.release();
   }
+}
+
+export async function getNextEmployeeCode(companyId: string): Promise<string> {
+  const companyRows = await databasePool.query(
+    `
+      SELECT employee_code_prefix, employee_code_start_number, employee_code_length
+      FROM companies
+      WHERE company_id = ? AND is_active = 1 AND deleted_at IS NULL
+      LIMIT 1
+    `,
+    [companyId]
+  );
+  const company = companyRows[0] as {
+    employee_code_prefix: string | null;
+    employee_code_start_number: string | number;
+    employee_code_length: string | number;
+  } | undefined;
+
+  if (!company) throw new Error("COMPANY_NOT_FOUND");
+
+  const prefix = (company.employee_code_prefix ?? "EMP").trim().toUpperCase();
+  const codeRows = await databasePool.query(
+    `SELECT employee_code FROM employees WHERE company_id = ? AND employee_code LIKE CONCAT(?, '%')`,
+    [companyId, prefix]
+  ) as Array<{ employee_code: string }>;
+  const highestNumber = codeRows.reduce((highest, row) => {
+    const suffix = row.employee_code.slice(prefix.length);
+    return /^\d+$/.test(suffix) ? Math.max(highest, Number(suffix)) : highest;
+  }, 0);
+  const nextNumber = Math.max(
+    highestNumber + 1,
+    Number(company.employee_code_start_number) || 1,
+  );
+
+  const employeeCode = `${prefix}${String(nextNumber).padStart(Math.max(Number(company.employee_code_length), 1), "0")}`;
+  if (employeeCode.length > 50) throw new Error("EMPLOYEE_CODE_TOO_LONG");
+  return employeeCode;
+}
+
+export async function updateEmployeeProfilePhotoRecord(
+  employeeId: string,
+  profilePhotoPath: string,
+): Promise<void> {
+  await databasePool.query(
+    `UPDATE employees SET profile_photo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE employee_id = ? AND deleted_at IS NULL`,
+    [profilePhotoPath, employeeId]
+  );
 }
 
 export async function updateEmployeeRecord(

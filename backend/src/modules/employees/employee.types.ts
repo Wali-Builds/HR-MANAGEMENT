@@ -6,6 +6,7 @@ export type DatabaseId =
 export interface EmployeeDatabaseRow {
   employee_id: DatabaseId;
   company_id: DatabaseId;
+  company_name: string;
 
   employee_code: string;
 
@@ -173,6 +174,7 @@ export type EmployeeAssignmentHistoryResponse = EmployeeAssignmentResponse;
 export interface EmployeeResponse {
   employeeId: string;
   companyId: string;
+  companyName: string;
 
   employeeCode: string;
 
