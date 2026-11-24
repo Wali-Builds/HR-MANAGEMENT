@@ -1802,7 +1802,11 @@ export async function findEmployeeSelfProfile(
         e.employee_id,
         e.employee_code,
         TRIM(CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name)) AS full_name,
+        e.profile_photo_path,
         e.preferred_name,
+        e.father_name,
+        e.spouse_name,
+        e.blood_group,
         e.gender,
         e.date_of_birth,
         e.marital_status,
@@ -1881,7 +1885,11 @@ export async function findEmployeeSelfProfile(
         employee_id: string | number | bigint;
         employee_code: string;
         full_name: string;
+        profile_photo_path: string | null;
         preferred_name: string | null;
+        father_name: string | null;
+        spouse_name: string | null;
+        blood_group: string | null;
         gender: string | null;
         date_of_birth: Date | string | null;
         marital_status: string | null;
@@ -1921,7 +1929,11 @@ export async function findEmployeeSelfProfile(
     employeeId: String(row.employee_id),
     employeeCode: row.employee_code,
     fullName: row.full_name,
+    profilePhotoPath: row.profile_photo_path,
     preferredName: row.preferred_name,
+    fatherName: row.father_name,
+    spouseName: row.spouse_name,
+    bloodGroup: row.blood_group,
     gender: row.gender,
     dateOfBirth: toDateOnly(row.date_of_birth),
     maritalStatus: row.marital_status,

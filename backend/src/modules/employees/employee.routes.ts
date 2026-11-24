@@ -29,6 +29,7 @@ import {
   deleteEmployeeController,
   getEmployeeController,
   getEmployeeProfilePhotoController,
+  getMyEmployeeProfilePhotoController,
   getNextEmployeeCodeController,
   getMyEmployeeProfileController,
   getEmployeeLookupsController,
@@ -121,6 +122,14 @@ employeeRouter.get(
   asyncHandler(
     listEmployeesController
   )
+);
+
+employeeRouter.get(
+  "/me/photo",
+  authenticate,
+  requireCompletedPasswordChange,
+  requirePermission("employee.view_self"),
+  asyncHandler(getMyEmployeeProfilePhotoController)
 );
 
 employeeRouter.get(

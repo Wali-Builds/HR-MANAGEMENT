@@ -166,6 +166,23 @@ export async function getEmployeeProfilePhotoController(
   response.type(photo.mimeType).send(await readFile(photo.absolutePath));
 }
 
+export async function getMyEmployeeProfilePhotoController(
+  _request: Request,
+  response: Response
+): Promise<void> {
+  const auth = getAuthContext(response);
+  if (!auth.employeeId) {
+    throw new AppError({
+      message: "This account is not linked to an employee profile",
+      statusCode: 403,
+      code: "EMPLOYEE_PROFILE_NOT_LINKED"
+    });
+  }
+  const photo = await getEmployeeProfilePhoto(auth.employeeId, auth);
+  response.setHeader("Cache-Control", "private, no-cache");
+  response.type(photo.mimeType).send(await readFile(photo.absolutePath));
+}
+
 export async function uploadEmployeeProfilePhotoController(
   request: Request,
   response: Response
