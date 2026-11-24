@@ -1,6 +1,6 @@
 // edited by wali: Show expanded self-service employee details in a compact, readable profile.
 import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, UserRound } from "lucide-react";
 
 import { normalizeApiError } from "../../../api/api-error";
 import { EmployeeAvatar } from "../components/EmployeeAvatar";
