@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Building2, CalendarCheck2, CheckCircle2, Clock3, Download, History, RefreshCw, Search, UsersRound } from "lucide-react";
+import { Building2, CalendarCheck2, CheckCircle2, Clock3, Download, History, RefreshCw, Search, Umbrella, UserCheck, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { normalizeApiError } from "../../../api/api-error";
@@ -188,10 +188,10 @@ export function AttendancePage() {
       </header>
 
       {isOverview && <div className="wf-org-health-strip wf-attendance-health">
-        <div><span><CheckCircle2 size={16} /></span><strong>{summaryQuery.data?.checkedIn ?? "—"}</strong><small>Checked in today</small></div>
-        <div><span><CalendarCheck2 size={16} /></span><strong>{summaryQuery.data?.checkedOut ?? "—"}</strong><small>Checked out today</small></div>
-        <div><span><Clock3 size={16} /></span><strong>{summaryQuery.data?.lateArrivals ?? "—"}</strong><small>Late arrivals today</small></div>
+        <div><span><UserCheck size={16} /></span><strong>{summaryQuery.data?.presentEmployees ?? "—"}</strong><small>Present today</small></div>
         <div><span><UsersRound size={16} /></span><strong>{summaryQuery.data?.absentEmployees ?? (summaryQuery.isLoading ? "—" : 0)}</strong><small>Absent today</small></div>
+        <div><span><Umbrella size={16} /></span><strong>{summaryQuery.data?.employeesOnLeave ?? "—"}</strong><small>On leave today</small></div>
+        <div><span><Clock3 size={16} /></span><strong>{summaryQuery.data?.lateArrivals ?? "—"}</strong><small>Late arrivals today</small></div>
       </div>}
 
       {isOverview && personalView && todayRecord && <section className="wf-attendance-punch-card"><div className="wf-attendance-punch-card__copy"><span className="wf-org-hero__eyebrow">Today · {displayDate(today)}</span><h2>{todayRecord.checkInAt ? todayRecord.checkOutAt ? "Your workday is complete" : "You’re checked in" : "Ready to start your day?"}</h2><p>{todayRecord.checkInAt ? `Checked in at ${displayTime(todayRecord.checkInAt)}${todayRecord.checkOutAt ? ` · checked out at ${displayTime(todayRecord.checkOutAt)}` : ""}` : "Use the button to record your check-in."}</p></div><div className="wf-attendance-punch-card__action">{!todayRecord.checkInAt ? <button type="button" className="wf-org-button wf-org-button--primary" disabled={busy || todayRecord.isFinalized} onClick={() => void handleCheckIn(todayRecord)}><Clock3 size={16} /> Check in</button> : !todayRecord.checkOutAt ? <button type="button" className="wf-org-button wf-org-button--primary" disabled={busy || todayRecord.isFinalized} onClick={() => void handleCheckOut(todayRecord)}><CheckCircle2 size={16} /> Check out</button> : <span className="wf-attendance-complete"><CheckCircle2 size={16} /> Completed</span>}</div></section>}

@@ -169,12 +169,21 @@ export async function getAttendanceDailySummaryRequest(params: AttendanceListPar
     Array.from({ length: Math.max(0, firstPage.pagination.totalPages - 1) }, (_, index) => listRequest(index + 2)),
   );
   const records = [firstPage, ...otherPages].flatMap((result) => result.attendanceRecords);
+  const employeesOnLeave = new Set(
+    records
+      .filter((record) => `${record.statusCode} ${record.statusName}`.toLowerCase().includes("leave"))
+      .map((record) => record.employeeId),
+  );
   return {
     // added by wali: Count distinct employees whose daily attendance status is configured to count as absent.
     absentEmployees: new Set(records.filter((record) => record.countsAsAbsent).map((record) => record.employeeId)).size,
-    checkedIn: records.filter((record) => Boolean(record.checkInAt)).length,
-    checkedOut: records.filter((record) => Boolean(record.checkOutAt)).length,
-    lateArrivals: records.filter((record) => record.lateMinutes > 0).length,
+    presentEmployees: new Set(
+      records
+        .filter((record) => record.countsAsPresent && !`${record.statusCode} ${record.statusName}`.toLowerCase().includes("leave"))
+        .map((record) => record.employeeId),
+    ).size,
+    employeesOnLeave: employeesOnLeave.size,
+    lateArrivals: new Set(records.filter((record) => record.lateMinutes > 0).map((record) => record.employeeId)).size,
   };
 }
 

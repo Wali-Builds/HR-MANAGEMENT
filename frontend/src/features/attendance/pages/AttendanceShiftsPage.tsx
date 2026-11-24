@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlarmClock, Building2, CalendarDays, Check, Clock3, Edit3, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlarmClock, Building2, CalendarDays, Check, Edit3, Plus, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
@@ -121,7 +121,6 @@ export function AttendanceShiftsPage() {
   const { durationMinutes, availableWorkMinutes } = getShiftWorkCapacity(form);
   const expectedWorkTooHigh = !form.isFlexible && Number(form.expectedWorkMinutes) > availableWorkMinutes;
   const summaryShifts = summaryQuery.data ?? [];
-  const activeCount = summaryShifts.filter((shift) => shift.isActive).length;
   const assignedShiftCount = new Set(schedules.flatMap((schedule) => schedule.days?.filter((day) => day.isWorkingDay && day.shiftId).map((day) => day.shiftId) ?? [])).size;
   const saving = createMutation.isPending || updateMutation.isPending;
 
@@ -187,10 +186,9 @@ export function AttendanceShiftsPage() {
       </header>
 
       <div className="wf-org-health-strip wf-attendance-health wf-attendance-shifts__metrics">
-        {/* added by wali: Show the requested total, assigned, and active shift summary. */}
+        {/* added by wali: Show the total shift count and assignments using shifts. */}
         <div><span><AlarmClock size={16} /></span><strong>{summaryQuery.isLoading || summaryQuery.isError ? "—" : summaryShifts.length}</strong><small>Total shifts</small></div>
         <div><span><CalendarDays size={16} /></span><strong>{scheduleQuery.isLoading || scheduleQuery.isError ? "—" : assignedShiftCount}</strong><small>Assigned shifts</small></div>
-        <div><span><Clock3 size={16} /></span><strong>{summaryQuery.isLoading || summaryQuery.isError ? "—" : activeCount}</strong><small>Active shifts</small></div>
       </div>
 
       {/* added by wali: Use the same resource card wrapper as Projects for a consistent module layout. */}
