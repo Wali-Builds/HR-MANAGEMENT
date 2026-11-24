@@ -27,6 +27,7 @@ export interface EmployeeAssignment {
 export interface Employee {
   employeeId: string;
   companyId: string;
+  companyName: string;
   employeeCode: string;
   firstName: string;
   middleName: string | null;

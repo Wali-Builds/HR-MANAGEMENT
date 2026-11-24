@@ -156,7 +156,7 @@ export async function loadAuthorization(
   // edited by wali: Resolve branch scope only from active Branch Admin assignments.
   const branchRows = await databasePool.query(
     `
-      SELECT DISTINCT COALESCE(ur.branch_id, employee_assignment.branch_id) AS branch_id
+      SELECT DISTINCT employee_assignment.branch_id AS branch_id
       FROM user_roles ur
       INNER JOIN roles r
           ON r.role_id = ur.role_id
@@ -176,12 +176,12 @@ export async function loadAuthorization(
             LIMIT 1
           )
       INNER JOIN branches b
-          ON b.branch_id = COALESCE(ur.branch_id, employee_assignment.branch_id)
+          ON b.branch_id = employee_assignment.branch_id
          AND b.company_id = ur.company_id
          AND b.is_active = 1
          AND b.deleted_at IS NULL
       WHERE ur.user_id = ?
-        AND COALESCE(ur.branch_id, employee_assignment.branch_id) IS NOT NULL
+        AND employee_assignment.branch_id IS NOT NULL
         AND ur.company_id = (SELECT u.company_id FROM users u WHERE u.user_id = ?)
         AND ur.is_active = 1
         AND r.is_active = 1
@@ -197,6 +197,48 @@ export async function loadAuthorization(
 
   const branchIds = branchRows.map((row: unknown) =>
     String((row as { branch_id: DatabaseId }).branch_id)
+  );
+
+  const departmentRows = await databasePool.query(
+    `
+      SELECT DISTINCT employee_assignment.department_id AS department_id
+      FROM user_roles ur
+      INNER JOIN roles r
+          ON r.role_id = ur.role_id
+      INNER JOIN role_permissions rp
+          ON rp.role_id = r.role_id
+      INNER JOIN permissions p
+          ON p.permission_id = rp.permission_id
+      INNER JOIN users assigned_user
+          ON assigned_user.user_id = ur.user_id
+      LEFT JOIN employee_assignments employee_assignment
+          ON employee_assignment.assignment_id = (
+            SELECT ea.assignment_id
+            FROM employee_assignments ea
+            WHERE ea.employee_id = assigned_user.employee_id
+              AND ea.is_current = 1
+            ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+            LIMIT 1
+          )
+      INNER JOIN departments d
+          ON d.department_id = employee_assignment.department_id
+         AND d.company_id = ur.company_id
+         AND d.is_active = 1
+         AND d.deleted_at IS NULL
+      WHERE ur.user_id = ?
+        AND employee_assignment.department_id IS NOT NULL
+        AND ur.company_id = (SELECT u.company_id FROM users u WHERE u.user_id = ?)
+        AND ur.is_active = 1
+        AND r.is_active = 1
+        AND p.permission_code = 'DEPARTMENT_ADMIN'
+        AND (ur.expires_at IS NULL OR ur.expires_at > CURRENT_TIMESTAMP)
+      ORDER BY department_id
+    `,
+    [userId, userId]
+  );
+
+  const departmentIds = departmentRows.map((row: unknown) =>
+    String((row as { department_id: DatabaseId }).department_id)
   );
 
   // edited by wali: Expand the Branch Admin marker only for branch-bound assignments.
@@ -224,10 +266,40 @@ export async function loadAuthorization(
     );
   }
 
+  // Department Admin receives the same actions as Branch Admin, limited to assigned departments.
+  if (
+    departmentIds.length > 0 &&
+    permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN")
+  ) {
+    permissions.push(
+      "department.view",
+      "department.manage",
+      "designation.view",
+      "designation.manage",
+      "position.view",
+      "position.manage",
+      "employee.view_all",
+      "employee.view_self",
+      "employee.create",
+      "employee.update",
+      "leave.period.view",
+      "leave.request.view",
+      "leave.request.approve",
+      "leave.balance.view",
+      "leave.balance.initialize",
+      "attendance.view",
+      "attendance.finalize",
+      "attendance.adjustment.view",
+      "attendance.adjustment.manage",
+      "attendance.adjustment.approve"
+    );
+  }
+
   return {
     roleCodes,
     permissions,
-    branchIds
+    branchIds,
+    departmentIds
   };
 }
 
@@ -558,6 +630,9 @@ export async function getAuthenticatedContext(
       authorization.permissions,
 
     branchIds:
-      authorization.branchIds
+      authorization.branchIds,
+
+    departmentIds:
+      authorization.departmentIds
   };
 }

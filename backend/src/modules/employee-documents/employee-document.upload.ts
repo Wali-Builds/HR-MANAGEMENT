@@ -12,81 +12,104 @@ import {
   env
 } from "../../config/env.js";
 
-const upload =
-  multer({
-    storage:
-      multer.memoryStorage(),
+function createSingleEmployeeFileUpload(
+  maximumSizeBytes: number,
+  fileTypeLabel: string,
+  tooLargeErrorCode: string,
+  invalidUploadErrorCode: string
+): RequestHandler {
+  const upload =
+    multer({
+      storage:
+        multer.memoryStorage(),
 
-    limits: {
-      fileSize:
-        env.EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES,
+      limits: {
+        fileSize:
+          maximumSizeBytes,
 
-      files: 1,
-      fields: 20
-    }
-  });
+        files: 1,
+        fields: 20
+      }
+    });
 
-export const uploadSingleEmployeeDocument:
-RequestHandler = (
-  request,
-  response,
-  next
-) => {
-  upload.single(
-    "file"
-  )(
-    request,
-    response,
-    (error: unknown) => {
-      if (
-        error instanceof
-        multer.MulterError
-      ) {
+  return (request, response, next) => {
+    upload.single("file")(
+      request,
+      response,
+      (error: unknown) => {
         if (
-          error.code ===
-          "LIMIT_FILE_SIZE"
+          error instanceof
+          multer.MulterError
         ) {
+          if (
+            error.code ===
+            "LIMIT_FILE_SIZE"
+          ) {
+            const maximumSizeMb = Number(
+              (
+                maximumSizeBytes /
+                (1024 * 1024)
+              ).toFixed(2)
+            );
+
+            next(
+              new AppError({
+                message:
+                  `${fileTypeLabel} cannot exceed ${maximumSizeMb} MB`,
+
+                statusCode: 413,
+
+                code:
+                  tooLargeErrorCode
+              })
+            );
+
+            return;
+          }
+
           next(
             new AppError({
               message:
-                `Employee document cannot exceed ${env.EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES} bytes`,
+                `The ${fileTypeLabel.toLowerCase()} upload could not be processed`,
 
-              statusCode: 413,
+              statusCode: 422,
 
               code:
-                "EMPLOYEE_DOCUMENT_FILE_TOO_LARGE"
+                invalidUploadErrorCode,
+
+              details: {
+                multerCode:
+                  error.code
+              }
             })
           );
 
           return;
         }
 
-        next(
-          new AppError({
-            message:
-              "The employee-document upload could not be processed",
+        if (error) {
+          next(error);
+          return;
+        }
 
-            statusCode: 422,
-
-            code:
-              "EMPLOYEE_DOCUMENT_UPLOAD_INVALID",
-
-            details: {
-              multerCode:
-                error.code
-            }
-          })
-        );
-
-        return;
+        next();
       }
+    );
+  };
+}
 
-      if (error) {
-        next(error);
-        return;
-      }
-
-      next();
-    }
+export const uploadSingleEmployeeDocument =
+  createSingleEmployeeFileUpload(
+    env.EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES,
+    "Employee document",
+    "EMPLOYEE_DOCUMENT_FILE_TOO_LARGE",
+    "EMPLOYEE_DOCUMENT_UPLOAD_INVALID"
   );
-};
+
+export const uploadSingleEmployeeProfilePhoto =
+  createSingleEmployeeFileUpload(
+    env.EMPLOYEE_PROFILE_PHOTO_MAX_FILE_SIZE_BYTES,
+    "Employee photo",
+    "EMPLOYEE_PHOTO_TOO_LARGE",
+    "EMPLOYEE_PHOTO_UPLOAD_INVALID"
+  );

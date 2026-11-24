@@ -37,6 +37,7 @@ export interface AuthorizationData {
   permissions: string[];
   // edited by wali: Branch scopes attached to BRANCH_ADMIN role assignments.
   branchIds: string[];
+  departmentIds: string[];
 }
 
 export interface AuthContext {
@@ -57,6 +58,7 @@ export interface AuthContext {
   permissions: string[];
   // edited by wali: Keep branch-admin data access scoped to assigned branches.
   branchIds: string[];
+  departmentIds: string[];
 }
 
 export interface LoginServiceResult {

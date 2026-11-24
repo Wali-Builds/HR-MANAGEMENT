@@ -24,7 +24,7 @@ import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { useCompanies } from "../../companies/hooks/useCompanies";
-import { listEmployeesRequest } from "../../employees/api/employee.api";
+import { listBranchReferencesRequest, listDepartmentReferencesRequest, listEmployeesRequest } from "../../employees/api/employee.api";
 import { EmployeeAvatar } from "../../employees/components/EmployeeAvatar";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 import { useEmployee } from "../../employees/hooks/useEmployees";
@@ -89,6 +89,8 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
   );
   const [employeeSearch, setEmployeeSearch] = useState("");
   const deferredEmployeeSearch = useDeferredValue(employeeSearch.trim());
+  const [branchFilter, setBranchFilter] = useState("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [documentSearch, setDocumentSearch] = useState("");
   const deferredDocumentSearch = useDeferredValue(documentSearch.trim());
   const [category, setCategory] = useState("");
@@ -115,11 +117,26 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
     isActive: true,
   }, isPlatformAdmin && !embeddedEmployeeId);
 
+  const branchQuery = useQuery({
+    queryKey: ["employee-document-branch-filter", user?.sessionId ?? "anonymous", scopeCompanyId ?? "current"],
+    queryFn: () => listBranchReferencesRequest(scopeCompanyId),
+    enabled: canViewAll && !embeddedEmployeeId && (!isPlatformAdmin || Boolean(scopeCompanyId)),
+    staleTime: 300_000,
+  });
+  const departmentQuery = useQuery({
+    queryKey: ["employee-document-department-filter", user?.sessionId ?? "anonymous", scopeCompanyId ?? "current"],
+    queryFn: () => listDepartmentReferencesRequest(scopeCompanyId),
+    enabled: canViewAll && !embeddedEmployeeId && (!isPlatformAdmin || Boolean(scopeCompanyId)),
+    staleTime: 300_000,
+  });
+
   const employeeListQuery = useQuery({
     queryKey: [
       "employee-document-employee-selector",
       scopeCompanyId ?? "none",
       deferredEmployeeSearch,
+      branchFilter,
+      departmentFilter,
     ],
     queryFn: () =>
       listEmployeesRequest({
@@ -128,6 +145,8 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
         sortBy: "first_name",
         sortOrder: "ASC",
         ...(scopeCompanyId ? { companyId: scopeCompanyId } : {}),
+        ...(branchFilter !== "ALL" ? { branchId: branchFilter } : {}),
+        ...(departmentFilter !== "ALL" ? { departmentId: departmentFilter } : {}),
         ...(deferredEmployeeSearch
           ? { search: deferredEmployeeSearch }
           : {}),
@@ -162,6 +181,33 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
     requestedEmployeeId,
     searchParams,
     selectedCompanyId,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    if (
+      !embeddedEmployeeId &&
+      canViewAll &&
+      employeeListQuery.isSuccess &&
+      !employeeListQuery.isFetching &&
+      requestedEmployeeId &&
+      !employees.some((employee) => employee.employeeId === requestedEmployeeId)
+    ) {
+      const next = new URLSearchParams(searchParams);
+      if (employees.length > 0) next.set("employeeId", employees[0]!.employeeId);
+      else next.delete("employeeId");
+      setSearchParams(next, { replace: true });
+    }
+  }, [
+    branchFilter,
+    canViewAll,
+    departmentFilter,
+    embeddedEmployeeId,
+    employeeListQuery.isFetching,
+    employeeListQuery.isSuccess,
+    employees,
+    requestedEmployeeId,
+    searchParams,
     setSearchParams,
   ]);
 
@@ -374,6 +420,8 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
                 options={(companiesQuery.data?.companies ?? []).map((company) => ({ value: company.companyId, label: company.displayName }))}
                 onChange={(companyId) => {
                   setSelectedCompanyId(companyId);
+                  setBranchFilter("ALL");
+                  setDepartmentFilter("ALL");
                   const next = new URLSearchParams();
                   if (companyId) next.set("companyId", companyId);
                   setSearchParams(next);
@@ -426,6 +474,8 @@ function EmployeeDocumentsPageContent({ embeddedEmployeeId }: { embeddedEmployee
                 disabled={platformCompanyRequired}
               />
             </label>
+            <EmployeeMenuSelect className="doc-employee-filter" value={branchFilter} placeholder="Select branch" options={[{ value: "ALL", label: "All branches" }, ...(branchQuery.data ?? []).map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchFilter(value); setDepartmentFilter("ALL"); }} disabled={platformCompanyRequired} allowClear={false} />
+            <EmployeeMenuSelect className="doc-employee-filter" value={departmentFilter} placeholder="Select department" options={[{ value: "ALL", label: "All departments" }, ...(departmentQuery.data ?? []).filter((department) => branchFilter === "ALL" || !department.branchId || department.branchId === branchFilter).map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={setDepartmentFilter} disabled={platformCompanyRequired} allowClear={false} />
 
             <div className="doc-employee-list">
               {platformCompanyRequired ? (

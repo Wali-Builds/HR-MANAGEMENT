@@ -46,7 +46,8 @@ import type {
 const TENANT_GRANTABLE_PERMISSION_CODES: string[] = [
   "EMPLOYEE",
   "COMPANY_ADMIN",
-  "BRANCH_ADMIN"
+  "BRANCH_ADMIN",
+  "DEPARTMENT_ADMIN"
 ];
 
 function databaseBoolean(

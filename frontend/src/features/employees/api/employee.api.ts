@@ -151,6 +151,29 @@ export async function getEmployeeLookupsRequest(): Promise<EmployeeLookups> {
   return response.data.data;
 }
 
+export async function getNextEmployeeCodeRequest(companyId?: string): Promise<string> {
+  const response = await apiClient.get<ApiSuccessResponse<{ employeeCode: string }>>(
+    "/employees/next-code",
+    companyId ? { params: { companyId } } : {},
+  );
+  return response.data.data.employeeCode;
+}
+
+export async function uploadEmployeeProfilePhotoRequest(employeeId: string, file: File): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", file);
+  await apiClient.put<ApiSuccessResponse<{ profilePhotoPath: string }>>(
+    `/employees/${employeeId}/photo`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+}
+
+export async function getEmployeeProfilePhotoBlobRequest(employeeId: string, version: string): Promise<Blob> {
+  const response = await apiClient.get<Blob>(`/employees/${employeeId}/photo`, { params: { v: version }, responseType: "blob" });
+  return response.data;
+}
+
 export async function createEmployeeRequest(
   input: EmployeeMutationInput,
 ): Promise<EmployeeCreationResult> {

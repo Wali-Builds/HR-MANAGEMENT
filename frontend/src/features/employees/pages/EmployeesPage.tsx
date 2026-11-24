@@ -60,8 +60,8 @@ export function EmployeesPage() {
   const [activity, setActivity] = useState<EmployeeActivityFilter>(
     isBranchAdmin ? "all" : "active",
   );
-  const [branchId, setBranchId] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
+  const [branchId, setBranchId] = useState("ALL");
+  const [departmentId, setDepartmentId] = useState("ALL");
   const [employmentTypeId, setEmploymentTypeId] = useState("");
   const [employeeStatusId, setEmployeeStatusId] = useState("");
   const [gender, setGender] = useState("");
@@ -92,8 +92,8 @@ export function EmployeesPage() {
       ...(scopeCompanyId ? { companyId: scopeCompanyId } : {}),
       ...(deferredSearch ? { search: deferredSearch } : {}),
       ...(activity !== "all" ? { isActive: activity === "active" } : {}),
-      ...(branchId ? { branchId } : {}),
-      ...(departmentId ? { departmentId } : {}),
+      ...(branchId !== "ALL" ? { branchId } : {}),
+      ...(departmentId !== "ALL" ? { departmentId } : {}),
       ...(employmentTypeId ? { employmentTypeId } : {}),
       ...(employeeStatusId ? { employeeStatusId } : {}),
       ...(gender ? { gender } : {}),
@@ -134,8 +134,8 @@ export function EmployeesPage() {
 
   const activeFilterCount = [
     activity !== "active",
-    Boolean(branchId),
-    Boolean(departmentId),
+    branchId !== "ALL",
+    departmentId !== "ALL",
     Boolean(employmentTypeId),
     Boolean(employeeStatusId),
     Boolean(gender),
@@ -166,8 +166,8 @@ export function EmployeesPage() {
 
   function clearFilters() {
     setActivity("active");
-    setBranchId("");
-    setDepartmentId("");
+    setBranchId("ALL");
+    setDepartmentId("ALL");
     setEmploymentTypeId("");
     setEmployeeStatusId("");
     setGender("");
@@ -203,8 +203,8 @@ export function EmployeesPage() {
         onViewChange={setView}
         onCompanyChange={(value) => {
           setSelectedCompanyId(value);
-          setBranchId("");
-          setDepartmentId("");
+          setBranchId("ALL");
+          setDepartmentId("ALL");
         }}
         onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
         onNextPage={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
@@ -234,7 +234,7 @@ export function EmployeesPage() {
           departments={visibleDepartments}
           lookups={lookupsQuery.data}
           onActivityChange={setActivity}
-          onBranchChange={setBranchId}
+          onBranchChange={(value) => { setBranchId(value); setDepartmentId("ALL"); }}
           onDepartmentChange={setDepartmentId}
           onEmploymentTypeChange={setEmploymentTypeId}
           onEmployeeStatusChange={setEmployeeStatusId}

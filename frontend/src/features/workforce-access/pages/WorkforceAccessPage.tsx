@@ -49,6 +49,7 @@ import {
 
 import type {
   AccessLookups,
+  AccessLookupRole,
   AccessRoleInput,
   AccessUser,
   CreateAccessUserInput
@@ -70,6 +71,15 @@ type DialogState =
       user: AccessUser;
     }
   | null;
+
+function orderedRoles(roles: AccessLookupRole[]) {
+  const priority = (role: AccessLookupRole) =>
+    role.roleCode === "COMPANY_ADMIN" ? 0
+      : role.hasBranchAdminAccess ? 1
+        : role.hasDepartmentAdminAccess ? 2
+          : role.roleCode === "EMPLOYEE" ? 3 : 4;
+  return [...roles].sort((a, b) => priority(a) - priority(b) || a.roleName.localeCompare(b.roleName));
+}
 
 function generatePassword(): string {
   const upper =
@@ -348,6 +358,9 @@ function WorkforceAccessPageContent() {
       "ALL"
     );
 
+  const [branchId, setBranchId] = useState("ALL");
+  const [departmentId, setDepartmentId] = useState("ALL");
+
   const [
     page,
     setPage
@@ -381,6 +394,9 @@ function WorkforceAccessPageContent() {
             companyId
           }
         : {}),
+
+      ...(branchId !== "ALL" ? { branchId } : {}),
+      ...(departmentId !== "ALL" ? { departmentId } : {}),
 
       ...(search.trim()
         ? {
@@ -542,17 +558,8 @@ function WorkforceAccessPageContent() {
 
         <div className="wf-access-hero__actions">
           {isPlatformAdmin ? (
-            <EmployeeMenuSelect className="wf-select" value={companyId} placeholder="Select company" options={(companiesQuery.data?.companies ?? []).map((company) => ({ value: company.companyId, label: company.displayName }))} onChange={(value) => { setPlatformCompanyId(value); setPage(1); }} />
+            <EmployeeMenuSelect className="wf-select" value={companyId} placeholder="Select company" options={(companiesQuery.data?.companies ?? []).map((company) => ({ value: company.companyId, label: company.displayName }))} onChange={(value) => { setPlatformCompanyId(value); setBranchId("ALL"); setDepartmentId("ALL"); setPage(1); }} />
           ) : null}
-          <button
-            type="button"
-            className="wf-primary-button wf-access-hero__create-button"
-            disabled={!companyId}
-            onClick={(event) => { dialogMotion.capture(event); setDialog({ type: "create" }); }}
-          >
-            <UserPlus size={17} />
-            Create access
-          </button>
         </div>
       </section>
 
@@ -655,6 +662,10 @@ function WorkforceAccessPageContent() {
           </label>
 
           <EmployeeMenuSelect className="wf-select" value={status} placeholder="Account status" options={[{ value: "ALL", label: "All accounts" }, { value: "ACTIVE", label: "Active" }, { value: "INACTIVE", label: "Inactive" }, { value: "LOCKED", label: "Locked" }]} onChange={(value) => { setStatus(value as typeof status); setPage(1); }} />
+
+          <EmployeeMenuSelect className="wf-select" value={branchId} placeholder="Select branch" options={[{ value: "ALL", label: "All branches" }, ...(lookupsQuery.data?.branches ?? []).map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchId(value); setDepartmentId("ALL"); setPage(1); }} disabled={!companyId} allowClear={false} />
+
+          <EmployeeMenuSelect className="wf-select" value={departmentId} placeholder="Select department" options={[{ value: "ALL", label: "All departments" }, ...(lookupsQuery.data?.departments ?? []).filter((department) => branchId === "ALL" || !department.branchId || department.branchId === branchId).map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={(value) => { setDepartmentId(value); setPage(1); }} disabled={!companyId} allowClear={false} />
 
           <button
             type="button"
@@ -1357,6 +1368,7 @@ function CreateAccessDialog({
               !employeeId ||
               !roleCode ||
               (selectedRole?.hasBranchAdminAccess && !selectedEmployee?.branchId) ||
+              (selectedRole?.hasDepartmentAdminAccess && !selectedEmployee?.departmentId) ||
               !username ||
               password.length <
                 12
@@ -1400,7 +1412,7 @@ function CreateAccessDialog({
                   roleCode,
                   companyId,
                   branchId: selectedRole?.hasBranchAdminAccess ? selectedEmployee?.branchId ?? null : null,
-                  departmentId: null,
+                  departmentId: selectedRole?.hasDepartmentAdminAccess ? selectedEmployee?.departmentId ?? null : null,
 
                   expiresAt:
                     null,
@@ -1596,9 +1608,12 @@ function RoleDialog({
       "EMPLOYEE"
     );
 
-  // edited by wali: Default existing branch-role edits to the employee's current assignment branch.
-  const [branchId, setBranchId] = useState(primaryRole?.branchId ?? user.employeeBranchId ?? "");
+  // Role scopes follow the employee's current assignment and cannot be selected independently.
+  const branchId = user.employeeBranchId ?? "";
+  const departmentId = user.employeeDepartmentId ?? "";
   const selectedRole = lookups?.roles.find((role) => role.roleCode === roleCode);
+  const assignedBranchName = lookups?.branches.find((branch) => branch.branchId === branchId)?.branchName;
+  const assignedDepartmentName = lookups?.departments.find((department) => department.departmentId === departmentId)?.departmentName;
 
   return (
     <Modal
@@ -1620,6 +1635,10 @@ function RoleDialog({
               toast.error("Select the branch this Branch Admin role will manage");
               return;
             }
+            if (selectedRole?.hasDepartmentAdminAccess && !departmentId) {
+              toast.error("Select the department this Department Admin role will manage");
+              return;
+            }
 
             void onSubmit([
               {
@@ -1627,7 +1646,7 @@ function RoleDialog({
                 companyId,
                 // edited by wali: Preserve or select the branch scope for Branch Admin role assignments.
                 branchId: selectedRole?.hasBranchAdminAccess ? branchId : null,
-                departmentId: null,
+                departmentId: selectedRole?.hasDepartmentAdminAccess ? departmentId : null,
 
                 expiresAt:
                   null,
@@ -1645,13 +1664,10 @@ function RoleDialog({
               Role
             </span>
 
-            <EmployeeMenuSelect value={roleCode} placeholder="Select a role" options={(lookups?.roles ?? []).map((role) => ({ value: role.roleCode, label: role.roleName }))} onChange={setRoleCode} />
+            <EmployeeMenuSelect value={roleCode} placeholder="Select a role" options={orderedRoles(lookups?.roles ?? []).map((role) => ({ value: role.roleCode, label: role.roleName }))} onChange={setRoleCode} />
           </label>
-          {selectedRole?.hasBranchAdminAccess ? <label className="wf-field wf-field--wide">
-            <span>Branch</span>
-            <EmployeeMenuSelect value={branchId} placeholder="Select branch for Branch Admin" options={(lookups?.branches ?? []).map((branch) => ({ value: branch.branchId, label: `${branch.branchCode} — ${branch.branchName}` }))} onChange={setBranchId} />
-            <small>This role only grants access to the selected branch.</small>
-          </label> : null}
+          {selectedRole?.hasBranchAdminAccess ? <div className="wf-field wf-field--wide"><span>Branch scope</span><small>{branchId ? `Bound to the employee's assigned branch (${assignedBranchName ?? "Branch name unavailable"}).` : "Assign the employee to a branch before granting this role."}</small></div> : null}
+          {selectedRole?.hasDepartmentAdminAccess ? <div className="wf-field wf-field--wide"><span>Department scope</span><small>{departmentId ? `Bound to the employee's assigned department (${assignedDepartmentName ?? "Department name unavailable"}).` : "Assign the employee to a department before granting this role."}</small></div> : null}
         </div>
 
         <footer className="wf-modal__footer">

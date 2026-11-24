@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { normalizeApiError } from "../../../api/api-error";
+import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { EmployeeFormSections } from "../components/EmployeeFormSections";
 import { EmployeeMenuSelect } from "../components/EmployeeMenuSelect";
@@ -108,7 +109,7 @@ function EmploymentDetailsEditor({ employee, onSaved }: { employee: Employee; on
         references={{ ...references, projects: projectsQuery.data ?? [] }}
         companies={[]}
         isPlatformAdmin={false}
-        employeeIdSequenceStart={null}
+        nextEmployeeCode={null}
         currentEmployeeId={employee.employeeId}
         currentPosition={{
           positionId: employee.assignment.positionId,
@@ -236,19 +237,25 @@ export function EmployeeAssignmentEditor({ employee, employees = [employee], onE
 
 export function EmployeeAssignmentsPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const { hasPermission } = usePermissions();
   const canEditEmployees = hasPermission("employee.update");
   const [search, setSearch] = useState("");
+  const [branchId, setBranchId] = useState("ALL");
+  const [departmentId, setDepartmentId] = useState("ALL");
   const [page, setPage] = useState(1);
   const [employmentFormPickerOpen, setEmploymentFormPickerOpen] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const deferredSearch = useDeferredValue(search.trim());
+  const references = useEmployeeReferenceData(user?.companyId ?? undefined);
   const employeesQuery = useEmployees({
     page,
     limit: PAGE_SIZE,
     sortBy: "first_name",
     sortOrder: "ASC",
+    ...(branchId !== "ALL" ? { branchId } : {}),
+    ...(departmentId !== "ALL" ? { departmentId } : {}),
     ...(deferredSearch ? { search: deferredSearch } : {}),
   });
   const employees = employeesQuery.data?.employees ?? [];
@@ -261,7 +268,7 @@ export function EmployeeAssignmentsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [deferredSearch]);
+  }, [branchId, deferredSearch, departmentId]);
 
   useEffect(() => {
     if (!unassignedEmployees.some((employee) => employee.employeeId === selectedEmployeeId)) {
@@ -313,6 +320,8 @@ export function EmployeeAssignmentsPage() {
             <Search size={17} />
             <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search employee name or ID" />
           </label>
+          <EmployeeMenuSelect className="wf-select" value={branchId} placeholder="Select branch" options={[{ value: "ALL", label: "All branches" }, ...references.branches.map((branch) => ({ value: branch.branchId, label: branch.branchName }))]} onChange={(value) => { setBranchId(value); setDepartmentId("ALL"); setPage(1); }} allowClear={false} />
+          <EmployeeMenuSelect className="wf-select" value={departmentId} placeholder="Select department" options={[{ value: "ALL", label: "All departments" }, ...references.departments.filter((department) => branchId === "ALL" || !department.branchId || department.branchId === branchId).map((department) => ({ value: department.departmentId, label: department.departmentName }))]} onChange={(value) => { setDepartmentId(value); setPage(1); }} allowClear={false} />
           <button type="button" className="wf-secondary-button" onClick={() => void employeesQuery.refetch()}>
             <RefreshCw size={16} className={employeesQuery.isFetching ? "spin" : ""} /> Refresh
           </button>

@@ -192,6 +192,12 @@ async function assertDesignationBranchAccess(
   departmentId: string | null,
   companyId: string
 ): Promise<void> {
+  if (auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN")) {
+    if (!departmentId || !auth.departmentIds.includes(departmentId)) {
+      throw new AppError({ message: "This designation is outside your assigned department access", statusCode: 403, code: "DESIGNATION_DEPARTMENT_ACCESS_DENIED" });
+    }
+    return;
+  }
   const branchIds = assignedBranchIds(auth);
   if (branchIds.length === 0) return;
 
@@ -346,6 +352,9 @@ export async function listDesignations(
 
     ...(assignedBranchIds(auth).length > 0
       ? { branchIds: assignedBranchIds(auth) }
+      : {}),
+    ...(auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN")
+      ? { departmentIds: auth.departmentIds }
       : {}),
 
     ...(query.departmentId !== undefined
@@ -554,6 +563,14 @@ export async function createDesignation(
         statusCode: 422,
         code:
           "INVALID_DESIGNATION_DEPARTMENT"
+      });
+    }
+
+    if (error instanceof Error && error.message === "DESIGNATION_POSITION_CODE_EXISTS") {
+      throw new AppError({
+        message: "The designation code is already used by a position in this department",
+        statusCode: 409,
+        code: "POSITION_CODE_EXISTS",
       });
     }
 

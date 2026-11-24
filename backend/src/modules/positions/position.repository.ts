@@ -466,6 +466,11 @@ export async function listPositionRecords(
     values.push(...options.branchIds);
   }
 
+  if (options.departmentIds?.length) {
+    conditions.push(`p.department_id IN (${options.departmentIds.map(() => "?").join(", ")})`);
+    values.push(...options.departmentIds);
+  }
+
   if (options.departmentId) {
     conditions.push(
       "p.department_id = ?"
@@ -716,6 +721,12 @@ export async function createPositionRecord(
         input.designationId,
         companyId
       );
+
+      const linkedPositions = await connection.query(
+        `SELECT position_id FROM positions WHERE designation_id = ? LIMIT 1 FOR UPDATE`,
+        [input.designationId],
+      );
+      if (linkedPositions.length > 0) throw new Error("POSITION_DESIGNATION_ALREADY_LINKED");
     }
 
     const insertResult =

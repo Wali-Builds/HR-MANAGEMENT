@@ -67,11 +67,13 @@ function RoleDialog(props: {
       !term || [item.permissionCode, item.moduleName, item.actionName, item.description ?? ""]
         .join(" ").toLowerCase().includes(term),
     );
-    // edited by wali: Keep Branch Admin visible before the existing access markers.
-    return matchingPermissions.sort((a, b) =>
-      Number(b.permissionCode.toUpperCase() === "BRANCH_ADMIN") -
-      Number(a.permissionCode.toUpperCase() === "BRANCH_ADMIN"),
-    );
+    // Show the four access levels in the requested order.
+    const order = ["COMPANY_ADMIN", "BRANCH_ADMIN", "DEPARTMENT_ADMIN", "EMPLOYEE"];
+    return matchingPermissions.sort((a, b) => {
+      const aIndex = order.indexOf(a.permissionCode.toUpperCase());
+      const bIndex = order.indexOf(b.permissionCode.toUpperCase());
+      return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex);
+    });
   }, [permissions, search]);
   const groups = useMemo(() => {
     const map = new Map<string, RolePermission[]>();

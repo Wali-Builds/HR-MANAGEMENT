@@ -6,6 +6,7 @@ export type DatabaseId =
 export interface EmployeeDatabaseRow {
   employee_id: DatabaseId;
   company_id: DatabaseId;
+  company_name: string;
 
   employee_code: string;
 
@@ -173,6 +174,7 @@ export type EmployeeAssignmentHistoryResponse = EmployeeAssignmentResponse;
 export interface EmployeeResponse {
   employeeId: string;
   companyId: string;
+  companyName: string;
 
   employeeCode: string;
 
@@ -281,6 +283,7 @@ export interface EmployeeListOptions {
   branchId?: string;
   // edited by wali: Limit employee lists to branches assigned to the Branch Admin.
   branchIds?: string[];
+  departmentIds?: string[];
   departmentId?: string;
   designationId?: string;
   reportingManagerId?: string;

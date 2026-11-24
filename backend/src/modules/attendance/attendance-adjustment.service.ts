@@ -330,14 +330,23 @@ function assertEmployeeBranchAccess(
   auth: AuthContext,
   employee: AttendanceEmployeeDatabaseRow
 ): void {
-  if (!isBranchAdmin(auth)) return;
-
-  const branchId = employee.branch_id === null ? null : String(employee.branch_id);
-  if (!branchId || !auth.branchIds.includes(branchId)) {
+  if (isBranchAdmin(auth)) {
+    const branchId = employee.branch_id === null ? null : String(employee.branch_id);
+    if (!branchId || !auth.branchIds.includes(branchId)) {
+      throw new AppError({
+        message: "You can only manage attendance adjustments for employees in your assigned branches",
+        statusCode: 403,
+        code: "ATTENDANCE_ADJUSTMENT_BRANCH_ACCESS_DENIED"
+      });
+    }
+  }
+  const isDepartmentAdmin = auth.departmentIds.length > 0 && [...auth.roleCodes, ...auth.permissions].some((value) => value.trim().toUpperCase() === "DEPARTMENT_ADMIN");
+  const departmentId = employee.department_id === null ? null : String(employee.department_id);
+  if (isDepartmentAdmin && (!departmentId || !auth.departmentIds.includes(departmentId))) {
     throw new AppError({
-      message: "You can only manage attendance adjustments for employees in your assigned branches",
+      message: "You can only manage attendance adjustments for employees in your assigned department",
       statusCode: 403,
-      code: "ATTENDANCE_ADJUSTMENT_BRANCH_ACCESS_DENIED"
+      code: "ATTENDANCE_ADJUSTMENT_DEPARTMENT_ACCESS_DENIED"
     });
   }
 }
@@ -1109,12 +1118,14 @@ export async function listAttendanceAdjustmentRequests(
     requireCompanyId(auth);
 
   const branchIds = isBranchAdmin(auth) ? auth.branchIds : undefined;
+  const departmentIds = auth.departmentIds.length > 0 && [...auth.roleCodes, ...auth.permissions].some((value) => value.trim().toUpperCase() === "DEPARTMENT_ADMIN") ? auth.departmentIds : undefined;
 
   const result =
     await listAttendanceAdjustmentRequestRecords(
       companyId,
       {
         ...(branchIds !== undefined ? { branchIds } : {}),
+        ...(departmentIds !== undefined ? { departmentIds } : {}),
 
         ...(query.employeeId !== undefined
           ? {

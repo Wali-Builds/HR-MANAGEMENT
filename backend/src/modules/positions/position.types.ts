@@ -97,6 +97,7 @@ export interface PositionListOptions {
   branchId?: string;
   // edited by wali: Limit branch-admin position results to assigned branches.
   branchIds?: string[];
+  departmentIds?: string[];
   departmentId?: string;
   designationId?: string;
   reportsToPositionId?: string;

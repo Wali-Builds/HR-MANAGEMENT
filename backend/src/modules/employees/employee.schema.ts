@@ -1015,6 +1015,22 @@ export const employeeLookupsRequestSchema =
       .passthrough()
   });
 
+export const nextEmployeeCodeRequestSchema =
+  z.object({
+    body: z.object({}).passthrough(),
+    params: z.object({}).passthrough(),
+    query: z.object({
+      companyId: databaseIdSchema.optional()
+    }).passthrough()
+  });
+
+export const employeePhotoRequestSchema =
+  z.object({
+    body: z.object({}).passthrough(),
+    params: employeeIdParamsSchema,
+    query: z.object({}).passthrough()
+  });
+
 export type CreateEmployeeInput =
   z.infer<
     typeof createEmployeeBodySchema

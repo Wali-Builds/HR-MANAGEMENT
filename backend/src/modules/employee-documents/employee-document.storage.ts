@@ -116,6 +116,50 @@ export function resolveEmployeeDocumentPath(
   return absolutePath;
 }
 
+export async function storeEmployeeProfilePhoto(
+  companyId: string,
+  employeeId: string,
+  file: Express.Multer.File
+): Promise<{ storagePath: string; mimeType: string }> {
+  assertSafeIdentifier(companyId, "Company ID");
+  assertSafeIdentifier(employeeId, "Employee ID");
+  if (!file.buffer || file.buffer.length === 0) {
+    throw new AppError({ message: "The uploaded photo is empty", statusCode: 422, code: "EMPLOYEE_PHOTO_EMPTY" });
+  }
+  if (file.buffer.length > env.EMPLOYEE_PROFILE_PHOTO_MAX_FILE_SIZE_BYTES) {
+    const maximumSizeMb = Number(
+      (
+        env.EMPLOYEE_PROFILE_PHOTO_MAX_FILE_SIZE_BYTES /
+        (1024 * 1024)
+      ).toFixed(2)
+    );
+    throw new AppError({ message: `Employee photos cannot exceed ${maximumSizeMb} MB`, statusCode: 413, code: "EMPLOYEE_PHOTO_TOO_LARGE" });
+  }
+
+  const detectedType = await fileTypeFromBuffer(file.buffer);
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if (!detectedType || !allowedTypes.has(detectedType.mime)) {
+    throw new AppError({ message: "Upload a JPG, PNG or WebP photo", statusCode: 415, code: "EMPLOYEE_PHOTO_TYPE_NOT_ALLOWED" });
+  }
+
+  const storagePath = path.posix.join(
+    "companies",
+    companyId,
+    "employees",
+    employeeId,
+    "profile",
+    `${randomUUID()}.${detectedType.ext}`
+  );
+  const absolutePath = resolveEmployeeDocumentPath(storagePath);
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, file.buffer, { flag: "wx" });
+  return { storagePath, mimeType: detectedType.mime };
+}
+
+export async function removeEmployeeProfilePhoto(storagePath: string): Promise<void> {
+  await rm(resolveEmployeeDocumentPath(storagePath), { force: true });
+}
+
 export async function storeEmployeeDocumentFile(
   companyId: string,
   employeeId: string,
@@ -143,6 +187,27 @@ export async function storeEmployeeDocumentFile(
 
       code:
         "EMPLOYEE_DOCUMENT_FILE_EMPTY"
+    });
+  }
+
+  if (
+    file.buffer.length >
+    env.EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES
+  ) {
+    const maximumSizeMb = Number(
+      (
+        env.EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES /
+        (1024 * 1024)
+      ).toFixed(2)
+    );
+    throw new AppError({
+      message:
+        `Employee documents cannot exceed ${maximumSizeMb} MB`,
+
+      statusCode: 413,
+
+      code:
+        "EMPLOYEE_DOCUMENT_FILE_TOO_LARGE"
     });
   }
 

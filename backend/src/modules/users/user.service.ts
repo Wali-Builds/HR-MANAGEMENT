@@ -227,6 +227,9 @@ function mapUser(
     employeeBranchId:
       user.employee_branch_id === null ? null : String(user.employee_branch_id),
 
+    employeeDepartmentId:
+      user.employee_department_id === null ? null : String(user.employee_department_id),
+
     // edited by wali: Surface archived employee status so Access Control can block reactivation.
     isEmployeeArchived:
       user.employee_id !== null &&
@@ -518,7 +521,8 @@ async function normalizeRoleAssignments(
   roles: UserRoleInput[],
   accountCompanyId: string | null,
   isPlatformAdminAccount: boolean,
-  actor: AuthContext
+  actor: AuthContext,
+  employeeScope: { branchId: string | null; departmentId: string | null } | null
 ): Promise<UserRoleAssignmentInput[]> {
   const uniqueRoleCodes =
     Array.from(
@@ -689,6 +693,35 @@ async function normalizeRoleAssignments(
 
     const departmentId =
       role.departmentId ?? null;
+
+    const activeRole = activeRoleByCode.get(role.roleCode)!;
+    if (activeRole.hasBranchAdminAccess && !employeeScope?.branchId) {
+      throw new AppError({
+        message: "Assign the employee to a branch before granting Branch Admin access",
+        statusCode: 422,
+        code: "ROLE_EMPLOYEE_BRANCH_REQUIRED"
+      });
+    }
+    if (activeRole.hasDepartmentAdminAccess && !employeeScope?.departmentId) {
+      throw new AppError({
+        message: "Assign the employee to a department before granting Department Admin access",
+        statusCode: 422,
+        code: "ROLE_EMPLOYEE_DEPARTMENT_REQUIRED"
+      });
+    }
+
+    if (activeRole.hasBranchAdminAccess && branchId !== employeeScope?.branchId) {
+      throw new AppError({ message: "Branch Admin scope must match the employee's current branch assignment", statusCode: 422, code: "ROLE_BRANCH_SCOPE_MISMATCH" });
+    }
+    if (activeRole.hasDepartmentAdminAccess && departmentId !== employeeScope?.departmentId) {
+      throw new AppError({ message: "Department Admin scope must match the employee's current department assignment", statusCode: 422, code: "ROLE_DEPARTMENT_SCOPE_MISMATCH" });
+    }
+    if (branchId && branchId !== employeeScope?.branchId) {
+      throw new AppError({ message: "Role branch scope must match the employee's current branch assignment", statusCode: 422, code: "ROLE_BRANCH_SCOPE_MISMATCH" });
+    }
+    if (departmentId && departmentId !== employeeScope?.departmentId) {
+      throw new AppError({ message: "Role department scope must match the employee's current department assignment", statusCode: 422, code: "ROLE_DEPARTMENT_SCOPE_MISMATCH" });
+    }
 
     if (branchId) {
       const branch =
@@ -1117,6 +1150,7 @@ export async function createUser(
   let employeeId:
     string | null =
       input.employeeId ?? null;
+  let employeeScope: { branchId: string | null; departmentId: string | null } | null = null;
 
   let accountEmail =
     input.email ?? null;
@@ -1152,6 +1186,8 @@ export async function createUser(
       });
     }
 
+    employeeScope = { branchId: employee.branchId, departmentId: employee.departmentId };
+
     const existingUserId =
       await findUserByEmployeeId(
         employeeId
@@ -1179,7 +1215,8 @@ export async function createUser(
       input.roles,
       companyId,
       input.isPlatformAdmin,
-      auth
+      auth,
+      employeeScope
     );
 
   const passwordHash =
@@ -1533,12 +1570,17 @@ export async function replaceUserRoles(
       user.is_platform_admin
     );
 
+  const employeeScope = user.employee_id !== null && accountCompanyId
+    ? await findEmployeeForUserAccount(String(user.employee_id), accountCompanyId)
+    : null;
+
   const normalizedRoles =
     await normalizeRoleAssignments(
       input.roles,
       accountCompanyId,
       isPlatformAdminAccount,
-      auth
+      auth,
+      employeeScope
     );
 
   try {

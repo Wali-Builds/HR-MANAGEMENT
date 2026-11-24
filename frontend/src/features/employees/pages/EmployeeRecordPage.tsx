@@ -2,6 +2,7 @@ import {
   Archive,
   ArrowLeft,
   BriefcaseBusiness,
+  Camera,
   CalendarDays,
   Contact,
   Edit3,
@@ -17,8 +18,8 @@ import {
   UserRoundCheck,
   UserRoundX,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,13 +30,14 @@ import { EmployeeAvatar } from "../components/EmployeeAvatar";
 import { EmployeeStatusBadge } from "../components/EmployeeStatusBadge";
 import { useEmployee, useUpdateEmployee } from "../hooks/useEmployees";
 import { EmployeeDocumentsPanel } from "../../employee-documents/pages/EmployeeDocumentsPage";
-import { listEmployeeBankAccountsRequest } from "../api/employee.api";
+import { listEmployeeBankAccountsRequest, uploadEmployeeProfilePhotoRequest } from "../api/employee.api";
 
 export function EmployeeRecordPage() {
   const navigate = useNavigate();
   const { employeeId } = useParams<{ employeeId: string }>();
   const [searchParams] = useSearchParams();
   const { hasPermission } = usePermissions();
+  const queryClient = useQueryClient();
   const employeeQuery = useEmployee(employeeId ?? null);
   const updateMutation = useUpdateEmployee();
   const [tab, setTab] = useState<"overview" | "assignment" | "contact" | "documents" | "system">(() => {
@@ -52,6 +54,8 @@ export function EmployeeRecordPage() {
     ?? bankAccountsQuery.data?.find((account) => account.isActive)
     ?? bankAccountsQuery.data?.[0];
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const employee = employeeQuery.data;
   const assignmentHistory = employee?.assignmentHistory?.length
     ? employee.assignmentHistory
@@ -71,6 +75,26 @@ export function EmployeeRecordPage() {
       toast.success(employee.isActive ? "Employee marked inactive" : "Employee reactivated");
     } catch (error) {
       toast.error(normalizeApiError(error).message);
+    }
+  }
+
+  async function uploadPhoto(file: File | undefined) {
+    if (!employee || !file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Choose a JPG, PNG or WebP photo.");
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      await uploadEmployeeProfilePhotoRequest(employee.employeeId, file);
+      await employeeQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["employees", "list"] });
+      toast.success("Employee photo updated.");
+    } catch (error) {
+      toast.error(normalizeApiError(error).message);
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   }
 
@@ -123,7 +147,15 @@ export function EmployeeRecordPage() {
       </header>
 
       <div className="emp-profile-hero">
-        <EmployeeAvatar employee={employee} size="xl" />
+        <div className="emp-profile-photo-control">
+          <EmployeeAvatar employee={employee} size="xl" />
+          {canEdit ? <>
+            <input ref={photoInputRef} className="emp-profile-photo-control__input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose employee photo" onChange={(event) => void uploadPhoto(event.target.files?.[0])} />
+            <button type="button" className="emp-profile-photo-control__button" title={employee.profilePhotoPath ? "Change employee photo" : "Upload employee photo"} aria-label={employee.profilePhotoPath ? "Change employee photo" : "Upload employee photo"} disabled={photoUploading} onClick={() => photoInputRef.current?.click()}>
+              {photoUploading ? <LoaderCircle className="spin" size={15} /> : <Camera size={15} />}
+            </button>
+          </> : null}
+        </div>
         <div className="emp-profile-hero__identity">
           <div><h2>{employee.fullName}</h2><EmployeeStatusBadge employee={employee} /></div>
           <p>{employee.assignment.positionTitle ?? employee.assignment.designationName ?? "Role not assigned"}</p>
@@ -273,8 +305,8 @@ export function EmployeeRecordPage() {
           <section className="emp-record-card">
             <header><Fingerprint size={18} /><div><h3>System information</h3><p>Internal integration references and audit timestamps</p></div></header>
             <div className="emp-detail-grid">
-              <div><span>Employee ID</span><strong>{employee.employeeId}</strong></div>
-              <div><span>Company ID</span><strong>{employee.companyId}</strong></div>
+              <div><span>Employee ID</span><strong>{employee.employeeCode}</strong></div>
+              <div><span>Company</span><strong>{employee.companyName}</strong></div>
               <div><span>Biometric identifier</span><strong>{employee.biometricIdentifier ?? "—"}</strong></div>
               <div><span>Created</span><strong>{new Date(employee.createdAt).toLocaleString()}</strong></div>
               <div><span>Updated</span><strong>{new Date(employee.updatedAt).toLocaleString()}</strong></div>

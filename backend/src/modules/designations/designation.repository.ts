@@ -255,6 +255,11 @@ export async function listDesignationRecords(
     values.push(...options.branchIds);
   }
 
+  if (options.departmentIds?.length) {
+    conditions.push(`department_id IN (${options.departmentIds.map(() => "?").join(", ")})`);
+    values.push(...options.departmentIds);
+  }
+
   if (options.departmentId) {
     // edited by wali: Scope designation results to their owning department when requested.
     conditions.push(
@@ -480,6 +485,42 @@ export async function createDesignationRecord(
         insertResult.insertId
       );
 
+    const departmentRows = await connection.query(
+      `SELECT branch_id FROM departments WHERE department_id = ? LIMIT 1`,
+      [input.departmentId],
+    );
+    const department = departmentRows[0] as { branch_id: string | number | bigint | null } | undefined;
+    if (!department) throw new Error("DESIGNATION_DEPARTMENT_INACTIVE");
+
+    const positionCodeConflicts = await connection.query(
+      `SELECT position_id FROM positions WHERE company_id = ? AND department_id = ? AND position_code = ? LIMIT 1 FOR UPDATE`,
+      [companyId, input.departmentId, input.designationCode],
+    );
+    if (positionCodeConflicts.length > 0) throw new Error("DESIGNATION_POSITION_CODE_EXISTS");
+
+    const positionInsert = await connection.query(
+      `
+        INSERT INTO positions (
+          company_id, branch_id, department_id, designation_id, reports_to_position_id,
+          position_code, position_title, position_type, approved_headcount, filled_headcount,
+          minimum_salary, maximum_salary, currency_code, position_status, effective_from, effective_to
+        ) VALUES (?, ?, ?, ?, NULL, ?, ?, 'PERMANENT', ?, 0, ?, ?, 'PKR', ?, NULL, NULL)
+      `,
+      [
+        companyId,
+        department.branch_id,
+        input.departmentId,
+        designationId,
+        input.designationCode,
+        input.designationName,
+        input.approvedHeadcount,
+        input.minimumSalary ?? null,
+        input.maximumSalary ?? null,
+        input.isActive ? "ACTIVE" : "INACTIVE",
+      ],
+    );
+    const positionId = String(positionInsert.insertId);
+
     const rows =
       await connection.query(
         `
@@ -540,6 +581,16 @@ export async function createDesignationRecord(
         metadata.ipAddress,
         metadata.userAgent
       ]
+    );
+
+    await connection.query(
+      `
+        INSERT INTO activity_logs (
+          company_id, user_id, module_name, action_name, table_name, record_id,
+          new_values, request_method, request_path, ip_address, user_agent
+        ) VALUES (?, ?, 'position', 'position_created_from_designation', 'positions', ?, ?, 'POST', '/api/v1/designations', ?, ?)
+      `,
+      [companyId, actor.userId, positionId, safeJson({ designationId, positionCode: input.designationCode, positionTitle: input.designationName, approvedHeadcount: input.approvedHeadcount }), metadata.ipAddress, metadata.userAgent],
     );
 
     await connection.commit();
@@ -769,6 +820,21 @@ export async function updateDesignationRecord(
           AND deleted_at IS NULL
       `,
       values
+    );
+
+    await connection.query(
+      `
+        UPDATE positions
+        SET position_code = ?, position_title = ?, minimum_salary = ?, maximum_salary = ?
+        WHERE designation_id = ?
+      `,
+      [
+        input.designationCode ?? currentDesignation.designation_code,
+        input.designationName ?? currentDesignation.designation_name,
+        input.minimumSalary !== undefined ? input.minimumSalary : currentDesignation.minimum_salary,
+        input.maximumSalary !== undefined ? input.maximumSalary : currentDesignation.maximum_salary,
+        designationId,
+      ],
     );
 
     const updatedRows =

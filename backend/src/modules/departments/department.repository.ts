@@ -352,6 +352,11 @@ export async function listDepartmentRecords(
     values.push(...options.branchIds);
   }
 
+  if (options.departmentIds?.length) {
+    conditions.push(`d.department_id IN (${options.departmentIds.map(() => "?").join(", ")})`);
+    values.push(...options.departmentIds);
+  }
+
   if (options.parentDepartmentId) {
     conditions.push(
       "d.parent_department_id = ?"

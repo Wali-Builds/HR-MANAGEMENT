@@ -345,10 +345,17 @@ function isBranchAdmin(auth: AuthContext): boolean {
   return auth.branchIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "BRANCH_ADMIN");
 }
 
+function isDepartmentAdmin(auth: AuthContext): boolean {
+  return auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.toUpperCase() === "DEPARTMENT_ADMIN");
+}
+
 // edited by wali: Prevent leave detail and decision endpoints from crossing assigned branches.
 function assertLeaveEmployeeBranch(auth: AuthContext, employee: AttendanceEmployeeDatabaseRow): void {
   if (isBranchAdmin(auth) && (!employee.branch_id || !auth.branchIds.includes(String(employee.branch_id)))) {
     throw new AppError({ message: "You cannot access leave records outside your assigned branch", statusCode: 403, code: "LEAVE_REQUEST_BRANCH_ACCESS_DENIED" });
+  }
+  if (isDepartmentAdmin(auth) && (!employee.department_id || !auth.departmentIds.includes(String(employee.department_id)))) {
+    throw new AppError({ message: "You cannot access leave records outside your assigned department", statusCode: 403, code: "LEAVE_REQUEST_DEPARTMENT_ACCESS_DENIED" });
   }
 }
 
@@ -358,6 +365,7 @@ async function assertRequestViewAccess(
 ): Promise<void> {
   // edited by wali: Apply branch scope to every direct leave request read endpoint.
   if (isBranchAdmin(auth)) assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(employeeId));
+  if (isDepartmentAdmin(auth)) assertLeaveEmployeeBranch(auth, await getEmployeeOrThrow(employeeId));
   if (isOwnEmployee(auth, employeeId)) {
     return;
   }
@@ -1266,6 +1274,7 @@ export async function listLeaveRequests(
       {
         // edited by wali: Keep Branch Admin leave queues inside the assigned branch.
         ...(isBranchAdmin(auth) ? { branchIds: auth.branchIds } : {}),
+        ...(isDepartmentAdmin(auth) ? { departmentIds: auth.departmentIds } : {}),
         ...(query.employeeId !== undefined
           ? { employeeId: query.employeeId }
           : {}),
@@ -2210,6 +2219,7 @@ export async function listPendingLeaveApprovals(
 
         // edited by wali: Scope pending approvals to employees in assigned branches.
         ...(isBranchAdmin(auth) ? { branchIds: auth.branchIds } : {}),
+        ...(isDepartmentAdmin(auth) ? { departmentIds: auth.departmentIds } : {}),
         // edited by wali: Let a Branch Admin review actionable requests throughout the assigned branch.
         ...(isBranchAdmin(auth) ? { includeAllBranchPending: true } : {}),
 

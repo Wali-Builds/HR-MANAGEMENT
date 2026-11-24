@@ -161,7 +161,11 @@
 .emp-avatar--sm { width: 34px; height: 34px; border-radius: 9px; font-size: 10px; }
 .emp-avatar--md { width: 43px; height: 43px; font-size: 12px; }
 .emp-avatar--lg { width: 48px; height: 48px; font-size: 13px; }
-.emp-avatar--xl { width: 78px; height: 78px; border-radius: 18px; font-size: 20px; }
+.emp-avatar--xl { width: 112px; height: 112px; border-radius: 24px; font-size: 28px; }
+.emp-profile-photo-control { position: relative; width: 112px; height: 112px; }
+.emp-profile-photo-control__input { display: none; }
+.emp-profile-photo-control__button { position: absolute; right: -5px; bottom: -5px; width: 34px; height: 34px; display: grid; place-items: center; color: #fff; background: #176c78; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px rgba(8,28,46,.2); cursor: pointer; }
+.emp-profile-photo-control__button:disabled { opacity: .7; cursor: wait; }
 .emp-card-menu { position: relative; }
 .emp-card-menu > button { width: 29px; height: 29px; display: grid; place-items: center; color: #728491; background: transparent; border: 0; border-radius: 7px; cursor: pointer; }
 .emp-card-menu > div { width: 145px; position: absolute; z-index: 8; top: 31px; right: 0; padding: 5px; background: #fff; border: 1px solid #d9e2e8; border-radius: 9px; box-shadow: 0 12px 25px rgba(21,46,61,.13); }
@@ -272,6 +276,8 @@
 .emp-field input:focus,
 .emp-field select:focus,
 .emp-field textarea:focus { border-color: #5687c3; box-shadow: 0 0 0 3px rgba(47,107,180,.09); }
+.emp-field .emp-menu-select__input-trigger input,
+.emp-field .emp-menu-select__input-trigger input:focus { border: 0; box-shadow: none; }
 .emp-field-error { color: #b44740; font-size: 8px; }
 .emp-toggle-field { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f6f9fc; border: 1px solid #dce6ee; border-radius: 9px; }
 .emp-toggle-field input { margin-top: 3px; }

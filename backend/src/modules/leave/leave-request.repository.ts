@@ -48,6 +48,7 @@ export interface LeaveRequestListFilters {
   employeeId?: string;
   // edited by wali: Limit Branch Admin request lists to assigned employee branches.
   branchIds?: string[];
+  departmentIds?: string[];
   leaveTypeId?: string;
   leavePeriodId?: string;
   requestStatus?: string;
@@ -90,6 +91,7 @@ export interface PendingLeaveApprovalListFilters {
   employeeId?: string;
   // edited by wali: Limit pending approvals to assigned employee branches.
   branchIds?: string[];
+  departmentIds?: string[];
 
   dateFrom?: string;
   dateTo?: string;
@@ -5028,6 +5030,10 @@ export async function listLeaveRequestRecords(
     conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")}))`);
     parameters.push(...filters.branchIds);
   }
+  if (filters.departmentIds?.length) {
+    conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.department_id IN (${filters.departmentIds.map(() => "?").join(", ")}))`);
+    parameters.push(...filters.departmentIds);
+  }
 
   if (filters.leaveTypeId) {
     conditions.push(
@@ -7532,6 +7538,10 @@ export async function listPendingLeaveApprovalRecords(
   if (filters.branchIds?.length) {
     conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")}))`);
     parameters.push(...filters.branchIds);
+  }
+  if (filters.departmentIds?.length) {
+    conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.department_id IN (${filters.departmentIds.map(() => "?").join(", ")}))`);
+    parameters.push(...filters.departmentIds);
   }
 
   if (filters.dateFrom) {

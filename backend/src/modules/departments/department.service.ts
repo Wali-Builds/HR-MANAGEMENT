@@ -175,7 +175,8 @@ function branchAdminIds(auth: AuthContext): string[] {
 
 function assertDepartmentBranchAccess(
   auth: AuthContext,
-  branchId: string | null
+  branchId: string | null,
+  departmentId?: string | null
 ): void {
   const assignedBranchIds = branchAdminIds(auth);
   if (
@@ -187,6 +188,13 @@ function assertDepartmentBranchAccess(
       statusCode: 403,
       code: "DEPARTMENT_BRANCH_ACCESS_DENIED"
     });
+  }
+  if (
+    auth.departmentIds.length > 0 &&
+    auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN") &&
+    (!departmentId || !auth.departmentIds.includes(departmentId))
+  ) {
+    throw new AppError({ message: "This department is outside your assigned department access", statusCode: 403, code: "DEPARTMENT_SCOPE_ACCESS_DENIED" });
   }
 }
 
@@ -440,6 +448,10 @@ export async function listDepartments(
 
     companyId,
 
+    ...(auth.departmentIds.length > 0 && auth.permissions.some((permission) => permission.trim().toUpperCase() === "DEPARTMENT_ADMIN")
+      ? { departmentIds: auth.departmentIds }
+      : {}),
+
     sortBy:
       query.sortBy,
 
@@ -545,7 +557,8 @@ export async function getDepartment(
 
   assertDepartmentBranchAccess(
     auth,
-    nullableId(department.branch_id)
+    nullableId(department.branch_id),
+    String(department.department_id)
   );
 
   return mapDepartment(department);
@@ -699,7 +712,8 @@ export async function updateDepartment(
 
   assertDepartmentBranchAccess(
     auth,
-    nullableId(existingDepartment.branch_id)
+    nullableId(existingDepartment.branch_id),
+    String(existingDepartment.department_id)
   );
 
   const resultingBranchId =
@@ -711,7 +725,8 @@ export async function updateDepartment(
 
   assertDepartmentBranchAccess(
     auth,
-    resultingBranchId
+    resultingBranchId,
+    String(existingDepartment.department_id)
   );
 
   const resultingParentId =
@@ -864,7 +879,8 @@ export async function deleteDepartment(
 
   assertDepartmentBranchAccess(
     auth,
-    nullableId(department.branch_id)
+    nullableId(department.branch_id),
+    String(department.department_id)
   );
 
   let deleted: boolean;

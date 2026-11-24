@@ -178,6 +178,7 @@ interface AttendanceAdjustmentRequestListFilters {
   attendanceId?: string | undefined;
   // added by wali: Restrict adjustment inbox rows to branches assigned to a Branch Admin.
   branchIds?: string[] | undefined;
+  departmentIds?: string[] | undefined;
 
   dateFrom?: string | undefined;
   dateTo?: string | undefined;
@@ -1047,6 +1048,15 @@ export async function listAttendanceAdjustmentRequestRecords(
           AND ea_scope.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})
       )`);
       parameters.push(...filters.branchIds);
+    }
+  }
+
+  if (filters.departmentIds !== undefined) {
+    if (filters.departmentIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`EXISTS (SELECT 1 FROM employee_assignments ea_scope WHERE ea_scope.employee_id = e.employee_id AND ea_scope.is_current = 1 AND ea_scope.department_id IN (${filters.departmentIds.map(() => "?").join(", ")}))`);
+      parameters.push(...filters.departmentIds);
     }
   }
 

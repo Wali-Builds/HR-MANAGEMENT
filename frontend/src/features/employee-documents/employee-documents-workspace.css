@@ -211,6 +211,8 @@
 .doc-employee-rail__header strong { display: block; color: #2d4454; font-size: 11px; }
 .doc-employee-rail__header span { display: block; margin-top: 2px; color: #83919c; font-size: 8px; }
 .doc-employee-search { margin: 10px; padding: 0 9px; }
+.doc-employee-filter { display: block; width: calc(100% - 20px); margin: 0 10px 8px; }
+.doc-employee-filter.emp-menu-select { width: calc(100% - 20px); }
 .doc-employee-list {
   max-height: 535px;
   overflow-y: auto;

@@ -84,6 +84,7 @@ interface AttendanceDeviceListFilters {
   branchId?: string | undefined;
   // added by wali: Enforce Branch Admin scope regardless of the selected device branch filter.
   branchIds?: string[] | undefined;
+  departmentIds?: string[] | undefined;
   deviceType?: string | undefined;
   syncStatus?: string | undefined;
 
@@ -148,6 +149,7 @@ interface AttendanceRecordListFilters {
   branchId?: string | undefined;
   // added by wali: Enforce Branch Admin scope on daily and historical attendance records.
   branchIds?: string[] | undefined;
+  departmentIds?: string[] | undefined;
   // added by wali: Department is read from the employee's current assignment.
   departmentId?: string | undefined;
 
@@ -752,7 +754,15 @@ async function lockEmployeeRecord(
                 AND ea.is_current = 1
               ORDER BY ea.effective_from DESC, ea.assignment_id DESC
               LIMIT 1
-            ) AS branch_id
+            ) AS branch_id,
+            (
+              SELECT ea.department_id
+              FROM employee_assignments ea
+              WHERE ea.employee_id = e.employee_id
+                AND ea.is_current = 1
+              ORDER BY ea.effective_from DESC, ea.assignment_id DESC
+              LIMIT 1
+            ) AS department_id
         FROM employees e
         WHERE e.employee_id = ?
           AND e.deleted_at IS NULL
@@ -1185,6 +1195,7 @@ SELECT
             e.employee_id,
             e.company_id,
             ea.branch_id,
+            ea.department_id,
             e.employee_code,
             e.first_name,
             e.middle_name,
@@ -1253,6 +1264,18 @@ export async function findAttendanceBranchById(
       | BranchOwnershipRow
       | undefined
   ) ?? null;
+}
+
+export async function departmentHasAttendanceBranch(
+  departmentIds: string[],
+  branchId: string
+): Promise<boolean> {
+  if (departmentIds.length === 0) return false;
+  const rows = await databasePool.query(
+    `SELECT 1 AS allowed FROM departments WHERE department_id IN (${departmentIds.map(() => "?").join(", ")}) AND branch_id = ? AND is_active = 1 AND deleted_at IS NULL LIMIT 1`,
+    [...departmentIds, branchId]
+  );
+  return rows.length > 0;
 }
 
 /*
@@ -2353,6 +2376,15 @@ export async function listAttendanceRecordRecords(
     } else {
       conditions.push(`ea.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`);
       parameters.push(...filters.branchIds);
+    }
+  }
+
+  if (filters.departmentIds !== undefined) {
+    if (filters.departmentIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`ea.department_id IN (${filters.departmentIds.map(() => "?").join(", ")})`);
+      parameters.push(...filters.departmentIds);
     }
   }
 
@@ -4434,6 +4466,7 @@ SELECT
             e.employee_id,
             e.company_id,
             ea.branch_id,
+            ea.department_id,
             e.employee_code,
             e.first_name,
             e.middle_name,
@@ -6241,6 +6274,15 @@ export async function listAttendanceDeviceRecords(
     } else {
       conditions.push(`ad.branch_id IN (${filters.branchIds.map(() => "?").join(", ")})`);
       parameters.push(...filters.branchIds);
+    }
+  }
+
+  if (filters.departmentIds !== undefined) {
+    if (filters.departmentIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`EXISTS (SELECT 1 FROM departments d_scope WHERE d_scope.department_id IN (${filters.departmentIds.map(() => "?").join(", ")}) AND d_scope.branch_id = ad.branch_id AND d_scope.company_id = ad.company_id)`);
+      parameters.push(...filters.departmentIds);
     }
   }
 

@@ -45,6 +45,7 @@ interface DesignationFormState {
   departmentId: string;
   designationCode: string;
   designationName: string;
+  approvedHeadcount: string;
   grade: string;
   jobLevel: string;
   description: string;
@@ -59,6 +60,7 @@ const emptyForm: DesignationFormState = {
   departmentId: "",
   designationCode: "",
   designationName: "",
+  approvedHeadcount: "1",
   grade: "",
   jobLevel: "",
   description: "",
@@ -74,6 +76,7 @@ function fromDesignation(designation: Designation): DesignationFormState {
     departmentId: designation.departmentId ?? "",
     designationCode: designation.designationCode,
     designationName: designation.designationName,
+    approvedHeadcount: "1",
     grade: designation.grade ?? "",
     jobLevel: designation.jobLevel === null ? "" : String(designation.jobLevel),
     description: designation.description ?? "",
@@ -227,6 +230,9 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
     }
     if (form.designationCode.trim().length < 2) nextErrors.designationCode = "Enter a designation code.";
     if (form.designationName.trim().length < 2) nextErrors.designationName = "Enter a designation name.";
+    if (!editing && (!Number.isInteger(Number(form.approvedHeadcount)) || Number(form.approvedHeadcount) < 1 || Number(form.approvedHeadcount) > 65535)) {
+      nextErrors.approvedHeadcount = "Approved headcount must be between 1 and 65,535.";
+    }
     if (form.minimumSalary && form.maximumSalary && Number(form.minimumSalary) > Number(form.maximumSalary)) {
       nextErrors.maximumSalary = "Maximum salary must be greater than or equal to minimum salary.";
     }
@@ -243,6 +249,7 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
       description: nullable(form.description),
       minimumSalary: nullableNumber(form.minimumSalary),
       maximumSalary: nullableNumber(form.maximumSalary),
+      ...(!editing ? { approvedHeadcount: Number(form.approvedHeadcount) } : {}),
       isManagerial: form.isManagerial,
       isActive: form.isActive,
     };
@@ -349,7 +356,7 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
       <OrganisationDialog
         open={formOpen}
         title={editing ? "Edit designation" : "Create designation"}
-        subtitle="Choose a branch and department, then define grade, seniority and optional salary guidance."
+        subtitle={editing ? "Update designation details." : "Define a designation and its initial approved position headcount."}
         submitLabel={editing ? "Save changes" : "Create designation"}
         busy={busy}
         onClose={closeForm}
@@ -383,6 +390,7 @@ function DesignationsPanelContent({ companyId, canManage }: Props) {
           </OrganisationField>
           <OrganisationField label="Designation code" required error={errors.designationCode}><TextInput value={form.designationCode} onChange={(e) => setField("designationCode", e.target.value)} placeholder="HR-MGR" /></OrganisationField>
           <OrganisationField label="Designation name" required error={errors.designationName}><TextInput value={form.designationName} onChange={(e) => setField("designationName", e.target.value)} placeholder="HR Manager" /></OrganisationField>
+          {!editing ? <OrganisationField label="Initial approved headcount" required error={errors.approvedHeadcount} hint="A position will be created automatically using this designation's code and name."><TextInput type="number" min="1" max="65535" value={form.approvedHeadcount} onChange={(e) => setField("approvedHeadcount", e.target.value)} /></OrganisationField> : null}
           <OrganisationField label="Grade"><TextInput value={form.grade} onChange={(e) => setField("grade", e.target.value)} placeholder="M2" /></OrganisationField>
           <OrganisationField label="Job level"><TextInput type="number" min="0" value={form.jobLevel} onChange={(e) => setField("jobLevel", e.target.value)} /></OrganisationField>
           <OrganisationField label="Minimum salary"><TextInput type="number" min="0" step="0.01" value={form.minimumSalary} onChange={(e) => setField("minimumSalary", e.target.value)} /></OrganisationField>

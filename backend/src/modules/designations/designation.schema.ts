@@ -150,6 +150,14 @@ export const createDesignationBodySchema =
         nullableSalarySchema
           .optional(),
 
+      approvedHeadcount: z
+        .coerce
+        .number()
+        .int()
+        .min(1, "Approved headcount must be at least 1")
+        .max(65535, "Approved headcount is too large")
+        .default(1),
+
       isManagerial: z
         .boolean()
         .default(false),

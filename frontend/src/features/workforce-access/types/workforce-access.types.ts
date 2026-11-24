@@ -27,6 +27,7 @@ export interface AccessUser {
   employeeName: string | null;
   employeeOfficialEmail: string | null;
   employeeBranchId: string | null;
+  employeeDepartmentId: string | null;
   isEmployeeArchived: boolean;
   username: string;
   email: string | null;
@@ -47,6 +48,8 @@ export interface AccessListParams {
   page: number;
   limit: number;
   companyId?: string;
+  branchId?: string;
+  departmentId?: string;
   search?: string;
   isActive?: boolean;
   isLocked?: boolean;
@@ -76,6 +79,7 @@ export interface AccessLookupRole {
   description: string | null;
   isSystemRole: boolean;
   hasBranchAdminAccess: boolean;
+  hasDepartmentAdminAccess: boolean;
 }
 
 export interface AccessLookupEmployee {
@@ -85,6 +89,7 @@ export interface AccessLookupEmployee {
   employeeName: string;
   officialEmail: string | null;
   branchId: string | null;
+  departmentId: string | null;
 }
 
 export interface AccessLookupCompany {

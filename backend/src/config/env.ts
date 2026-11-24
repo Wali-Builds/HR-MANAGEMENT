@@ -173,6 +173,22 @@ const environmentSchema = z.object({
         10485760
       ),
 
+  EMPLOYEE_PROFILE_PHOTO_MAX_FILE_SIZE_BYTES:
+    z.coerce
+      .number()
+      .int()
+      .min(
+        1024,
+        "Employee-profile-photo maximum file size must be at least 1 KB"
+      )
+      .max(
+        52428800,
+        "Employee-profile-photo maximum file size cannot exceed 50 MB"
+      )
+      .default(
+        5242880
+      ),
+
   BANK_ACCOUNT_ENCRYPTION_KEY:
     base64EncryptionKeySchema
 });

@@ -28,20 +28,30 @@ import {
   createEmployeeController,
   deleteEmployeeController,
   getEmployeeController,
+  getEmployeeProfilePhotoController,
+  getNextEmployeeCodeController,
   getMyEmployeeProfileController,
   getEmployeeLookupsController,
   listEmployeesController,
-  updateEmployeeController
+  updateEmployeeController,
+  uploadEmployeeProfilePhotoController
 } from "./employee.controller.js";
 
 import {
   createEmployeeRequestSchema,
   deleteEmployeeRequestSchema,
   employeeLookupsRequestSchema,
+  employeePhotoRequestSchema,
+  nextEmployeeCodeRequestSchema,
   getEmployeeRequestSchema,
   listEmployeesRequestSchema,
   updateEmployeeRequestSchema
 } from "./employee.schema.js";
+
+import {
+  uploadSingleEmployeeDocument,
+  uploadSingleEmployeeProfilePhoto
+} from "../employee-documents/employee-document.upload.js";
 
 export const employeeRouter =
   Router();
@@ -90,6 +100,15 @@ employeeRouter.get(
 );
 
 employeeRouter.get(
+  "/next-code",
+  authenticate,
+  requireCompletedPasswordChange,
+  requireCompanyAdminOrEmployeePermission("employee.create"),
+  validateRequest(nextEmployeeCodeRequestSchema),
+  asyncHandler(getNextEmployeeCodeController)
+);
+
+employeeRouter.get(
   "/",
   authenticate,
   requireCompletedPasswordChange,
@@ -102,6 +121,25 @@ employeeRouter.get(
   asyncHandler(
     listEmployeesController
   )
+);
+
+employeeRouter.get(
+  "/:employeeId/photo",
+  authenticate,
+  requireCompletedPasswordChange,
+  requireCompanyAdminOrEmployeePermission("employee.view_all", "employee.update"),
+  validateRequest(employeePhotoRequestSchema),
+  asyncHandler(getEmployeeProfilePhotoController)
+);
+
+employeeRouter.put(
+  "/:employeeId/photo",
+  authenticate,
+  requireCompletedPasswordChange,
+  requireCompanyAdminOrEmployeePermission("employee.update"),
+  uploadSingleEmployeeProfilePhoto,
+  validateRequest(employeePhotoRequestSchema),
+  asyncHandler(uploadEmployeeProfilePhotoController)
 );
 
 employeeRouter.get(

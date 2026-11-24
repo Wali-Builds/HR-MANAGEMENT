@@ -136,26 +136,22 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
     }
   }
 
-  const bankFields = [data.bankName, data.bankBranchName, data.bankAccountTitle, data.bankAccountNumber, data.bankIban];
-  const addingBankDetails = bankFields.some((value) => value.trim().length > 0);
-  if (addingBankDetails) {
-    const requiredBankFields = [
-      ["bankName", data.bankName, "Bank name"],
-      ["bankAccountTitle", data.bankAccountTitle, "Account title"],
-      ["bankAccountNumber", data.bankAccountNumber, "Account number"],
-    ] as const;
-    for (const [field, value, label] of requiredBankFields) {
-      if (!value.trim()) {
-        context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: `${label} is required when adding bank details` });
-      }
+  const requiredBankFields = [
+    ["bankName", data.bankName, "Bank name"],
+    ["bankAccountTitle", data.bankAccountTitle, "Account title"],
+    ["bankAccountNumber", data.bankAccountNumber, "Account number"],
+  ] as const;
+  for (const [field, value, label] of requiredBankFields) {
+    if (!value.trim()) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: `${label} is required` });
     }
-    if (data.bankAccountNumber.trim() && !/^[A-Za-z0-9./_\-\s]{4,200}$/.test(data.bankAccountNumber.trim())) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankAccountNumber"], message: "Enter a valid account number" });
-    }
-    const normalizedIban = data.bankIban.toUpperCase().replace(/[\s-]/g, "");
-    if (normalizedIban && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankIban"], message: "Enter a valid IBAN" });
-    }
+  }
+  if (data.bankAccountNumber.trim() && !/^[A-Za-z0-9./_\-\s]{4,200}$/.test(data.bankAccountNumber.trim())) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankAccountNumber"], message: "Enter a valid account number" });
+  }
+  const normalizedIban = data.bankIban.toUpperCase().replace(/[\s-]/g, "");
+  if (normalizedIban && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["bankIban"], message: "Enter a valid IBAN" });
   }
 
 });

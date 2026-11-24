@@ -285,7 +285,10 @@ export async function loginUser(
       authorization.permissions,
 
     branchIds:
-      authorization.branchIds
+      authorization.branchIds,
+
+    departmentIds:
+      authorization.departmentIds
   };
 
   return {
@@ -433,7 +436,10 @@ export async function refreshUserSession(
       authorization.permissions,
 
     branchIds:
-      authorization.branchIds
+      authorization.branchIds,
+
+    departmentIds:
+      authorization.departmentIds
   };
 
   return {
