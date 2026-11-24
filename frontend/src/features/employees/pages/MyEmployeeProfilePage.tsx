@@ -1,8 +1,9 @@
 // edited by wali: Show expanded self-service employee details in a compact, readable profile.
 import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle, UserRound } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 import { normalizeApiError } from "../../../api/api-error";
+import { EmployeeAvatar } from "../components/EmployeeAvatar";
 import { getMyEmployeeProfileRequest } from "../api/employee.api";
 import type { EmployeeSelfProfile } from "../types/employee.types";
 import "../employees-workspace.css";
@@ -25,7 +26,10 @@ function buildProfileSections(profile: EmployeeSelfProfile): ProfileSection[] {
       title: "Personal details",
       rows: [
         { label: "Preferred name", value: displayValue(profile.preferredName) },
+        { label: "Father name", value: displayValue(profile.fatherName) },
+        { label: "Spouse name", value: displayValue(profile.spouseName) },
         { label: "Gender", value: displayValue(profile.gender) },
+        { label: "Blood group", value: displayValue(profile.bloodGroup) },
         { label: "Date of birth", value: displayDate(profile.dateOfBirth) },
         { label: "Marital status", value: displayValue(profile.maritalStatus) },
         { label: "Nationality", value: displayValue(profile.nationality) },
@@ -105,11 +109,9 @@ export function MyEmployeeProfilePage() {
 
       {/* Keep the employee identity and status together at the top of the profile. */}
       <section className="employee-self-profile__identity">
-        <span className="employee-self-profile__avatar"><UserRound size={23} /></span>
-        <div><h2>{profile.fullName}</h2><p>{profile.employeeCode} · {profile.companyName}</p></div>
-        <span className={profile.isActiveEmployment ? "employee-self-profile__status is-active" : "employee-self-profile__status"}>
-          {profile.employeeStatusName}
-        </span>
+        <EmployeeAvatar employee={profile} size="xl" selfProfile />
+        <div className="employee-self-profile__copy"><h2>{profile.fullName}</h2><p>{profile.employeeCode} · {profile.companyName}</p></div>
+        <span className={profile.isActiveEmployment ? "employee-self-profile__status is-active" : "employee-self-profile__status"}>{profile.employeeStatusName}</span>
       </section>
 
       {/* edited by wali: Use compact text rows rather than large profile information cards. */}

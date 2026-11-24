@@ -76,7 +76,11 @@ export interface EmployeeSelfProfile {
   employeeId: string;
   employeeCode: string;
   fullName: string;
+  profilePhotoPath: string | null;
   preferredName: string | null;
+  fatherName: string | null;
+  spouseName: string | null;
+  bloodGroup: string | null;
   gender: string | null;
   dateOfBirth: string | null;
   maritalStatus: string | null;

@@ -252,6 +252,7 @@ export function EmployeeFormPage({ mode }: Props) {
       }
 
       if (!isEditing && created?.accessAccount) {
+        setAccessDetailsCopied(false);
         setNewAccessDetails({
           employeeId: employee.employeeId,
           employeeName: employee.fullName,
@@ -307,6 +308,23 @@ export function EmployeeFormPage({ mode }: Props) {
   const closeAccessDetails = () => {
     if (newAccessDetails) navigate(`/employees/${newAccessDetails.employeeId}`, { replace: true });
     setNewAccessDetails(null);
+  };
+
+  const copyAccessDetails = async () => {
+    if (!newAccessDetails) return;
+    if (!navigator.clipboard?.writeText) {
+      toast.error("Copying is unavailable here. Open this site over HTTPS or copy the details manually.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`Username: ${newAccessDetails.username}\nTemporary password: ${newAccessDetails.temporaryPassword}`);
+      setAccessDetailsCopied(true);
+      toast.success("Login details copied");
+    } catch {
+      setAccessDetailsCopied(false);
+      toast.error("The browser blocked copying. Use HTTPS and allow clipboard access, then try again.");
+    }
   };
 
   return (
@@ -386,11 +404,7 @@ export function EmployeeFormPage({ mode }: Props) {
           </div>
           {newAccessDetails.note ? <p className="emp-access-created-warning">{newAccessDetails.note}</p> : null}
           <footer>
-            <button type="button" className="emp-secondary-action" onClick={() => {
-              void navigator.clipboard.writeText(`Username: ${newAccessDetails.username}\nTemporary password: ${newAccessDetails.temporaryPassword}`);
-              setAccessDetailsCopied(true);
-              toast.success("Login details copied");
-            }}>{accessDetailsCopied ? <Check size={16} /> : <Copy size={16} />}{accessDetailsCopied ? "Copied" : "Copy login details"}</button>
+            <button type="button" className="emp-secondary-action" onClick={() => void copyAccessDetails()}>{accessDetailsCopied ? <Check size={16} /> : <Copy size={16} />}{accessDetailsCopied ? "Copied" : "Copy login details"}</button>
             <button type="button" className="emp-primary-action" onClick={closeAccessDetails}>Continue to employee</button>
           </footer>
         </section>

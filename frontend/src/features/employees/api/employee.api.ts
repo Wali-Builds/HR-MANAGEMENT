@@ -169,8 +169,9 @@ export async function uploadEmployeeProfilePhotoRequest(employeeId: string, file
   );
 }
 
-export async function getEmployeeProfilePhotoBlobRequest(employeeId: string, version: string): Promise<Blob> {
-  const response = await apiClient.get<Blob>(`/employees/${employeeId}/photo`, { params: { v: version }, responseType: "blob" });
+export async function getEmployeeProfilePhotoBlobRequest(employeeId: string, version: string, selfProfile = false): Promise<Blob> {
+  const photoUrl = selfProfile ? "/employees/me/photo" : `/employees/${employeeId}/photo`;
+  const response = await apiClient.get<Blob>(photoUrl, { params: { v: version }, responseType: "blob" });
   return response.data;
 }
 

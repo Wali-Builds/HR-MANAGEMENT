@@ -5,15 +5,16 @@ import type { Employee } from "../types/employee.types";
 interface EmployeeAvatarProps {
   employee: Pick<Employee, "employeeId" | "fullName" | "profilePhotoPath">;
   size?: "sm" | "md" | "lg" | "xl";
+  selfProfile?: boolean;
 }
 
 const uploadedPhotoUrls = new Map<string, Promise<string>>();
 
-function getUploadedPhotoUrl(employeeId: string, profilePhotoPath: string): Promise<string> {
-  const cacheKey = `${employeeId}:${profilePhotoPath}`;
+function getUploadedPhotoUrl(employeeId: string, profilePhotoPath: string, selfProfile: boolean): Promise<string> {
+  const cacheKey = `${selfProfile ? "self" : employeeId}:${profilePhotoPath}`;
   const cached = uploadedPhotoUrls.get(cacheKey);
   if (cached) return cached;
-  const request = getEmployeeProfilePhotoBlobRequest(employeeId, profilePhotoPath).then((blob) => URL.createObjectURL(blob));
+  const request = getEmployeeProfilePhotoBlobRequest(employeeId, profilePhotoPath, selfProfile).then((blob) => URL.createObjectURL(blob));
   uploadedPhotoUrls.set(cacheKey, request);
   request.catch(() => uploadedPhotoUrls.delete(cacheKey));
   return request;
@@ -31,6 +32,7 @@ function initials(name: string): string {
 export function EmployeeAvatar({
   employee,
   size = "md",
+  selfProfile = false,
 }: EmployeeAvatarProps) {
   const isUploadedPhoto = Boolean(employee.profilePhotoPath?.startsWith("uploaded:"));
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
@@ -39,12 +41,12 @@ export function EmployeeAvatar({
     let active = true;
     setUploadedPhotoUrl(null);
     if (isUploadedPhoto) {
-      void getUploadedPhotoUrl(employee.employeeId, employee.profilePhotoPath!).then((url) => {
+      void getUploadedPhotoUrl(employee.employeeId, employee.profilePhotoPath!, selfProfile).then((url) => {
         if (active) setUploadedPhotoUrl(url);
       }).catch(() => undefined);
     }
     return () => { active = false; };
-  }, [employee.employeeId, employee.profilePhotoPath, isUploadedPhoto]);
+  }, [employee.employeeId, employee.profilePhotoPath, isUploadedPhoto, selfProfile]);
 
   return (
     <span className={`emp-avatar emp-avatar--${size}`}>
