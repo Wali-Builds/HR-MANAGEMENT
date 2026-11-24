@@ -8,6 +8,10 @@ import {
   closeDatabasePool
 } from "./database/pool.js";
 
+import {
+  seedDefaultCompanyRolesForExistingCompanies
+} from "./modules/roles/default-company-roles.repository.js";
+
 let httpServer: Server | undefined;
 let shuttingDown = false;
 
@@ -21,6 +25,13 @@ async function startServer(): Promise<void> {
 
     console.log(
       `MariaDB version: ${databaseHealth.databaseVersion}`
+    );
+
+    const companyCount =
+      await seedDefaultCompanyRolesForExistingCompanies();
+
+    console.log(
+      `Default company roles checked for ${companyCount} companies`
     );
 
     httpServer = app.listen(env.PORT, () => {

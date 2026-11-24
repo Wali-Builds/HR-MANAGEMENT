@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarDays, Clock3, Edit3, Plus, RefreshCw, Search, UsersRound } from "lucide-react";
+import { Building2, CalendarDays, Edit3, Plus, RefreshCw, Search, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
@@ -59,8 +59,7 @@ function WorkSchedulesView() {
   const [days, setDays] = useState<WorkScheduleDay[]>(weekDays.map((_, index) => emptyDay(index + 1)));
   const [saving, setSaving] = useState(false);
   const visibleSchedules = useMemo(() => schedules.filter((item) => `${item.scheduleName} ${item.scheduleCode}`.toLowerCase().includes(search.toLowerCase())), [schedules, search]);
-  const assignedEmployees = schedules.reduce((sum, item) => sum + item.currentAssignmentCount, 0);
-  const activeScheduleCount = schedules.filter((item) => item.isActive).length;
+  const schedulesInUse = schedules.filter((item) => item.currentAssignmentCount > 0).length;
   const workingDays = days.filter((day) => day.isWorkingDay);
   const weeklyExpectedMinutes = workingDays.reduce((sum, day) => sum + (shifts.find((shift) => shift.shiftId === day.shiftId)?.expectedWorkMinutes ?? 0), 0);
 
@@ -107,8 +106,8 @@ function WorkSchedulesView() {
   return <section className="wf-org-page wf-projects-page wf-attendance-page wf-attendance-scheduling">
     <PageHero title="Work schedules" description="Build a weekly plan by assigning your existing shifts to working days." />
     <div className="wf-org-health-strip wf-attendance-health">
-      {/* added by wali: Show company-wide schedule totals, assigned employees, and active schedules. */}
-      <div><span><CalendarDays size={16} /></span><strong>{schedulesQuery.isLoading || schedulesQuery.isError ? "â€”" : schedules.length}</strong><small>Total schedules</small></div><div><span><UsersRound size={16} /></span><strong>{schedulesQuery.isLoading || schedulesQuery.isError ? "â€”" : assignedEmployees}</strong><small>Employees assigned</small></div><div><span><Clock3 size={16} /></span><strong>{schedulesQuery.isLoading || schedulesQuery.isError ? "â€”" : activeScheduleCount}</strong><small>Active schedules</small></div>
+      {/* added by wali: Show total schedules and how many currently have employee assignments. */}
+      <div><span><CalendarDays size={16} /></span><strong>{schedulesQuery.isLoading || schedulesQuery.isError ? "â€”" : schedules.length}</strong><small>Total schedules</small></div><div><span><UsersRound size={16} /></span><strong>{schedulesQuery.isLoading || schedulesQuery.isError ? "â€”" : schedulesInUse}</strong><small>Schedules currently in use</small></div>
     </div>
     <section className="wf-org-resource wf-projects-resource wf-attendance-work-schedules-resource">
       <div className="wf-org-resource-toolbar"><div className="wf-org-resource-toolbar__heading"><div><span>WEEKLY PATTERNS</span><h2>Schedule templates</h2><p>Each template defines the work plan for all seven days of the week.</p></div>{canManage && <button className="wf-org-button wf-org-button--primary" onClick={openCreate}><Plus size={16} />Add schedule</button>}</div><div className={`wf-attendance-assignment-toolbar wf-attendance-assignment-toolbar--filters${permissions.isBranchAdmin ? " wf-attendance-assignment-toolbar--branchless" : ""}`}><label className="wf-org-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search schedules" /></label>
@@ -170,8 +169,10 @@ function ShiftAssignmentsView() {
 
   // added by wali: Show all filtered employees while retaining existing schedule rows for editing.
   const assignmentByEmployee = new Map(assignments.filter((item) => item.scheduleId !== null).map((item) => [item.employeeId, item]));
+  const currentlyAssignedEmployeeIds = new Set(assignments.filter((item) => item.isCurrent && item.scheduleId !== null).map((item) => item.employeeId));
   const allVisibleEmployeesSelected = employees.length > 0 && employees.every((employee) => selectedEmployeeIds.has(employee.employeeId));
-  const assignedEmployeeCount = employees.filter((employee) => assignmentByEmployee.has(employee.employeeId)).length;
+  const assignedEmployeeCount = employees.filter((employee) => currentlyAssignedEmployeeIds.has(employee.employeeId)).length;
+  const unassignedEmployeeCount = employees.length - assignedEmployeeCount;
 
   // added by wali: Start a bulk assignment from the selected unassigned employee rows.
   const openCreate = () => { if (!selectedEmployeeIds.size) { toast.error("Select at least one employee to assign a schedule."); return; } setEditing(null); setForm(blankAssignment()); setDialogOpen(true); };
@@ -230,9 +231,10 @@ function ShiftAssignmentsView() {
   return <section className="wf-org-page wf-projects-page wf-attendance-page wf-attendance-scheduling">
     <PageHero title="Employee schedule assignments" description="Assign a completed weekly work schedule to each employee for an effective period." />
     <div className="wf-org-health-strip wf-attendance-health">
-      {/* added by wali: Summarize employees in the current filter and employees with a schedule assignment. */}
-      <div><span><UsersRound size={16} /></span><strong>{employeesQuery.isLoading || employeesQuery.isError ? "—" : employees.length}</strong><small>Employees in filter</small></div>
-      <div><span><CalendarDays size={16} /></span><strong>{assignmentsQuery.isLoading || assignmentsQuery.isError ? "—" : assignedEmployeeCount}</strong><small>Assigned employees</small></div>
+      {/* added by wali: Summarize filtered employees by current schedule assignment coverage. */}
+      <div><span><UsersRound size={16} /></span><strong>{employeesQuery.isLoading || employeesQuery.isError ? "—" : employees.length}</strong><small>Total employees</small></div>
+      <div><span><CalendarDays size={16} /></span><strong>{employeesQuery.isLoading || employeesQuery.isError || assignmentsQuery.isLoading || assignmentsQuery.isError ? "—" : assignedEmployeeCount}</strong><small>Assigned employees</small></div>
+      <div><span><UsersRound size={16} /></span><strong>{employeesQuery.isLoading || employeesQuery.isError || assignmentsQuery.isLoading || assignmentsQuery.isError ? "—" : unassignedEmployeeCount}</strong><small>Unassigned employees</small></div>
     </div>
     <section className="wf-org-resource wf-projects-resource">
       <div className="wf-org-resource-toolbar">

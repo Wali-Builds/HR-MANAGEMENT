@@ -2,6 +2,10 @@ import {
   databasePool
 } from "../../database/pool.js";
 
+import {
+  createDefaultCompanyRolesUsingConnection
+} from "../roles/default-company-roles.repository.js";
+
 import type {
   CreateCompanyInput,
   UpdateCompanyInput
@@ -340,6 +344,11 @@ export async function createCompanyRecord(
 
     const companyId = String(
       insertResult.insertId
+    );
+
+    await createDefaultCompanyRolesUsingConnection(
+      connection,
+      companyId
     );
 
     const rows =

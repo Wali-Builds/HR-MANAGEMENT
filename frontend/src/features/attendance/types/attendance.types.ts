@@ -62,8 +62,8 @@ export interface AttendanceRecordListResult {
 
 export interface AttendanceDailySummary {
   absentEmployees: number;
-  checkedIn: number;
-  checkedOut: number;
+  presentEmployees: number;
+  employeesOnLeave: number;
   lateArrivals: number;
 }
 
