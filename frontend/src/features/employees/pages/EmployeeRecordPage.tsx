@@ -45,8 +45,8 @@ export function EmployeeRecordPage() {
     return requestedTab === "assignment" || requestedTab === "documents" ? requestedTab : "overview";
   });
   const bankAccountsQuery = useQuery({
-    queryKey: ["employees", employeeId, "bank-accounts"],
-    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? ""),
+    queryKey: ["employees", employeeId, "bank-accounts", "with-account-number"],
+    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? "", true),
     enabled: Boolean(employeeId && tab === "overview"),
     staleTime: 60_000,
   });
@@ -201,8 +201,9 @@ export function EmployeeRecordPage() {
                 <div className="emp-detail-grid">
                   <div><span>Bank</span><strong>{bankAccount.bankName}</strong></div>
                   <div><span>Branch</span><strong>{bankAccount.branchName ?? "Not provided"}</strong></div>
+                  <div><span>Bank branch code</span><strong>{bankAccount.branchCode ?? "Not provided"}</strong></div>
                   <div><span>Account title</span><strong>{bankAccount.accountTitle}</strong></div>
-                  <div><span>Account number</span><strong>{bankAccount.accountNumberMasked ?? "Not provided"}</strong></div>
+                  <div><span>Account number</span><strong>{bankAccount.accountNumber ?? "Not provided"}</strong></div>
                   <div><span>IBAN</span><strong>{bankAccount.ibanMasked ?? "Not provided"}</strong></div>
                   <div><span>Currency</span><strong>{bankAccount.currencyCode}</strong></div>
                 </div>

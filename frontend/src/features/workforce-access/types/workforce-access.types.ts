@@ -25,6 +25,7 @@ export interface AccessUser {
   employeeId: string | null;
   employeeCode: string | null;
   employeeName: string | null;
+  employeeProfilePhotoPath: string | null;
   employeeOfficialEmail: string | null;
   employeeBranchId: string | null;
   employeeDepartmentId: string | null;

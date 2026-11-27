@@ -50,6 +50,7 @@ export interface EmployeeCreationResult {
 export interface EmployeeBankAccountCreateInput {
   bankName: string;
   branchName?: string | null;
+  branchCode?: string | null;
   accountTitle: string;
   accountNumber: string;
   iban?: string | null;
@@ -64,7 +65,9 @@ export interface EmployeeBankAccount {
   bankAccountId: string;
   bankName: string;
   branchName: string | null;
+  branchCode: string | null;
   accountTitle: string;
+  accountNumber: string | null;
   accountNumberLast4: string | null;
   accountNumberMasked: string | null;
   ibanLast4: string | null;
@@ -78,10 +81,13 @@ export interface EmployeeBankAccount {
 
 export type EmployeeBankAccountUpdateInput = Partial<EmployeeBankAccountCreateInput>;
 
-export async function listEmployeeBankAccountsRequest(employeeId: string): Promise<EmployeeBankAccount[]> {
+export async function listEmployeeBankAccountsRequest(
+  employeeId: string,
+  includeAccountNumber = false,
+): Promise<EmployeeBankAccount[]> {
   const response = await apiClient.get<ApiSuccessResponse<{ bankAccounts: EmployeeBankAccount[] }>>(
     `/employees/${employeeId}/bank-accounts`,
-    { params: { includeInactive: true } },
+    { params: { includeInactive: true, includeAccountNumber } },
   );
   return response.data.data.bankAccounts;
 }

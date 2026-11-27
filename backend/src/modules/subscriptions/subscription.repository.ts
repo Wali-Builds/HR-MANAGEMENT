@@ -1419,7 +1419,7 @@ export async function listCompanyAdministratorRecords(
   const conditions: string[] = [
     "user_account.company_id = ?",
     "user_account.deleted_at IS NULL",
-    "role.role_code = 'COMPANY_ADMIN'",
+    "role.role_code IN ('COMPANY_ADMIN', 'COMP-ADMIN')",
     "user_role.company_id = ?",
     "user_role.is_active = 1"
   ];

@@ -66,7 +66,7 @@ export function Sidebar() {
     toggleSidebar,
     setMobileSidebarOpen,
   } = useUiStore();
-  const { hasAnyPermission } = usePermissions();
+  const { hasAnyPermission, isCompanyAdmin } = usePermissions();
 
   const visibleNavigation = navigation.filter((item) => {
     if (!item.permissions) {
@@ -79,7 +79,11 @@ export function Sidebar() {
 
     // edited by wali: Use the Company Admin workforce boundary in primary navigation visibility.
     return hasAnyPermission(item.permissions);
-  });
+  }).map((item) =>
+    item.to === "/companies" && isCompanyAdmin
+      ? { ...item, label: "My Company" }
+      : item,
+  );
 
   const className = [
     "sidebar",

@@ -37,6 +37,7 @@ export interface UserDatabaseRow {
   employee_last_name: string | null;
   employee_official_email:
     string | null;
+  employee_profile_photo_path: string | null;
   // edited by wali: Expose current branch so access-role forms can default scope correctly.
   employee_branch_id: DatabaseId | null;
   employee_department_id: DatabaseId | null;
@@ -104,6 +105,7 @@ export interface UserResponse {
   employeeId: string | null;
   employeeCode: string | null;
   employeeName: string | null;
+  employeeProfilePhotoPath: string | null;
   employeeOfficialEmail: string | null;
   employeeBranchId: string | null;
   employeeDepartmentId: string | null;

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { normalizeApiError } from "../../../api/api-error";
 import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { EmployeeAvatar } from "../components/EmployeeAvatar";
 import { EmployeeFormSections } from "../components/EmployeeFormSections";
 import { EmployeeMenuSelect } from "../components/EmployeeMenuSelect";
 import { listActiveProjectReferencesRequest, listEmployeesRequest } from "../api/employee.api";
@@ -342,7 +343,7 @@ export function EmployeeAssignmentsPage() {
                   <tr key={employee.employeeId}>
                     <td>
                       <button type="button" className="wf-person-cell wf-assignment-person" onClick={() => openAssignment(employee)}>
-                        <span className="wf-avatar">{employee.fullName.slice(0, 2).toUpperCase()}</span>
+                        <EmployeeAvatar employee={employee} size="sm" />
                         <span><strong>{employee.fullName}</strong><span>{employee.employeeStatusName}</span></span>
                       </button>
                     </td>

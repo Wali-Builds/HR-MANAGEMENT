@@ -40,6 +40,7 @@ export const employeeFormSchema = z
     alternateNumber: z.string().trim().max(50),
     bankName: z.string().trim().max(150),
     bankBranchName: z.string().trim().max(150),
+    bankBranchCode: z.string().trim().max(50),
     bankAccountTitle: z.string().trim().max(150),
     bankAccountNumber: z.string().trim().max(200),
     bankIban: z.string().trim().max(50),
@@ -106,9 +107,6 @@ export const employeeEditFormSchema = employeeFormSchema.superRefine((data, cont
   }
 });
 
-// Profile edits don't change employee assignment; the separate Assignment page keeps its position requirement.
-export const employeeProfileEditFormSchema = employeeFormSchema;
-
 // New employees can be saved first and assigned from the Assignments tab later.
 export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, context) => {
   if (!/^\d{5}-\d{7}-\d$/.test(data.cnicNumber)) {
@@ -131,7 +129,7 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: [field],
-        message: `${label} is required when creating an employee`,
+        message: `${label} is required`,
       });
     }
   }
@@ -155,6 +153,11 @@ export const employeeHiringFormSchema = employeeFormSchema.superRefine((data, co
   }
 
 });
+
+// Keep profile edits subject to the same required employee details as hiring.
+// Assignment changes remain separate from the employee profile form.
+export const employeeProfileEditFormSchema = employeeHiringFormSchema;
+
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
 // edited by wali: Keep raw form input types distinct from the schema's parsed submission values.
 export type EmployeeFormInputValues = z.input<typeof employeeFormSchema>;

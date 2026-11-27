@@ -92,7 +92,7 @@ function addressLine(company: Company): string {
 export function CompanyRecordPage() {
   const navigate = useNavigate();
   const { companyId } = useParams<{ companyId: string }>();
-  const { hasPermission, isPlatformAdmin } = usePermissions();
+  const { hasPermission, isCompanyAdmin, isPlatformAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<CompanyTab>("Overview");
   const [deleteCompany, setDeleteCompany] = useState<Company | null>(null);
   const companyQuery = useCompany(companyId ?? null);
@@ -121,9 +121,9 @@ export function CompanyRecordPage() {
         <button
           type="button"
           className="org-secondary-action"
-          onClick={() => navigate("/companies")}
+          onClick={() => navigate(isCompanyAdmin ? "/dashboard" : "/companies")}
         >
-          <ArrowLeft size={16} /> Return to companies
+          <ArrowLeft size={16} /> {isCompanyAdmin ? "Return to apps" : "Return to companies"}
         </button>
       </div>
     );
@@ -135,15 +135,17 @@ export function CompanyRecordPage() {
     <section className="org-record-page">
       <header className="org-record-toolbar">
         <div className="org-record-toolbar__left">
-          <button
-            type="button"
-            className="org-back-button"
-            onClick={() => navigate("/companies")}
-          >
-            <ArrowLeft size={17} />
-          </button>
+          {!isCompanyAdmin ? (
+            <button
+              type="button"
+              className="org-back-button"
+              onClick={() => navigate("/companies")}
+            >
+              <ArrowLeft size={17} />
+            </button>
+          ) : null}
           <div>
-            <span>Companies / {company.displayName}</span>
+            <span>{isCompanyAdmin ? "My Company" : "Companies"} / {company.displayName}</span>
             <h1>Company workspace</h1>
           </div>
         </div>

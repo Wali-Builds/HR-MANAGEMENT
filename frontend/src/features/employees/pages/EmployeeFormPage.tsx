@@ -62,8 +62,8 @@ export function EmployeeFormPage({ mode }: Props) {
 
   const employeeQuery = useEmployee(isEditing ? employeeId ?? null : null);
   const bankAccountsQuery = useQuery({
-    queryKey: ["employees", employeeId, "bank-accounts"],
-    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? ""),
+    queryKey: ["employees", employeeId, "bank-accounts", "with-account-number"],
+    queryFn: () => listEmployeeBankAccountsRequest(employeeId ?? "", true),
     enabled: Boolean(isEditing && employeeId),
     staleTime: 60_000,
   });
@@ -154,7 +154,9 @@ export function EmployeeFormPage({ mode }: Props) {
     if (!isEditing || !employeeQuery.data || !existingBankAccount) return;
     if (!getFieldState("bankName").isDirty) setValue("bankName", existingBankAccount.bankName);
     if (!getFieldState("bankBranchName").isDirty) setValue("bankBranchName", existingBankAccount.branchName ?? "");
+    if (!getFieldState("bankBranchCode").isDirty) setValue("bankBranchCode", existingBankAccount.branchCode ?? "");
     if (!getFieldState("bankAccountTitle").isDirty) setValue("bankAccountTitle", existingBankAccount.accountTitle);
+    if (!getFieldState("bankAccountNumber").isDirty) setValue("bankAccountNumber", existingBankAccount.accountNumber ?? "");
   }, [employeeQuery.data, existingBankAccount, getFieldState, isEditing, setValue]);
 
   useEffect(() => {
@@ -193,7 +195,7 @@ export function EmployeeFormPage({ mode }: Props) {
       return;
     }
 
-    const hasBankDetails = [values.bankName, values.bankBranchName, values.bankAccountTitle, values.bankAccountNumber, values.bankIban]
+    const hasBankDetails = [values.bankName, values.bankBranchName, values.bankBranchCode, values.bankAccountTitle, values.bankAccountNumber, values.bankIban]
       .some((value) => value.trim().length > 0);
     if (isEditing && !existingBankAccount && hasBankDetails) {
       if (!values.bankName.trim() || !values.bankAccountTitle.trim() || !values.bankAccountNumber.trim()) {
@@ -225,6 +227,7 @@ export function EmployeeFormPage({ mode }: Props) {
           await updateEmployeeBankAccountRequest(employee.employeeId, existingBankAccount.bankAccountId, {
             bankName: values.bankName,
             branchName: values.bankBranchName || null,
+            branchCode: values.bankBranchCode || null,
             accountTitle: values.bankAccountTitle,
             ...(values.bankAccountNumber.trim() ? { accountNumber: values.bankAccountNumber.trim() } : {}),
             ...(values.bankIban.trim() ? { iban: values.bankIban.trim() } : {}),
@@ -237,6 +240,7 @@ export function EmployeeFormPage({ mode }: Props) {
           await createEmployeeBankAccountRequest(employee.employeeId, {
             bankName: values.bankName.trim(),
             ...(values.bankBranchName ? { branchName: values.bankBranchName.trim() } : {}),
+            ...(values.bankBranchCode ? { branchCode: values.bankBranchCode.trim() } : {}),
             accountTitle: values.bankAccountTitle.trim(),
             accountNumber: values.bankAccountNumber.trim(),
             ...(values.bankIban ? { iban: values.bankIban.trim() } : {}),

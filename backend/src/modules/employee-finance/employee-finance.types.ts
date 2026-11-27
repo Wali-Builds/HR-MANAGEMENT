@@ -106,6 +106,8 @@ export interface EmployeeBankAccountDatabaseRow {
 
   account_title: string;
 
+  account_number_encrypted: Buffer | null;
+
   account_number_last4:
     string | null;
 
@@ -166,6 +168,7 @@ export interface EmployeeBankAccountResponse {
 
   accountTitle: string;
 
+  accountNumber: string | null;
   accountNumberLast4: string | null;
   accountNumberMasked: string | null;
 

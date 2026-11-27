@@ -11,6 +11,7 @@ export function DashboardLayout() {
 
   useEffect(() => {
     if (
+      location.pathname.startsWith("/companies") ||
       location.pathname.startsWith("/employees/organisation/") ||
       location.pathname === "/employees" ||
       location.pathname === "/employees/documents" ||

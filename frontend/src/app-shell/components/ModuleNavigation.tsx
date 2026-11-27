@@ -25,17 +25,17 @@ export function ModuleNavigation({
   const {
     hasAllPermissions,
     hasAnyPermission,
+    isCompanyAdmin,
   } = usePermissions();
-  const activeModule = getWorkspaceModule(location.pathname);
-  // edited by wali: Match Leave tab visibility to the Company Admin route access override.
-  const isCompanyAdmin = Boolean(
-    user &&
-      !user.isPlatformAdmin &&
-      user.companyId &&
-      (user.roleCodes.includes("COMPANY_ADMIN") ||
-        user.permissions.some((permission) => permission.toUpperCase() === "COMPANY_ADMIN")),
-  );
-  const navigation = getModuleNavigation(activeModule.id).filter((item) => {
+  const matchedModule = getWorkspaceModule(location.pathname);
+  const activeModule = matchedModule.id === "companies" && isCompanyAdmin
+    ? { ...matchedModule, label: "My Company", shortLabel: "My Company" }
+    : matchedModule;
+  // Company Admins get a direct tab to their assigned company; Platform Admins retain Organisations.
+  const moduleNavigation = matchedModule.id === "companies" && isCompanyAdmin && user?.companyId
+    ? [{ label: "My Company", to: `/companies/${user.companyId}` }]
+    : getModuleNavigation(activeModule.id);
+  const navigation = moduleNavigation.filter((item) => {
     const hasCompanyAdminSectionAccess =
       !item.companyAdminOnly ||
       isCompanyAdmin ||

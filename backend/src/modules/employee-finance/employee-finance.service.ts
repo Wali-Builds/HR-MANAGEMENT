@@ -3,6 +3,7 @@ import {
 } from "../../common/errors/app-error.js";
 
 import {
+  decryptSensitiveField,
   encryptSensitiveField,
   getSensitiveValueLastFour,
   maskSensitiveValue
@@ -263,7 +264,8 @@ function mapTaxRule(
 }
 
 function mapBankAccount(
-  account: EmployeeBankAccountDatabaseRow
+  account: EmployeeBankAccountDatabaseRow,
+  includeAccountNumber = false
 ): EmployeeBankAccountResponse {
   return {
     bankAccountId:
@@ -289,6 +291,14 @@ function mapBankAccount(
 
     accountTitle:
       account.account_title,
+
+    accountNumber:
+      includeAccountNumber && account.account_number_encrypted
+        ? decryptSensitiveField(
+            account.account_number_encrypted,
+            "BANK_ACCOUNT_NUMBER"
+          )
+        : null,
 
     accountNumberLast4:
       account.account_number_last4,
@@ -833,8 +843,11 @@ export async function listEmployeeBankAccounts(
       }
     );
 
-  return records.map(
-    mapBankAccount
+  return records.map((record) =>
+    mapBankAccount(
+      record,
+      query.includeAccountNumber
+    )
   );
 }
 

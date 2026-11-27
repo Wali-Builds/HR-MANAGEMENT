@@ -35,6 +35,7 @@ import {
 import {
   useCompanies
 } from "../../companies/hooks/useCompanies";
+import { EmployeeAvatar } from "../../employees/components/EmployeeAvatar";
 import { EmployeeMenuSelect } from "../../employees/components/EmployeeMenuSelect";
 
 import {
@@ -793,19 +794,20 @@ function WorkforceAccessPageContent() {
                       >
                       <td>
                         <div className="wf-person-cell">
-                          <span className="wf-avatar">
-                            {
-                              (
-                                user.employeeName ??
-                                user.username
-                              )
-                                .slice(
-                                  0,
-                                  2
-                                )
-                                .toUpperCase()
-                            }
-                          </span>
+                          {user.employeeId ? (
+                            <EmployeeAvatar
+                              employee={{
+                                employeeId: user.employeeId,
+                                fullName: user.employeeName ?? user.username,
+                                profilePhotoPath: user.employeeProfilePhotoPath,
+                              }}
+                              size="sm"
+                            />
+                          ) : (
+                            <span className="wf-avatar">
+                              {(user.employeeName ?? user.username).slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
 
                           <div>
                             <strong>

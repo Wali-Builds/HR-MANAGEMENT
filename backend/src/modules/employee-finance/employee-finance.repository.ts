@@ -228,6 +228,7 @@ const employeeBankAccountSelect = `
       ba.branch_name,
       ba.branch_code,
       ba.account_title,
+      ba.account_number_encrypted,
       ba.account_number_last4,
       ba.iban_last4,
       ba.account_type,

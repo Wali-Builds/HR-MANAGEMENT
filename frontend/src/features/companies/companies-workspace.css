@@ -3503,4 +3503,80 @@
 .org-record-page .org-setup-progress__steps strong { font-size: 13px; }
 .org-record-page .org-setup-progress__steps small { font-size: 11px; }
 
+/* Bring the company record tabs up to the same readable type scale as the
+   workforce pages. These rules stay inside the company profile view. */
+.org-record-page .org-section-kicker,
+.org-record-page .org-subscription-summary__heading p,
+.org-record-page .org-onboarding-state__status {
+  font-size: 10px;
+}
+
+.org-record-page .org-tab-loading,
+.org-record-page .org-tab-error p,
+.org-record-page .org-onboarding-state p,
+.org-record-page .org-inline-alert,
+.org-record-page .org-trial-callout div span,
+.org-record-page .org-usage-meter footer,
+.org-record-page .org-usage-meter footer strong,
+.org-record-page .org-feature-group header p,
+.org-record-page .org-feature-item p,
+.org-record-page .org-setup-progress header p,
+.org-record-page .org-activity-timeline p {
+  font-size: 12px;
+}
+
+.org-record-page .org-tab-error h3,
+.org-record-page .org-feature-summary h3,
+.org-record-page .org-admin-toolbar h3,
+.org-record-page .org-feature-group h3,
+.org-record-page .org-information-card h3,
+.org-record-page .org-setup-progress h3 {
+  font-size: 16px;
+}
+
+.org-record-page .org-feature-summary p,
+.org-record-page .org-admin-toolbar p,
+.org-record-page .org-information-card header p,
+.org-record-page .org-detail-item small,
+.org-record-page .org-configuration-list span,
+.org-record-page .org-address-card p,
+.org-record-page .org-external-link,
+.org-record-page .org-setup-progress__steps small,
+.org-record-page .org-subscription-facts small,
+.org-record-page .org-usage-meter__top small,
+.org-record-page .org-admin-card__identity small,
+.org-record-page .org-admin-card__activity span,
+.org-record-page .org-admin-card__activity small {
+  font-size: 12px;
+}
+
+.org-record-page .org-subscription-facts strong,
+.org-record-page .org-trial-callout div strong,
+.org-record-page .org-usage-meter footer,
+.org-record-page .org-feature-summary__counts span,
+.org-record-page .org-feature-item small,
+.org-record-page .org-admin-capacity > div,
+.org-record-page .org-admin-card__activity strong,
+.org-record-page .org-configuration-list strong,
+.org-record-page .org-activity-timeline strong {
+  font-size: 13px;
+}
+
+.org-record-page .org-feature-item strong,
+.org-record-page .org-admin-card__identity strong,
+.org-record-page .org-detail-item strong {
+  font-size: 14px;
+}
+
+.org-record-page .org-subscription-status,
+.org-record-page .org-feature-source,
+.org-record-page .org-admin-role,
+.org-record-page .org-admin-card__states span {
+  font-size: 10px;
+}
+
+.org-record-page .org-detail-item small { letter-spacing: 0.035em; }
+.org-record-page .org-configuration-list > div { min-height: 52px; }
+.org-record-page .org-admin-capacity > div { min-height: 58px; }
+
 

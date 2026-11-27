@@ -82,10 +82,10 @@ export function usePermissions() {
       (
         // edited by wali: Normalize role markers so casing from legacy role records cannot hide Company Admin access.
         user.roleCodes.some(
-          (roleCode) => roleCode.trim().toUpperCase() === "COMPANY_ADMIN",
+          (roleCode) => ["COMPANY_ADMIN", "COMP-ADMIN"].includes(roleCode.trim().toUpperCase()),
         ) ||
         user.permissions?.some(
-          (permission) => permission.trim().toUpperCase() === "COMPANY_ADMIN",
+          (permission) => ["COMPANY_ADMIN", "COMP-ADMIN"].includes(permission.trim().toUpperCase()),
         )
       ),
     );
@@ -179,6 +179,8 @@ export function usePermissions() {
       roleCodes: user?.roleCodes ?? [],
       isPlatformAdmin:
         user?.isPlatformAdmin ?? false,
+      isCompanyAdmin:
+        isTenantCompanyAdmin,
       isBranchAdmin,
       hasPermission,
       hasAnyPermission,

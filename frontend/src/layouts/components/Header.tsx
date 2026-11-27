@@ -12,6 +12,7 @@ import { normalizeApiError } from "../../api/api-error";
 import { useAuthStore } from "../../app/store/auth.store";
 import { useUiStore } from "../../app/store/ui.store";
 import { logoutRequest } from "../../features/auth/api/auth.api";
+import { usePermissions } from "../../hooks/usePermissions";
 
 const pageNames: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -25,13 +26,18 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const { isCompanyAdmin } = usePermissions();
   const clearSession = useAuthStore((state) => state.clearSession);
   const setMobileSidebarOpen = useUiStore(
     (state) => state.setMobileSidebarOpen,
   );
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const pageTitle = pageNames[location.pathname] ?? "HR Management";
+  const pageTitle = location.pathname.startsWith("/companies")
+    ? isCompanyAdmin
+      ? "My Company"
+      : "Companies"
+    : pageNames[location.pathname] ?? "HR Management";
 
   async function logout() {
     setLoggingOut(true);

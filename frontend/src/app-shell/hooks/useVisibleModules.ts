@@ -6,23 +6,18 @@ import { workspaceModules } from "../config/workspace";
 
 export function useVisibleModules() {
   const user = useAuthStore((state) => state.user);
-  const { hasAnyPermission, isPlatformAdmin } = usePermissions();
+  const { hasAnyPermission, isCompanyAdmin, isPlatformAdmin } = usePermissions();
 
   return useMemo(
-    () =>
-      workspaceModules.filter((module) => {
+    () => {
+      const visibleModules = workspaceModules.filter((module) => {
         // edited by wali: Keep Attendance out of the Platform Admin workspace.
         if (module.id === "attendance" && isPlatformAdmin) {
           return false;
         }
         // edited by wali: Hide Leave setup from employees and Platform Admins.
         if (module.companyAdminOnly) {
-          return Boolean(
-            !isPlatformAdmin &&
-              user?.companyId &&
-              (user.roleCodes.includes("COMPANY_ADMIN") ||
-                user.permissions.some((permission) => permission.toUpperCase() === "COMPANY_ADMIN")),
-          );
+          return isCompanyAdmin && Boolean(user?.companyId);
         }
         // edited by wali: Hide admin-only subscription management from non-admin app switchers.
         if (module.platformAdminOnly) {
@@ -34,7 +29,7 @@ export function useVisibleModules() {
           return (
             !isPlatformAdmin &&
             Boolean(user?.companyId) &&
-            (user?.roleCodes.includes("COMPANY_ADMIN") ||
+            (isCompanyAdmin ||
               !module.permissions ||
               hasAnyPermission(module.permissions))
           );
@@ -66,7 +61,20 @@ export function useVisibleModules() {
         }
 
         return hasAnyPermission(module.permissions);
-      }),
-    [hasAnyPermission, isPlatformAdmin, user, user?.companyId, user?.employeeId],
+      });
+
+      return visibleModules.map((module) =>
+        module.id === "companies" && isCompanyAdmin && user?.companyId
+          ? {
+              ...module,
+              label: "My Company",
+              shortLabel: "My Company",
+              description: "View and manage your assigned company.",
+              to: `/companies/${user.companyId}`,
+            }
+          : module,
+      );
+    },
+    [hasAnyPermission, isCompanyAdmin, isPlatformAdmin, user, user?.companyId, user?.employeeId],
   );
 }

@@ -173,22 +173,23 @@ export function EmployeeFormSections(props: Props) {
       {!props.onlyEmploymentSections ? <section className="emp-form-section">
         <header><span><Contact size={18} /></span><div><h2>Contact & identification</h2><p>Communication details and official identity references</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
-          {/* edited by wali: Show which contact details are required during new employee creation. */}
-          <label className="emp-field"><span>Personal email {props.isHiring ? <b>*</b> : null}</span><input type="email" {...props.register("personalEmail")} /><FieldError message={props.errors.personalEmail?.message} /></label>
-          <label className="emp-field"><span>Mobile number {props.isHiring ? <b>*</b> : null}</span><input {...props.register("mobileNumber")} /><FieldError message={props.errors.mobileNumber?.message} /></label>
-          <label className="emp-field"><span>Emergency number {props.isHiring ? <b>*</b> : null}</span><input {...props.register("alternateNumber")} /><FieldError message={props.errors.alternateNumber?.message} /></label>
+          {/* Mark contact fields that are required by both create and profile-edit validation. */}
+          <label className="emp-field"><span>Personal email {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input type="email" {...props.register("personalEmail")} /><FieldError message={props.errors.personalEmail?.message} /></label>
+          <label className="emp-field"><span>Mobile number {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input {...props.register("mobileNumber")} /><FieldError message={props.errors.mobileNumber?.message} /></label>
+          <label className="emp-field"><span>Emergency number {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input {...props.register("alternateNumber")} /><FieldError message={props.errors.alternateNumber?.message} /></label>
           <label className="emp-field"><span>CNIC number <b>*</b></span><input {...cnicRegistration} inputMode="numeric" maxLength={15} placeholder="12345-1234567-1" onChange={(event) => { event.currentTarget.value = formatCnicInput(event.currentTarget.value); void cnicRegistration.onChange(event); }} /><FieldError message={props.errors.cnicNumber?.message} /></label>
           <label className="emp-field"><span>Passport number</span><input {...props.register("passportNumber")} /></label>
         </div>
       </section> : null}
 
       {!props.onlyEmploymentSections ? <section className="emp-form-section">
-        <header><span><Landmark size={18} /></span><div><h2>Bank details{props.isHiring ? " *" : ""}</h2><p>{props.existingBankAccount ? "Update the employee's saved bank account. Leave account number and IBAN blank to keep their saved values." : props.isHiring ? "Bank name, account title and account number are required. Branch name and IBAN are optional." : "Add bank details to the employee profile when available."}</p></div></header>
+        <header><span><Landmark size={18} /></span><div><h2>Bank details *</h2><p>{props.existingBankAccount ? "Review or update the saved bank details. The full account number is shown; leave IBAN blank to keep its saved value." : "Bank name, account title and account number are required. Branch name and IBAN are optional."}</p></div></header>
         <div className="emp-form-grid emp-form-grid--3">
-          <label className="emp-field"><span>Bank name {props.isHiring ? <b>*</b> : null}</span><input {...props.register("bankName")} placeholder="e.g. HBL" /><FieldError message={props.errors.bankName?.message} /></label>
+          <label className="emp-field"><span>Bank name {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input {...props.register("bankName")} placeholder="e.g. HBL" /><FieldError message={props.errors.bankName?.message} /></label>
           <label className="emp-field"><span>Branch name</span><input {...props.register("bankBranchName")} placeholder="Optional" /><FieldError message={props.errors.bankBranchName?.message} /></label>
-          <label className="emp-field"><span>Account title {props.isHiring ? <b>*</b> : null}</span><input {...props.register("bankAccountTitle")} /><FieldError message={props.errors.bankAccountTitle?.message} /></label>
-          <label className="emp-field"><span>Account number {props.isHiring ? <b>*</b> : null}</span><input {...props.register("bankAccountNumber")} autoComplete="off" placeholder={props.existingBankAccount?.accountNumberMasked ? `Saved account ${props.existingBankAccount.accountNumberMasked}; leave blank to keep` : ""} /><FieldError message={props.errors.bankAccountNumber?.message} /></label>
+          <label className="emp-field"><span>Bank branch code</span><input {...props.register("bankBranchCode")} placeholder="Optional" /><FieldError message={props.errors.bankBranchCode?.message} /></label>
+          <label className="emp-field"><span>Account title {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input {...props.register("bankAccountTitle")} /><FieldError message={props.errors.bankAccountTitle?.message} /></label>
+          <label className="emp-field"><span>Account number {props.isHiring || !props.onlyEmploymentSections ? <b>*</b> : null}</span><input {...props.register("bankAccountNumber")} autoComplete="off" placeholder="Enter account number" /><FieldError message={props.errors.bankAccountNumber?.message} /></label>
           <label className="emp-field"><span>IBAN</span><input {...props.register("bankIban")} autoComplete="off" placeholder={props.existingBankAccount?.ibanMasked ? `Saved IBAN ${props.existingBankAccount.ibanMasked}; leave blank to keep` : "Optional"} /><FieldError message={props.errors.bankIban?.message} /></label>
         </div>
       </section> : null}

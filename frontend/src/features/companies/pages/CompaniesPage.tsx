@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { normalizeApiError } from "../../../api/api-error";
+import { useAuthStore } from "../../../app/store/auth.store";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { CompanyFiltersPanel } from "../components/CompanyFiltersPanel";
 import { CompanyKanbanCard } from "../components/CompanyKanbanCard";
@@ -40,7 +41,8 @@ function readStoredView(): CompanyWorkspaceView {
 
 export function CompaniesPage() {
   const navigate = useNavigate();
-  const { hasPermission, isPlatformAdmin } = usePermissions();
+  const user = useAuthStore((state) => state.user);
+  const { hasPermission, isCompanyAdmin, isPlatformAdmin } = usePermissions();
   const canCreate = isPlatformAdmin;
   const canEdit = isPlatformAdmin || hasPermission("company.manage");
   const canDelete = isPlatformAdmin;
@@ -72,7 +74,7 @@ export function CompaniesPage() {
     [deferredSearch, page, sortBy, sortOrder, status],
   );
 
-  const companiesQuery = useCompanies(listParams);
+  const companiesQuery = useCompanies(listParams, !isCompanyAdmin);
 
   // edited by wali: Keep quick-view totals independent of the selected status and page.
   const countBaseParams = useMemo(
@@ -85,19 +87,19 @@ export function CompaniesPage() {
     }),
     [deferredSearch],
   );
-  const allCompaniesCountQuery = useCompanies(countBaseParams);
+  const allCompaniesCountQuery = useCompanies(countBaseParams, !isCompanyAdmin);
   const activeCompaniesCountQuery = useCompanies({
     ...countBaseParams,
     isActive: true,
-  });
+  }, !isCompanyAdmin);
   const inactiveCompaniesCountQuery = useCompanies({
     ...countBaseParams,
     isActive: false,
-  });
+  }, !isCompanyAdmin);
   // edited by wali: Keep the admin-only deleted count independent of the current tab.
   const deletedCompaniesCountQuery = useCompanies(
     { ...countBaseParams, isDeleted: true },
-    isPlatformAdmin,
+    isPlatformAdmin && !isCompanyAdmin,
   );
   const statusCounts = {
     all: allCompaniesCountQuery.data?.pagination.total,
@@ -119,6 +121,12 @@ export function CompaniesPage() {
     window.localStorage.setItem("companies-workspace-view", view);
   }, [view]);
 
+  useEffect(() => {
+    if (isCompanyAdmin && user?.companyId) {
+      navigate(`/companies/${user.companyId}`, { replace: true });
+    }
+  }, [isCompanyAdmin, navigate, user?.companyId]);
+
   function openCompany(company: Company) {
     navigate(`/companies/${company.companyId}`);
   }
@@ -138,6 +146,15 @@ export function CompaniesPage() {
   const error = companiesQuery.isError
     ? normalizeApiError(companiesQuery.error)
     : null;
+
+  if (isCompanyAdmin && user?.companyId) {
+    return (
+      <div className="org-full-page-state">
+        <LoaderCircle className="spin" size={27} />
+        <p>Opening your companyâ€¦</p>
+      </div>
+    );
+  }
 
   return (
     <section className="emp-workspace emp-workspace--access-ui org-workspace org-workspace--workforce-ui">

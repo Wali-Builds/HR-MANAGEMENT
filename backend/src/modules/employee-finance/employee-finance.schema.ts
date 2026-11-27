@@ -681,6 +681,13 @@ export const employeeBankAccountListQuerySchema =
           queryBoolean,
           z.boolean()
         )
+        .default(false),
+
+      includeAccountNumber:
+        z.preprocess(
+          queryBoolean,
+          z.boolean()
+        )
         .default(false)
     })
     .strict();

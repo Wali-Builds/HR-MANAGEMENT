@@ -220,6 +220,9 @@ function mapUser(
     employeeName:
       employeeName(user),
 
+    employeeProfilePhotoPath:
+      user.employee_profile_photo_path,
+
     employeeOfficialEmail:
       user.employee_official_email,
 

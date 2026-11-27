@@ -54,6 +54,7 @@ const userSelectColumns = `
   e.middle_name AS employee_middle_name,
   e.last_name AS employee_last_name,
   e.official_email AS employee_official_email,
+  e.profile_photo_path AS employee_profile_photo_path,
   (
     SELECT ea.branch_id
     FROM employee_assignments ea
